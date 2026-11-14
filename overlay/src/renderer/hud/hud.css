@@ -1,81 +1,88 @@
 @import "../fonts/fonts.css";
-/* Product dark tokens: root PRODUCT.md, Brand Commitments. Window stays transparent; the bar, transcript and each card are dark surfaces. */
+/* context.dev light system (context.dev CSS: brand-card, neutral, brand-blue, warning/danger/success tokens).
+   The window stays transparent; the bar, transcript and each card are solid white surfaces with a hairline and a layered soft shadow. */
 :root {
-  --card: hsl(233 20% 10.5%); --border: hsl(233 12% 21%);
-  --fg: hsl(220 20% 96%); --muted: hsl(220 10% 66%); --primary: #268bff;
-  --on-fill: #07142f; /* brand navy: text on the bright blue / amber / red / blue fills */
-  --low: #60a5fa; --medium: #f0b44c; --high: #ff6b6b; --checking: #f0b44c;
-  --sans: "Rethink Sans", system-ui, sans-serif;
+  --surface: #fff; --surface-hover: #f9fafb; --line: #e6e6e6; --line-strong: #ccc;
+  --fg: #000; --muted: #4d4d4d; --subtle: #707070;
+  --primary: #2563eb; --primary-ink: #1447e6; --primary-soft: #e9effd; --primary-line: #d3e0fb;
+  --ink: #070709; --ink-hover: #242426; --on-ink: #fff; /* the black pill CTA */
+  --ok: #22c55e; --wait: #f99c00;
+  --warn-ink: #b45309; --warn-soft: #fffbeb; --warn-line: #f4d46c;
+  --danger: #dc2626; --danger-ink: #b91c1c; --danger-soft: #fef2f2; --danger-line: #fecaca;
+  --sans: "Rethink Sans", system-ui, sans-serif; --data: "Doto", ui-monospace, monospace;
   --ease: cubic-bezier(.22, 1, .36, 1);
-  /* Depth: lets a dark card read over a dark app and keeps its edge over a light one. */
-  --lift: inset 0 1px 0 hsl(0 0% 100% / .05), 0 8px 20px -8px hsl(233 40% 2% / .75);
+  /* context.dev --brand-card-shadow (light): stacked soft drops, 1px ring, inset top hairline. */
+  --lift: 0 .25rem .5rem 0 #2929291f, 0 .125rem .25rem 0 #2929290f, 0 .0625rem .125rem 0 #2929290f, 0 0 0 .0625rem #29292921, 0 -.03125rem .03125rem 0 #29292914 inset;
 }
 * { box-sizing: border-box; margin: 0; }
-html, body { height: 100%; background: transparent; color: var(--fg); font: 400 .875rem/1.3 var(--sans); overflow: hidden; }
+html, body { height: 100%; background: transparent; color: var(--fg); font: 450 .875rem/1.3 var(--sans); overflow: hidden; }
 .strip { height: 100%; display: flex; flex-direction: column; gap: 10px; padding: 12px; }
 
-.bar { order: 0; transition: border-color .25s var(--ease), box-shadow .25s var(--ease); display: flex; justify-content: space-between; align-items: center; padding: 8px 14px; background: var(--card); border: 1px solid var(--border); border-radius: .875rem; box-shadow: var(--lift); }
-body.interactive .bar { border-color: var(--primary); box-shadow: var(--lift), 0 0 0 3px hsl(210 100% 57% / .28); }
-.mark { font-weight: 800; font-size: 1rem; }
-/* Stream state: dot + word, colours reuse the criticality tokens. */
-.status { display: flex; align-items: center; gap: 7px; font-size: .75rem; color: var(--muted); }
-.status::before { content: ""; width: 7px; height: 7px; border-radius: 50%; background: var(--checking); transition: background .3s var(--ease); }
-.status[data-stream="open"]::before { background: var(--primary); }
-.status[data-stream="closed"]::before { background: var(--high); }
+.bar { order: 0; position: relative; transition: border-color .25s var(--ease), box-shadow .25s var(--ease); display: flex; justify-content: space-between; align-items: center; padding: 8px 14px; background: var(--surface); border: 1px solid var(--line); border-radius: .875rem; box-shadow: var(--lift); }
+/* context.dev's dot grid, faded to the middle so it never sits under the text. */
+.bar::before { content: ""; position: absolute; inset: 0; border-radius: inherit; pointer-events: none; background: radial-gradient(circle, var(--primary-line) 1.2px, transparent 1.6px) 0 0 / 8px 8px;
+  -webkit-mask-image: radial-gradient(ellipse 22% 90% at 50% 50%, #000, transparent); mask-image: radial-gradient(ellipse 22% 90% at 50% 50%, #000, transparent); }
+body.interactive .bar { border-color: var(--primary); box-shadow: var(--lift), 0 0 0 3px #2563eb1a; }
+.mark { position: relative; font-weight: 600; font-size: 1rem; letter-spacing: -.025em; }
+/* Stream state: dot + dot-matrix word. */
+.status { position: relative; display: flex; align-items: center; gap: 7px; font: 900 .8125rem/1 var(--data); color: var(--muted); }
+.status::before { content: ""; width: 7px; height: 7px; border-radius: 50%; background: var(--wait); transition: background .3s var(--ease); }
+.status[data-stream="open"]::before { background: var(--ok); }
+.status[data-stream="closed"]::before { background: var(--danger); }
 
 /* Transcript at the top: newest line last, older lines fade. */
-.transcript { order: 1; display: flex; flex-direction: column; gap: 8px; max-height: 32%; overflow: hidden; justify-content: flex-end; padding: 12px 14px; background: var(--card); border: 1px solid var(--border); border-radius: .875rem; box-shadow: var(--lift); animation: pop .4s var(--ease); }
+.transcript { order: 1; display: flex; flex-direction: column; gap: 8px; max-height: 32%; overflow: hidden; justify-content: flex-end; padding: 12px 14px; background: var(--surface); border: 1px solid var(--line); border-radius: .875rem; box-shadow: var(--lift); animation: pop .4s var(--ease); }
 .transcript:empty { display: none; }
 .transcript p { color: var(--muted); line-height: 1.35; animation: line-in .35s var(--ease); transition: opacity .3s var(--ease), color .3s var(--ease); }
 .transcript p:last-child { color: var(--fg); }
-.transcript p:nth-last-child(n+4) { opacity: .55; }
-.transcript b { display: block; font-size: .75rem; font-weight: 600; color: var(--muted); margin-bottom: 1px; }
+.transcript p:nth-last-child(n+4) { opacity: .6; }
+.transcript b { display: block; font-size: .75rem; font-weight: 600; color: var(--subtle); margin-bottom: 1px; }
 .transcript p:last-child b { color: var(--primary); }
 
 .cards { order: 2; flex: 1; min-height: 0; display: flex; flex-direction: column; gap: 10px; overflow: hidden;
   /* room for the card shadows, which overflow:hidden would clip */
   margin: -8px -12px 0; padding: 8px 12px 0; }
-.card { --tier: var(--border); background: var(--card); border: 1px solid var(--border); border-radius: .875rem; padding: 12px 14px; box-shadow: var(--lift); transition: background-color .4s var(--ease), border-color .4s var(--ease), color .4s var(--ease); }
-/* Criticality: surface tint + hairline in the tier colour (no side stripe), pill weight below. */
-.card[data-tier] { background: color-mix(in srgb, var(--tier) 9%, var(--card)); border-color: color-mix(in srgb, var(--tier) 42%, var(--border)); }
-.card { --ring: var(--tier); }
-.card[data-tier="low"] { --tier: var(--low); }
-.card[data-tier="medium"] { --tier: var(--medium); }
-.card[data-tier="high"] { --tier: var(--high); }
+.card { --tier: var(--line); --tier-ink: var(--fg); --tier-soft: var(--surface); --tier-line: var(--line); --ring: var(--tier); background: var(--surface); border: 1px solid var(--line); border-radius: .875rem; padding: 12px 14px; box-shadow: var(--lift); transition: background-color .4s var(--ease), border-color .4s var(--ease), color .4s var(--ease); }
+/* Criticality: soft tinted surface + tinted hairline (no side stripe), pill weight below. */
+.card[data-tier] { background: var(--tier-soft); border-color: var(--tier-line); }
+.card[data-tier="low"] { --tier: var(--primary); --tier-ink: var(--primary-ink); --tier-soft: var(--primary-soft); --tier-line: var(--primary-line); }
+.card[data-tier="medium"] { --tier: var(--wait); --tier-ink: var(--warn-ink); --tier-soft: var(--warn-soft); --tier-line: var(--warn-line); }
+.card[data-tier="high"] { --tier: var(--danger); --tier-ink: var(--danger-ink); --tier-soft: var(--danger-soft); --tier-line: var(--danger-line); }
 
 .head { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
-.card h2 { font-size: .875rem; font-weight: 600; line-height: 1.2; }
-.card[data-tier="high"] h2 { color: var(--high); }
-/* High is a solid fill, medium a tinted one, low an outline: weight follows criticality. */
-.pill { padding: 2px 10px; border-radius: 999px; border: 1px solid var(--tier); color: var(--tier); font-size: .75rem; font-weight: 600; line-height: 1.2; text-transform: capitalize; }
-.card[data-tier="medium"] .pill { background: color-mix(in srgb, var(--tier) 18%, transparent); }
-.card[data-tier="high"] .pill { background: var(--tier); color: var(--on-fill); }
+.card h2 { font-size: .875rem; font-weight: 600; line-height: 1.2; letter-spacing: -.01em; }
+.card[data-tier] h2 { color: var(--tier-ink); }
+/* High is a solid fill, medium and low a soft tint with a hairline: weight follows criticality. */
+.pill { padding: 3px 10px 2px; border-radius: 999px; border: 1px solid var(--tier-line); background: var(--surface); color: var(--tier-ink); font: 900 .8125rem/1.2 var(--data); text-transform: capitalize; }
+.card[data-tier="low"] .pill { background: #fff; }
+.card[data-tier="medium"] .pill { background: #fff; border-color: var(--tier); }
+.card[data-tier="high"] .pill { background: var(--danger); border-color: var(--danger); color: #fff; }
 
 /* The fact is the product: it leads, in the largest type on the strip. */
 .fact { margin-top: 6px; font-size: 1rem; font-weight: 450; line-height: 1.3; text-wrap: pretty; }
-.card[data-tier] .fact { font-size: 1.25rem; font-weight: 600; line-height: 1.2; text-wrap: balance; }
+.card[data-tier] .fact { font-size: 1.25rem; font-weight: 500; line-height: 1.2; letter-spacing: -.02em; text-wrap: balance; }
 .meta { margin-top: 8px; font-size: .875rem; color: var(--muted); line-height: 1.35; }
-.meta.source { font-size: .75rem; }
+.meta.source { font-size: .75rem; color: var(--subtle); }
 
 /* Checking: amber, pulsing, no criticality yet. */
-.card.checking { border-style: dashed; border-color: var(--checking); }
+.card.checking { border-style: dashed; border-color: var(--wait); }
 .card.checking .head { justify-content: flex-start; }
-.card.checking h2 { color: var(--checking); }
-.dot { width: 8px; height: 8px; border-radius: 50%; background: var(--checking); animation: pulse 1.4s ease-in-out infinite; }
+.card.checking h2 { color: var(--warn-ink); }
+.dot { width: 8px; height: 8px; border-radius: 50%; background: var(--wait); animation: pulse 1.4s ease-in-out infinite; }
 @keyframes pulse { 50% { opacity: .3; } }
 
 /* Unverified: muted, then fades out (hud.ts removes it after). */
-.card.unverified { border-style: dashed; color: var(--muted); }
+.card.unverified { border-style: dashed; border-color: var(--line-strong); color: var(--muted); }
 .card.unverified h2 { color: var(--muted); font-weight: 450; }
 
-.card.message { --ring: var(--primary); background: color-mix(in srgb, var(--primary) 9%, var(--card)); border-color: color-mix(in srgb, var(--primary) 42%, var(--border)); }
-.card.message h2 { color: var(--primary); }
+.card.message { --ring: var(--primary); background: var(--primary-soft); border-color: var(--primary-line); }
+.card.message h2 { color: var(--primary-ink); }
 
 /* Motion (enter, exit and sibling glide are WAAPI in hud.ts). The verdict lands with one ring pulse and its
    content rises in on the card that stays; the tint above tweens from the checking amber. */
 .card.land { animation: land .8s var(--ease); }
 @keyframes land {
-  from { box-shadow: var(--lift), 0 0 0 0 color-mix(in srgb, var(--ring) 70%, transparent); }
+  from { box-shadow: var(--lift), 0 0 0 0 color-mix(in srgb, var(--ring) 55%, transparent); }
   to { box-shadow: var(--lift), 0 0 0 8px color-mix(in srgb, var(--ring) 0%, transparent); }
 }
 .card.swap > * { animation: rise .4s var(--ease) both; }
@@ -87,23 +94,24 @@ body.interactive .bar { border-color: var(--primary); box-shadow: var(--lift), 0
 @keyframes pop { from { opacity: 0; transform: translateY(-6px); } }
 @keyframes fade { from { opacity: 0; } }
 
-/* Review buttons: visibly inert (dashed, muted) while the HUD is click-through. */
+/* Review buttons: context.dev pills. Visibly inert (dashed, muted) while the HUD is click-through;
+   live, Accept is the black CTA and Reject the white outline pill. */
 .actions { display: flex; gap: 8px; margin-top: 12px; }
-.card button { flex: 1; font: inherit; font-weight: 600; padding: 7px 10px; border-radius: .5rem; border: 1px dashed var(--muted); background: transparent; color: var(--muted); pointer-events: none; transition: background .25s var(--ease), border-color .25s var(--ease), color .25s var(--ease), opacity .2s var(--ease), transform .12s var(--ease); }
-body.interactive .card button { pointer-events: auto; cursor: pointer; border-style: solid; border-color: var(--border); color: var(--fg); }
-body.interactive .card button.accept { background: var(--primary); border-color: var(--primary); color: var(--on-fill); }
-body.interactive .card button:hover:not(:disabled) { background: hsl(233 20% 18%); }
-body.interactive .card button.accept:hover:not(:disabled) { background: #4aa0ff; border-color: #4aa0ff; }
+.card button { flex: 1; font: inherit; font-weight: 500; padding: 7px 10px; border-radius: 999px; border: 1px dashed var(--line-strong); background: transparent; color: var(--muted); pointer-events: none; transition: background .25s var(--ease), border-color .25s var(--ease), color .25s var(--ease), opacity .2s var(--ease), transform .12s var(--ease); }
+body.interactive .card button { pointer-events: auto; cursor: pointer; border-style: solid; border-color: var(--line-strong); background: var(--surface); color: var(--fg); }
+body.interactive .card button.accept { background: var(--ink); border-color: var(--ink); color: var(--on-ink); }
+body.interactive .card button:hover:not(:disabled) { background: var(--surface-hover); }
+body.interactive .card button.accept:hover:not(:disabled) { background: var(--ink-hover); border-color: var(--ink-hover); }
 body.interactive .card button:active:not(:disabled) { transform: scale(.97); }
-body.interactive .card button:focus-visible { outline: 2px solid var(--fg); outline-offset: 2px; }
+body.interactive .card button:focus-visible { outline: 2px solid var(--primary); outline-offset: 2px; }
 .card button:disabled { opacity: .45; cursor: default; }
 .card button.chosen:disabled { opacity: 1; }
 body.interactive .card button.reject.chosen { border-color: var(--fg); }
 .sendstate { margin-top: 6px; }
-.sendstate.error { color: var(--high); }
+.sendstate.error { color: var(--danger-ink); }
 /* Outcome shown for a moment when the review closes. */
 .result { margin-top: 12px; font-weight: 600; }
-.result.accepted { color: var(--primary); }
+.result.accepted { color: var(--primary-ink); }
 .result.rejected { color: var(--muted); }
 @media (prefers-reduced-motion: reduce) {
   .dot { animation: none; }

@@ -1,8 +1,16 @@
-/* Rethink Sans (variable 400–800), latin subset, vendored from fontsource. */
+/* Rethink Sans (variable 400–800), latin subset, vendored from fontsource. context.dev's text face. */
 @font-face {
   font-family: "Rethink Sans";
   font-style: normal;
   font-weight: 400 800;
   font-display: swap;
   src: url("rethink-sans-latin-wght-normal.woff2") format("woff2");
+}
+/* Doto (variable 100–900, OFL), the dot-matrix face context.dev uses for data readouts. Copied from context.dev's own subset. */
+@font-face {
+  font-family: "Doto";
+  font-style: normal;
+  font-weight: 100 900;
+  font-display: swap;
+  src: url("doto-latin-wght-normal.woff2") format("woff2");
 }
