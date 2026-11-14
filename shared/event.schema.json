@@ -132,7 +132,10 @@
           ]
         },
         "lineId": {
-          "type": "string"
+          "type": [
+            "string",
+            "null"
+          ]
         }
       },
       "required": [
@@ -235,13 +238,19 @@
           "type": "string"
         },
         "newValue": {
-          "type": "string"
+          "type": [
+            "string",
+            "null"
+          ]
         },
         "evidence": {
           "type": "string"
         },
         "sourceUrl": {
-          "type": "string"
+          "type": [
+            "string",
+            "null"
+          ]
         },
         "card": {
           "$ref": "card.schema.json"

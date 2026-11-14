@@ -7,6 +7,7 @@
 - New `shared/api.schema.json`: `/check` body, `/reviews/{id}` body and response, 202 accepted response.
 - TypeScript types and Python models are generated from the schemas.
 - `overlay/src/shared/contract.ts` is now a thin re-export plus `EVENT_TYPES`, derived helper types and the `AudioChunk` IPC type.
+- Review fix: optional fields (`claim.spotted.lineId`, `claim.verdict.newValue`, `claim.verdict.sourceUrl`, `checkId` in the 202 response) accept `null` as well as being omitted, because pydantic's default `model_dump()` writes unset optional fields as `null` and the overlay validator would otherwise drop those events.
 - Installed for later phases: `eventsource`, `ajv`, `ajv-formats`, `@fontsource-variable/rethink-sans`, `@fontsource/doto`, dev `json-schema-to-typescript`, `vitest`. Added `npm test`.
 
 ## Why

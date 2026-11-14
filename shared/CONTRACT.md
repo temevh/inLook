@@ -46,6 +46,8 @@ SSE framing: `id: <seq>`, `event: <type>`, `data: <envelope JSON>`.
 | `strategy.healthy` | proposed | `{ strategyId, name }` | flag cleared |
 | `message.created` | proposed | `{ messageId, to: [personId], strategyId, factId, text }` | Inlook message |
 
+Fields marked `?` (and `checkId` in the `/check` 202 response) may be omitted or `null`; pydantic's default `model_dump()` writes unset optional fields as `null`.
+
 ## HUD card (decided)
 
 Filled by Gemini in the verdict + card call; `card.schema.json` is the `responseSchema`.

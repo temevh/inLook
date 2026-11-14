@@ -35,6 +35,13 @@ describe("mock fixtures", () => {
 
   const verdict = readJson(join(mockDir, "demo.json")).find((i: { type: string }) => i.type === "claim.verdict");
 
+  it("accepts null for optional claim.verdict fields", () => {
+    const ok = structuredClone(verdict);
+    ok.payload.newValue = null;
+    ok.payload.sourceUrl = null;
+    expect(validate(envelope(ok, 1)), ajv.errorsText(validate.errors)).toBe(true);
+  });
+
   it("rejects a bad criticality", () => {
     const bad = structuredClone(verdict);
     bad.payload.card.criticality = "urgent";

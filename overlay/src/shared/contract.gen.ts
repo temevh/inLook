@@ -37,7 +37,7 @@ export interface ClaimSpottedPayload {
   claimId: string;
   text: string;
   source: "audio" | "selection" | "screenshot";
-  lineId?: string;
+  lineId?: string | null;
 }
 export interface ClaimUnverifiedEvent {
   seq: number;
@@ -60,9 +60,9 @@ export interface ClaimVerdictPayload {
   factId: string;
   verdict: "current" | "outdated" | "unverifiable";
   oldValue: string;
-  newValue?: string;
+  newValue?: string | null;
   evidence: string;
-  sourceUrl?: string;
+  sourceUrl?: string | null;
   card: HudCard;
 }
 /**
@@ -179,7 +179,7 @@ export interface CheckImageRequest {
 }
 export interface AcceptedResponse {
   accepted: true;
-  checkId?: string;
+  checkId?: string | null;
 }
 export interface ReviewRequest {
   decision: "accept" | "reject";

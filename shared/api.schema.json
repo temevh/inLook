@@ -64,7 +64,10 @@
           "const": true
         },
         "checkId": {
-          "type": "string"
+          "type": [
+            "string",
+            "null"
+          ]
         }
       },
       "required": [
