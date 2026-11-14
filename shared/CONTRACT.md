@@ -5,7 +5,7 @@ Source: `.plans/overlay-architecture-spec.md`. Schemas: `event.schema.json`, `ca
 Status key:
 - **decided**: stated in the spec or the task brief.
 - **proposed**: shape filled in for the skeleton; agree with the backend owners before relying on it.
-- **UNCONFIRMED**: depends on an unconfirmed component (MongoDB, Context.dev, embedding-first noticing).
+- **UNCONFIRMED**: depends on an unconfirmed component (Context.dev, embedding-first noticing).
 
 ## Transport (decided)
 
@@ -39,11 +39,13 @@ SSE framing: `id: <bootId>:<seq>` (proposed) and `data: <envelope JSON>`. No `ev
 | `claim.unverified` | proposed | `{ claimId, reason: "no_match" \| "unverifiable" }` | claim marked unverified, then dropped |
 | `claim.verdict` | decided (payload proposed) | `{ claimId, factId, verdict: "current" \| "outdated" \| "unverifiable", oldValue, newValue?, evidence, sourceUrl?, card }` | inline note / card |
 | `fact.updated` | proposed | `{ factId, version: { value, source, at, by }, card }` (low tier, auto) | "updated" |
-| `review.created` | proposed | `{ reviewId, factId, oldValue, newValue, evidence, tier, reviewers: [personId], card }` | review request, accept/reject when HUD is interactive |
+| `review.created` | proposed | `{ reviewId, factId, oldValue, newValue, evidence, tier, reviewers: [Person], card }` | review request, accept/reject when HUD is interactive |
 | `review.closed` | proposed | `{ reviewId, factId, status: "accepted" \| "rejected" }` | review resolved |
 | `strategy.flagged` | proposed | `{ strategyId, name, factId }` | flagged strategy |
 | `strategy.healthy` | proposed | `{ strategyId, name }` | flag cleared |
-| `message.created` | proposed | `{ messageId, to: [personId], strategyId, factId, text }` | Inlook message |
+| `message.created` | proposed | `{ messageId, to: [Person], strategyId, factId, text }` | Inlook message |
+
+`Person` is `{ id, name, role }`: events carry the name and role so the HUD can show who is asked or notified (the overlay has no people data).
 
 Fields marked `?` (and `checkId` in the `/check` 202 response) may be omitted or `null`; pydantic's default `model_dump()` writes unset optional fields as `null`.
 

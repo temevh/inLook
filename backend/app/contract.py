@@ -160,25 +160,13 @@ class StrategyHealthyEvent(BaseModel):
     at: AwareDatetime
 
 
-class MessageCreatedPayload(BaseModel):
+class Person(BaseModel):
     model_config = ConfigDict(
         extra='forbid',
     )
-    messageId: str
-    to: list[str]
-    strategyId: str
-    factId: str
-    text: str
-
-
-class MessageCreatedEvent(BaseModel):
-    model_config = ConfigDict(
-        extra='forbid',
-    )
-    seq: Annotated[int, Field(ge=1)]
-    type: Literal['message.created']
-    payload: MessageCreatedPayload
-    at: AwareDatetime
+    id: str
+    name: str
+    role: str
 
 
 class Title(Enum):
@@ -310,7 +298,7 @@ class ReviewCreatedPayload(BaseModel):
     newValue: str
     evidence: str
     tier: Tier
-    reviewers: list[str]
+    reviewers: list[Person]
     card: HudCard
 
 
@@ -321,6 +309,27 @@ class ReviewCreatedEvent(BaseModel):
     seq: Annotated[int, Field(ge=1)]
     type: Literal['review.created']
     payload: ReviewCreatedPayload
+    at: AwareDatetime
+
+
+class MessageCreatedPayload(BaseModel):
+    model_config = ConfigDict(
+        extra='forbid',
+    )
+    messageId: str
+    to: list[Person]
+    strategyId: str
+    factId: str
+    text: str
+
+
+class MessageCreatedEvent(BaseModel):
+    model_config = ConfigDict(
+        extra='forbid',
+    )
+    seq: Annotated[int, Field(ge=1)]
+    type: Literal['message.created']
+    payload: MessageCreatedPayload
     at: AwareDatetime
 
 

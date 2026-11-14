@@ -168,6 +168,8 @@ function reviewActions(reviewId: string) {
   return wrap;
 }
 
+const people = (ps: { name: string; role: string }[]) => ps.map((p) => `${p.name} · ${p.role}`).join(", ");
+
 function render(e: InlookEvent) {
   switch (e.type) {
     case "transcript.line": {
@@ -222,7 +224,7 @@ function render(e: InlookEvent) {
       upsertCard(key, (c) => {
         c.classList.add("review");
         fillCard(c, e.payload.card, e.payload.evidence);
-        c.append(reviewActions(e.payload.reviewId));
+        c.append(el("p", "meta", `Reviewer: ${people(e.payload.reviewers)}`), reviewActions(e.payload.reviewId));
       });
       break;
     }
@@ -253,7 +255,7 @@ function render(e: InlookEvent) {
       upsertCard(`message:${e.payload.messageId}`, (c) => {
         c.classList.add("message");
         head(c, "Inlook");
-        c.append(el("p", "fact", e.payload.text));
+        c.append(el("p", "fact", e.payload.text), el("p", "meta", `To ${people(e.payload.to)}`));
       });
       break;
   }

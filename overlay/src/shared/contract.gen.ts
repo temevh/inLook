@@ -106,8 +106,13 @@ export interface ReviewCreatedPayload {
   newValue: string;
   evidence: string;
   tier: Tier;
-  reviewers: string[];
+  reviewers: Person[];
   card: HudCard;
+}
+export interface Person {
+  id: string;
+  name: string;
+  role: string;
 }
 export interface ReviewClosedEvent {
   seq: number;
@@ -149,7 +154,7 @@ export interface MessageCreatedEvent {
 }
 export interface MessageCreatedPayload {
   messageId: string;
-  to: string[];
+  to: Person[];
   strategyId: string;
   factId: string;
   text: string;
