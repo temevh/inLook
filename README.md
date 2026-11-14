@@ -1,10 +1,12 @@
 # inLook
 
-**Engineering teams get paged when servers break, now leadership gets paged when strategy breaks**
+**inLook catches outdated facts in meetings, flags the strategies that depend on them, and notifies only their owners.**
 
-Someone in a meeting says *"Notion Plus is eight dollars a seat, so we're clearly cheaper."* inLook hears it, finds the matching fact in company memory, re-reads the source page, and sees that the price is now $10. Because two strategies rely on that number, it flags both and asks just their owners to accept the new value. Everyone else keeps working.
+Someone in a meeting says _"Salesforce Advanced is three hundred fifty dollars per user a month, so we're clearly cheaper."_ inLook hears it, finds the matching fact in company memory, reads Salesforce's **live** pricing page, and sees that the price is now $395. The pricing plan relies on that number, so inLook flags it and asks only its owner to accept the new value. Everyone else keeps working. It checks names and product names too, not just numbers.
 
- <img src="docs/images/desk-demo-ada.png" alt="My desk in demo mode with the person switcher">
+<p align="center">
+  <img src="docs/images/desk-demo-ada.png" alt="My desk in demo mode">
+</p>
 
 ---
 
@@ -32,15 +34,15 @@ Someone in a meeting says *"Notion Plus is eight dollars a seat, so we're clearl
 1. **Listen.** The desktop overlay streams the mic as 16 kHz PCM to the backend, which relays it to ElevenLabs realtime speech-to-text and gets transcript lines with speaker labels. A hotkey or widget button can also send highlighted text or a screenshot.
 2. **Spot.** Gemini picks out fact-checkable claims from the transcript (prefiltered and batched to save quota).
 3. **Match.** Each claim is matched to a stored fact in MongoDB.
-4. **Re-check at the source.** The fact's source page is scraped through Context.dev (or searched for, when the fact has no page).
-5. **Verdict.** Gemini decides whether the claim is current or outdated and writes a HUD card such as *"Outdated: $10 per seat"*.
+4. **Re-check at the source.** The fact's live source page is scraped fresh through Context.dev (or searched for, when the fact has no page). The HUD shows each step: _Checking… → Matched → Reading salesforce.com_.
+5. **Verdict.** Gemini quotes its evidence from the page first, then decides whether the stored value is current or outdated and writes a HUD card such as _"$350 → $395 per user per month"_. A guard catches a "current" answer whose own evidence shows a different number.
 6. **Route by tier.** What happens next depends on how much rides on the fact:
 
-| Tier | What happens |
-|---|---|
-| **Low** | Updated automatically. A low fact that any strategy relies on is raised to medium. |
-| **Medium** | A review goes to whoever stated the fact. |
-| **High** | A review goes to every owner of every strategy relying on it. Each strategy is flagged once and its owners get an inLook message. |
+| Tier       | What happens                                                                                                                      |
+| ---------- | --------------------------------------------------------------------------------------------------------------------------------- |
+| **Low**    | Updated automatically. A low fact that any strategy relies on is raised to medium.                                                |
+| **Medium** | A review goes to whoever stated the fact.                                                                                         |
+| **High**   | A review goes to every owner of every strategy relying on it. Each strategy is flagged once and its owners get an inLook message. |
 
 A flagged strategy turns healthy again only when none of its facts is still in review. Facts are also watched without a meeting: Context.dev page monitors call a webhook when a source page changes, and `POST /recheck` re-checks a fact on demand.
 
@@ -53,27 +55,34 @@ A flagged strategy turns healthy again only when none of its facts is still in r
 ## Features
 
 **Desktop overlay (Electron)**
+
 - Transparent HUD strip docked to a screen edge that is click-through everywhere except where it draws.
-- Live transcript, one card per fact from "Checking…" to its outcome, with Accept / Reject by click or global hotkey.
-- Small widget to toggle transcription, check the highlighted text, or check the screen.
+- Live transcript, one card per fact from "Checking…" through its steps to the outcome, with Accept / Reject by click or global hotkey. Accepted values roll to the new number; outcomes fade on their own.
+- Each card says which strategies it affects and who was asked to review or notified.
+- A small navball widget with four bubbles: transcribe, check the highlighted text, check the screen, close.
 - Hardened: strict CSP, context isolation, sandboxed renderers, validated IPC.
 
 **Backend (FastAPI + MongoDB Atlas)**
+
 - Realtime mic path over `WS /audio/stream` into ElevenLabs STT.
-- Background fact-check flow with Gemini (spot, match, verdict, vision) and Context.dev (scrape, search, page monitors).
+- Background fact-check flow with Gemini (spot, match, verdict, vision) and Context.dev (fresh scrapes of live pages, search, page monitors).
+- Checks numbers, names and product names. An evidence-first verdict with a number guard, and new values kept in the stored wording so only the number changes.
+- A 5-minute repeat cache, so a claim said twice answers from its last verdict instead of re-checking.
 - Tier routing, strategy flags, reviews and messages, all stored in MongoDB.
 - Server-sent event stream with replay (`Last-Event-ID`) backed by a MongoDB change stream, so it survives restarts.
 - Every event is validated against a shared JSON-schema contract. Every step is logged with its claim id.
 - Degrades gracefully: without a database it runs on an in-memory event log; a slow claim closes as "unverifiable".
 
 **Dashboard (Vue 3 + Vite + Pinia)**
+
 - **My desk**: reviews only you can decide, strategies at risk, facts in your scope, and your inbox.
 - **Meetings**: the live transcript and every claim checked, plus a box to check a claim by hand.
 - **Facts**: company memory with version history and a ripple diagram of who a change reaches.
 - **Strategies** and **Activity** log.
 - Hierarchy-aware scope: you see yourself and everyone below you in the reporting line.
-- Notification bell and pop-ups, a "sign in as" switcher, and a responsive phone layout.
-- A demo mode that needs nothing else, and a mock backend that prints every step the real backend would take.
+- Notification bell and pop-ups, and a "sign in as" switcher.
+- A **Live / Demo** switch: live mode reads the real data and the backend's stream, demo mode needs nothing else, and a mock backend prints every step the real backend would take.
+- The deployed `demo` branch build is demo-only and adds a responsive phone layout.
 
 ---
 
@@ -117,29 +126,29 @@ A flagged strategy turns healthy again only when none of its facts is still in r
 
 **Tech stack**
 
-| Part | Stack |
-|---|---|
-| Overlay | Electron 45, TypeScript, AudioWorklet, `eventsource`, ajv, vitest. Debian on X11 |
-| Backend | Python 3.12+, FastAPI, uvicorn, pydantic v2, pymongo, httpx, google-genai, websockets |
-| AI and data services | Gemini, ElevenLabs realtime STT (`scribe_v3_live`), Context.dev, MongoDB Atlas |
-| Dashboard | Vue 3, Vite, Pinia, Vue Router, Prisma 6 (MongoDB), tsx, vitest |
-| Hosting | Backend and mock backend on Render, dashboard on Vercel |
+| Part                 | Stack                                                                                 |
+| -------------------- | ------------------------------------------------------------------------------------- |
+| Overlay              | Electron 45, TypeScript, AudioWorklet, `eventsource`, ajv, vitest. Debian on X11      |
+| Backend              | Python 3.12+, FastAPI, uvicorn, pydantic v2, pymongo, httpx, google-genai, websockets |
+| AI and data services | Gemini, ElevenLabs realtime STT (`scribe_v3_live`), Context.dev, MongoDB Atlas        |
+| Dashboard            | Vue 3, Vite, Pinia, Vue Router, Prisma 6 (MongoDB), tsx, vitest                       |
+| Hosting              | Backend and mock backend on Render, simplified dashboard (`demo` branch) on Vercel    |
 
 ---
 
 ## Repository layout
 
-| Directory | What it is | Docs |
-|---|---|---|
-| [`overlay/`](overlay/) | Electron HUD + widget for Debian X11 | [overlay/README.md](overlay/README.md) |
-| [`backend/`](backend/) | FastAPI backend: audio relay, fact-check flow, SSE, MongoDB, Context.dev monitors | [backend/README.md](backend/README.md) |
-| [`frontend/`](frontend/) | Vue 3 dashboard, read-only Prisma data API and mock backend | [frontend/README.md](frontend/README.md) |
-| [`shared/`](shared/) | HTTP/SSE contract (JSON schemas) between overlay, backend and dashboard | [shared/README.md](shared/README.md), [CONTRACT.md](shared/CONTRACT.md) |
-| [`visualizations/visuals/`](visualizations/visuals/) | Static HTML pitch visuals and animated scenes | [PRODUCT.md](visualizations/visuals/PRODUCT.md) |
-| [`scripts/`](scripts/) | Demo-laptop setup, sync, launch and reset scripts | header comment in each script |
-| [`.plans/`](.plans/) | Architecture spec, the source of truth | [overlay-architecture-spec.md](.plans/overlay-architecture-spec.md) |
+| Directory                                            | What it is                                                                        | Docs                                                                    |
+| ---------------------------------------------------- | --------------------------------------------------------------------------------- | ----------------------------------------------------------------------- |
+| [`overlay/`](overlay/)                               | Electron HUD + widget for Debian X11                                              | [overlay/README.md](overlay/README.md)                                  |
+| [`backend/`](backend/)                               | FastAPI backend: audio relay, fact-check flow, SSE, MongoDB, Context.dev monitors | [backend/README.md](backend/README.md)                                  |
+| [`frontend/`](frontend/)                             | Vue 3 dashboard, read-only Prisma data API and mock backend                       | [frontend/README.md](frontend/README.md)                                |
+| [`shared/`](shared/)                                 | HTTP/SSE contract (JSON schemas) between overlay, backend and dashboard           | [shared/README.md](shared/README.md), [CONTRACT.md](shared/CONTRACT.md) |
+| [`visualizations/visuals/`](visualizations/visuals/) | Static HTML pitch visuals and animated scenes                                     | [PRODUCT.md](visualizations/visuals/PRODUCT.md)                         |
+| [`scripts/`](scripts/)                               | Demo-laptop setup, sync, launch and reset scripts                                 | header comment in each script                                           |
+| [`.plans/`](.plans/)                                 | Architecture spec, the source of truth                                            | [overlay-architecture-spec.md](.plans/overlay-architecture-spec.md)     |
 
-Project notes: [`PRODUCT.md`](PRODUCT.md) (product and brand), [`DECISIONS.md`](DECISIONS.md) (decisions log), [`TODO.md`](TODO.md).
+Project notes: [`DEMO.md`](DEMO.md) (live demo script), [`PRODUCT.md`](PRODUCT.md) (product and brand), [`DECISIONS.md`](DECISIONS.md) (decisions log), [`TODO.md`](TODO.md).
 
 ---
 
@@ -205,11 +214,11 @@ Default hotkeys: **Ctrl+Alt+K** check now (selection, else screen), **Ctrl+Alt+A
 
 ### Tests
 
-| Part | Command |
-|---|---|
-| Backend | `cd backend && uv run python -m unittest` |
+| Part      | Command                                                               |
+| --------- | --------------------------------------------------------------------- |
+| Backend   | `cd backend && uv run python -m unittest`                             |
 | Dashboard | `cd frontend && npm test` (also `npm run typecheck`, `npm run build`) |
-| Overlay | `cd overlay && npm test` |
+| Overlay   | `cd overlay && npm test`                                              |
 
 ### Changing the contract
 
@@ -228,57 +237,61 @@ Copy each `.env.example` to `.env`. Never commit real keys. Defaults and comment
 
 **Backend** (`backend/.env`)
 
-| Variable | Purpose |
-|---|---|
-| `GEMINI_API_KEY`, `GEMINI_MODEL` | Gemini key and model |
+| Variable                                                 | Purpose                                                                          |
+| -------------------------------------------------------- | -------------------------------------------------------------------------------- |
+| `GEMINI_API_KEY`, `GEMINI_MODEL`                         | Gemini key and model                                                             |
 | `GEMINI_TIMEOUT_S`, `GEMINI_ATTEMPTS`, `CHECK_TIMEOUT_S` | Per-attempt timeout, attempts per call, and time a claim gets to reach a verdict |
-| `ELEVENLABS_API_KEY`, `ELEVENLABS_MODEL` | Realtime speech-to-text |
-| `STT_LANGUAGE`, `STT_VAD_SILENCE_S` | Transcript language and the pause that ends a line |
-| `INLOOK_SPEAKERS` | Names given to speakers in the order they first speak |
-| `SPOT_DEBOUNCE_S`, `SPOT_PREFILTER` | Claim-spotting batching and prefilter |
-| `MONGODB_URI`, `MONGODB_DB` | MongoDB Atlas connection (empty runs on the in-memory event log) |
-| `MONGODB_TIMEOUT_MS`, `MONGODB_STARTUP_TIMEOUT_S` | Database timeouts |
-| `INLOOK_EVENTS` | `memory` forces the in-memory event log |
-| `INLOOK_DEV` | Enables `POST /dev/events` for injecting events |
-| `INLOOK_LOG_LEVEL` | Log level of the request and check-flow log |
-| `CONTEXT_DEV_API_KEY` | Context.dev scrape, search and monitors |
-| `PUBLIC_BASE_URL` | Public URL of the backend for Context.dev webhooks |
+| `ELEVENLABS_API_KEY`, `ELEVENLABS_MODEL`                 | Realtime speech-to-text                                                          |
+| `STT_LANGUAGE`, `STT_VAD_SILENCE_S`                      | Transcript language and the pause that ends a line                               |
+| `INLOOK_SPEAKERS`                                        | Names given to speakers in the order they first speak                            |
+| `SPOT_DEBOUNCE_S`, `SPOT_PREFILTER`                      | Claim-spotting batching and prefilter                                            |
+| `MONGODB_URI`, `MONGODB_DB`                              | MongoDB Atlas connection (empty runs on the in-memory event log)                 |
+| `MONGODB_TIMEOUT_MS`, `MONGODB_STARTUP_TIMEOUT_S`        | Database timeouts                                                                |
+| `INLOOK_EVENTS`                                          | `memory` forces the in-memory event log                                          |
+| `INLOOK_DEV`                                             | Enables `POST /dev/events` for injecting events                                  |
+| `INLOOK_LOG_LEVEL`                                       | Log level of the request and check-flow log                                      |
+| `CONTEXT_DEV_API_KEY`                                    | Context.dev scrape, search and monitors                                          |
+| `PUBLIC_BASE_URL`                                        | Public URL of the backend for Context.dev webhooks                               |
 
 **Dashboard** (`frontend/.env`)
 
-| Variable | Purpose |
-|---|---|
-| `DATABASE_URL` | MongoDB Atlas connection string for the Prisma data API |
-| `PORT` | Data API port (3001) |
-| `INLOOK_API_URL`, `INLOOK_BACKEND_URL`, `INLOOK_MOCK_URL` | Vite dev-proxy targets (optional) |
-| `VITE_INLOOK_USER` | Signed-in person id until there is a login (default `p-ada`) |
-| `MOCK_PORT` | Mock backend port (8787) |
+| Variable                                                  | Purpose                                                      |
+| --------------------------------------------------------- | ------------------------------------------------------------ |
+| `DATABASE_URL`                                            | MongoDB Atlas connection string for the Prisma data API      |
+| `PORT`                                                    | Data API port (3001)                                         |
+| `INLOOK_API_URL`, `INLOOK_BACKEND_URL`, `INLOOK_MOCK_URL` | Vite dev-proxy targets (optional)                            |
+| `VITE_INLOOK_USER`                                        | Signed-in person id until there is a login (default `p-ada`) |
+| `MOCK_PORT`                                               | Mock backend port (8787)                                     |
 
 **Overlay** (shell environment)
 
-| Variable | Purpose |
-|---|---|
-| `INLOOK_BACKEND_URL` | Backend base URL |
-| `INLOOK_HOTKEY`, `INLOOK_ACCEPT_HOTKEY`, `INLOOK_REJECT_HOTKEY` | Global hotkeys |
-| `INLOOK_HUD_EDGE`, `INLOOK_HUD_WIDTH` | HUD position and width |
+| Variable                                                        | Purpose                |
+| --------------------------------------------------------------- | ---------------------- |
+| `INLOOK_BACKEND_URL`                                            | Backend base URL       |
+| `INLOOK_HOTKEY`, `INLOOK_ACCEPT_HOTKEY`, `INLOOK_REJECT_HOTKEY` | Global hotkeys         |
+| `INLOOK_HUD_EDGE`, `INLOOK_HUD_WIDTH`                           | HUD position and width |
 
 ---
 
 ## Demo data
 
+**Live demo (backend).** `backend/seed.json` holds four mock people, three mock strategies (_Mock Pricing Plan_, _Mock Returns Policy_, _Mock Nike Account Plan_) and eight facts. Seven of the facts point at real public pages (Salesforce, HubSpot, Microsoft Dynamics, Apple, Wikipedia), stored with an older value so the check finds them outdated. `uv run python -m app.monitors peek` prints what each page says now.
+
+**Dashboard demo mode.** The dashboard's built-in demo uses its own mock company, shown below.
+
 <p align="center">
   <img src="docs/images/demo-data-graph.png" alt="Demo data: five people, three strategies and five facts, showing who owns what and what relies on what" width="900">
 </p>
 
-The demo company has five people three levels deep, three strategies and five facts. Seeded facts point at real public pages (Notion pricing, Apple's return policy) with an older value, so the first re-check finds them outdated.
+The dashboard's demo company has five people three levels deep, three strategies and five facts, defined in `frontend/src/mock/demo-data.json`.
 
-| Fact | Tier | Stated by | Strategies | What the demo shows |
-|---|---|---|---|---|
-| Notion Plus price | high | Sam | Pricing Plan, 2027 Budget | Both owners (Ada, Casey) decide; two strategies flagged |
-| EUR/USD rate | high | Ada | 2027 Budget | Casey decides, not Ada who stated it |
-| Apple return window | medium | Sam | Support Plan | Sam decides; rejected once before |
-| Weekly support tickets | low → medium | Sam | Support Plan, 2027 Budget | Raised to medium because strategies rely on it |
-| Office wifi | low | Mira | none | Updated automatically |
+| Fact                   | Tier         | Stated by | Strategies                | What the demo shows                                     |
+| ---------------------- | ------------ | --------- | ------------------------- | ------------------------------------------------------- |
+| Notion Plus price      | high         | Sam       | Pricing Plan, 2027 Budget | Both owners (Ada, Casey) decide; two strategies flagged |
+| EUR/USD rate           | high         | Ada       | 2027 Budget               | Casey decides, not Ada who stated it                    |
+| Apple return window    | medium       | Sam       | Support Plan              | Sam decides; rejected once before                       |
+| Weekly support tickets | low → medium | Sam       | Support Plan, 2027 Budget | Raised to medium because strategies rely on it          |
+| Office wifi            | low          | Mira      | none                      | Updated automatically                                   |
 
 Good people to sign in as: `p-ada` (default), `p-casey` (CEO, decides the most), `p-noor` (COO), `p-sam` (Support Lead), `p-mira` (no strategy). A step-by-step demo walkthrough is in [frontend/README.md](frontend/README.md#mock-data).
 
@@ -290,14 +303,14 @@ Good people to sign in as: `p-ada` (default), `p-casey` (CEO, decides the most),
 
 <img src="docs/images/meetings.png" alt="Meetings view with transcript and claim cards marked outdated, current, unverifiable and unverified" width="900">
 
-| | |
-|---|---|
-| <img src="docs/images/desk-layout-ada.png" alt="My desk for Ada with two pending reviews"><br>**My desk**: reviews only you can decide, your strategies, scope and inbox | <img src="docs/images/desk-signed-in-noor.png" alt="My desk signed in as Noor, the COO"><br>**Scoped by hierarchy**: signed in as the COO, seeing their team's work |
-| <img src="docs/images/bell.png" alt="Notification bell with review requests and messages"><br>**Notification bell**: each item links straight to its action | <img src="docs/images/colleague-decided.png" alt="A pop-up saying a colleague accepted a change"><br>**Colleagues decide too**: a pop-up when someone else accepts a change |
-| <img src="docs/images/ripple.png" alt="Facts page with version history and ripple diagram"><br>**Facts**: company memory, version history and who a change reaches | <img src="docs/images/desk-ada-after-accept.png" alt="My desk after accepting a change"><br>**After a decision**: the strategy heals and the inbox records it |
-| <img src="docs/images/desk-demo-ada.png" alt="My desk in demo mode with the person switcher"><br>**Demo mode**: switch person without losing the demo | <img src="docs/images/mobile-preview.png" alt="The dashboard at phone width"><br>**Responsive**: the dashboard on a phone |
+|                                                                                                                                                                          |                                                                                                                                                                             |
+| ------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| <img src="docs/images/desk-layout-ada.png" alt="My desk for Ada with two pending reviews"><br>**My desk**: reviews only you can decide, your strategies, scope and inbox | <img src="docs/images/desk-signed-in-noor.png" alt="My desk signed in as Noor, the COO"><br>**Scoped by hierarchy**: signed in as the COO, seeing their team's work         |
+| <img src="docs/images/bell.png" alt="Notification bell with review requests and messages"><br>**Notification bell**: each item links straight to its action              | <img src="docs/images/colleague-decided.png" alt="A pop-up saying a colleague accepted a change"><br>**Colleagues decide too**: a pop-up when someone else accepts a change |
+| <img src="docs/images/ripple.png" alt="Facts page with version history and ripple diagram"><br>**Facts**: company memory, version history and who a change reaches       | <img src="docs/images/desk-ada-after-accept.png" alt="My desk after accepting a change"><br>**After a decision**: the strategy heals and the inbox records it               |
+| <img src="docs/images/desk-demo-ada.png" alt="My desk in demo mode with the person switcher"><br>**Demo mode**: switch person without losing the demo                    | <img src="docs/images/mobile-preview.png" alt="The dashboard at phone width"><br>**Responsive** (`demo` branch): the dashboard on a phone                                   |
 
-**Backend terminal**: every request with who sent it, each step the real backend would take, and the response.
+**Backend view**: every request with who sent it, each step the real backend would take, and the response.
 
 <img src="docs/images/mock-backend-terminal.png" alt="Terminal output of the mock backend showing Gemini, Context.dev, routing, MongoDB and SSE steps for each request" width="900">
 
@@ -307,18 +320,31 @@ Good people to sign in as: `p-ada` (default), `p-casey` (CEO, decides the most),
 
 `visualizations/visuals/` holds static HTML visuals made for the pitch video, showing the parts of inLook beyond the hackathon build (the company-wide flow, dashboards and the "one shared memory" story). Each file opens on its own in a browser; `all-visuals.html` shows them all.
 
-| | |
-|---|---|
-| <img src="docs/images/viz-scene-06-live-check.png" alt="Scene: inLook checks claims while the meeting is still going"><br>*inLook checks claims while the meeting is still going.* | <img src="docs/images/viz-scene-08-flag.png" alt="Scene: a high-criticality fact goes stale and only its strategies are flagged"><br>*A high-criticality fact goes stale. Only its strategies are flagged.* |
-| <img src="docs/images/viz-scene-09-notify.png" alt="Scene: only the owners are asked to review"><br>*Only its owners are asked to review. Everyone else keeps working.* | <img src="docs/images/viz-scene-04-routing.png" alt="Scene: each fact reaches only the people who rely on it"><br>*Each fact reaches only the people who rely on it.* |
+|                                                                                                                                                                                    |                                                                                                                                                                                                             |
+| ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| <img src="docs/images/viz-scene-06-live-check.png" alt="Scene: inLook checks claims while the meeting is still going"><br>_inLook checks claims while the meeting is still going._ | <img src="docs/images/viz-scene-08-flag.png" alt="Scene: a high-criticality fact goes stale and only its strategies are flagged"><br>_A high-criticality fact goes stale. Only its strategies are flagged._ |
+| <img src="docs/images/viz-scene-09-notify.png" alt="Scene: only the owners are asked to review"><br>_Only its owners are asked to review. Everyone else keeps working._            | <img src="docs/images/viz-scene-04-routing.png" alt="Scene: each fact reaches only the people who rely on it"><br>_Each fact reaches only the people who rely on it._                                       |
 
+<details>
+<summary><b>Organisation-wide flow concepts</b></summary>
+
+|                                                                                                                                                  |                                                                                                                                                |
+| ------------------------------------------------------------------------------------------------------------------------------------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------- |
+| <img src="docs/images/viz-bloom.png" alt="Bloom: data radiating through the organisation"><br>**Bloom**: data radiating through the organisation | <img src="docs/images/viz-transit.png" alt="Transit: the organisation as a line map"><br>**Transit**: the organisation as a line map           |
+| <img src="docs/images/viz-tributary.png" alt="Tributary: from sources to people"><br>**Tributary**: from sources to people                       | <img src="docs/images/viz-network.png" alt="Network: one message moving between branches"><br>**Network**: one message moving between branches |
+
+</details>
 
 ---
 
 ## Further reading
 
 - [Architecture spec](.plans/overlay-architecture-spec.md): scope, components, data model, fact-check flow and tier rules
+- [Live demo script](DEMO.md): the seven claims, setup and troubleshooting
 - [Wire contract](shared/CONTRACT.md): endpoints, event envelope, event types and the HUD card
 - [Backend](backend/README.md): endpoints, logs, MongoDB collections, Context.dev monitors
 - [Dashboard](frontend/README.md): how the snapshot and stream work, scope rules, mock data, deploying the mock backend
 - [Overlay](overlay/README.md): layout, security model, demo-laptop scripts
+- [Decisions](DECISIONS.md) and [TODO](TODO.md)
+
+Future work claimed in the pitch: record and replay inputs, saving new facts from meetings, Slack and other integrations, multiple users with their own overlays, a strategy editor, and passive screen capture.
