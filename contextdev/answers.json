@@ -1,0 +1,13 @@
+{
+  "json_content": {
+    "result": "Top AI models in 2026 based on the BenchLM overall ranking:\n1. Claude Fable 5.2 (Anthropic) – Score 5.2\n2. Gemini 4 Carbon (Google) – Score 4.4\n3. Claude Opus 5.5 (Anthropic) – Score 5.5\n4. GPT-6 Astra (OpenAI) – Score 5.6\n5. Claude Sonnet 5.5 (Anthropic) – Score 5.5\n6. Grok 4.7 (xAI) – Score 4.7\n7. GPT-4o (OpenAI) – Score 4.8\n8. Llama 2 (Meta) – Score 4.5\n9. DeepSeek V4 Pro 0813 (DeepSeek) – Score 4.3\n10. Qwen3.7 Max (Alibaba) – Score 4.2"
+  },
+  "sources": [
+    "https://benchlm.ai/best/overall"
+  ],
+  "key_metadata": {
+    "credits_consumed": 10,
+    "credits_remaining": 50923
+  },
+  "request_id": "71b34a20-c519-4020-aa9a-1c8471e595a5"
+}
