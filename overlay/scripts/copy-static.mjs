@@ -1,5 +1,5 @@
-// Copies renderer HTML/CSS/fonts into dist/web/ and the shared JSON schemas into
-// dist/schemas/ (tsc only emits JS).
+// Copies renderer HTML/CSS/fonts and plain .js files (the audio worklet) into
+// dist/web/ and the shared JSON schemas into dist/schemas/ (tsc only emits JS from .ts).
 import { cpSync, mkdirSync, readdirSync, statSync } from "node:fs";
 import { join, extname } from "node:path";
 
@@ -7,7 +7,7 @@ const walk = (dir) => {
   for (const name of readdirSync(dir)) {
     const src = join(dir, name);
     if (statSync(src).isDirectory()) { walk(src); continue; }
-    if (![".html", ".css", ".woff2"].includes(extname(name))) continue;
+    if (![".html", ".css", ".woff2", ".js"].includes(extname(name))) continue;
     const dest = src.replace(/^src/, "dist/web");
     mkdirSync(join(dest, ".."), { recursive: true });
     cpSync(src, dest);

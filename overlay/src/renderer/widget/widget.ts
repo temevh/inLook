@@ -26,9 +26,8 @@ async function busy(b: HTMLButtonElement, fn: () => Promise<void>) {
   finally { b.disabled = false; b.removeAttribute("aria-busy"); }
 }
 
-const mic = new MicCapture(async (chunk) => {
-  const r = await window.inlook.sendAudioChunk(chunk);
-  if (!r.ok) say(`Audio not sent: ${r.error}`, "error");
+const mic = new MicCapture((pcm) => {
+  window.inlook.sendAudioFrame(pcm).catch((err: Error) => { if (mic.running) say(`Audio not sent: ${err.message}`, "error"); });
 });
 
 $("transcribe").onclick = () => busy($("transcribe"), async () => {

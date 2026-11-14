@@ -1,13 +1,14 @@
 // Main process: owns the windows, the backend client, the SSE stream,
 // selection/screenshot reads and the global hotkey.
 import { app, BrowserWindow, globalShortcut, ipcMain, session } from "electron";
+import { audioStream } from "./audio-stream";
 import { backend } from "./backend-client";
 import { config } from "./config";
 import { captureScreen } from "./screenshot";
 import { readSelection } from "./selection";
 import { subscribe } from "./sse";
 import { createHud, createWidget, isOwnPage, setHudInteractive } from "./windows";
-import type { AudioChunk, InlookEvent, ReviewDecision } from "../shared/contract";
+import type { InlookEvent, ReviewDecision } from "../shared/contract";
 import type { IpcInvoke, IpcPush, OverlayState } from "../shared/ipc";
 
 // X11 only (spec "Platform"). Transparency needs a compositor (Mutter or picom).
@@ -33,19 +34,14 @@ const handle = (channel: IpcInvoke, fn: (...args: any[]) => unknown) =>
     return fn(...args);
   });
 
-const AUDIO_CHUNK_MAX_BYTES = 4 * 1024 * 1024; // ~10 s Opus is well under 1 MB
+const AUDIO_FRAME_MAX_BYTES = 64 * 1024; // a frame is ~100 ms = 3200 B; leave headroom
 const bad = (what: string): never => { throw new Error(`invalid ${what}`); };
 const asBool = (v: unknown) => (typeof v === "boolean" ? v : bad("boolean"));
 const asReviewId = (v: unknown) => (typeof v === "string" && v.length > 0 && v.length <= 200 ? v : bad("review id"));
 const asDecision = (v: unknown): ReviewDecision => (v === "accept" || v === "reject" ? v : bad("decision"));
-function asAudioChunk(v: unknown): AudioChunk {
-  const c = v as Partial<AudioChunk> | null;
-  if (!c || typeof c !== "object") return bad("audio chunk");
-  if (!(c.data instanceof ArrayBuffer) || c.data.byteLength === 0 || c.data.byteLength > AUDIO_CHUNK_MAX_BYTES) bad("audio data");
-  if (typeof c.mime !== "string" || !c.mime.startsWith("audio/") || c.mime.length > 100) bad("audio mime");
-  if (typeof c.startedAt !== "string" || c.startedAt.length > 100) bad("audio startedAt");
-  if (!Number.isInteger(c.seqNo) || (c.seqNo as number) < 0) bad("audio seqNo");
-  return c as AudioChunk;
+function asAudioFrame(v: unknown): ArrayBuffer {
+  if (!(v instanceof ArrayBuffer) || v.byteLength === 0 || v.byteLength > AUDIO_FRAME_MAX_BYTES) return bad("audio frame");
+  return v;
 }
 
 const attempt = async (fn: () => Promise<unknown>) => {
@@ -76,8 +72,12 @@ function registerIpc() {
     if (hud) setHudInteractive(hud, on);
     pushState();
   });
-  handle("mic:set-transcribing", (v: unknown) => { state.transcribing = asBool(v); pushState(); });
-  handle("audio:chunk", (v: unknown) => { const chunk = asAudioChunk(v); return attempt(() => backend.postAudio(chunk)); });
+  handle("mic:set-transcribing", (v: unknown) => {
+    state.transcribing = asBool(v);
+    if (state.transcribing) audioStream.start(); else audioStream.stop();
+    pushState();
+  });
+  handle("audio:frame", (v: unknown) => { audioStream.send(asAudioFrame(v)); });
   handle("review:decide", (id: unknown, decision: unknown) => {
     const reviewId = asReviewId(id), d = asDecision(decision);
     return attempt(() => backend.postReview(reviewId, d));
@@ -118,5 +118,5 @@ app.whenReady().then(() => {
   if (!ok) console.warn(`[inlook] hotkey ${config.checkHotkey} is taken`);
 });
 
-app.on("will-quit", () => globalShortcut.unregisterAll());
+app.on("will-quit", () => { globalShortcut.unregisterAll(); audioStream.stop(); });
 app.on("window-all-closed", () => app.quit());
