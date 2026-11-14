@@ -17,12 +17,3 @@ export const EVENT_TYPES = [
   "transcript.line", "claim.spotted", "claim.unverified", "claim.verdict", "fact.updated",
   "review.created", "review.closed", "strategy.flagged", "strategy.healthy", "message.created",
 ] as const satisfies readonly EventType[];
-
-/** IPC only (widget → main); the wire body is multipart. */
-export interface AudioChunk {
-  /** audio/webm;codecs=opus, standalone file (own header). */
-  data: ArrayBuffer;
-  mime: string;
-  startedAt: string;
-  seqNo: number;
-}

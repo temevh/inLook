@@ -4,7 +4,7 @@ Run: uvicorn app.main:app --reload
 """
 import uuid
 
-from fastapi import FastAPI, File, Form, Header, HTTPException, Request, UploadFile
+from fastapi import FastAPI, File, Form, Header, HTTPException, Request, UploadFile, WebSocket
 from fastapi.responses import StreamingResponse
 
 from . import config
@@ -20,7 +20,9 @@ async def post_audio(
     startedAt: str = Form(...),
     seqNo: int = Form(...),
 ) -> Accepted:
-    """~10 s Opus chunk (1 s overlap) → ElevenLabs STT → transcript.line events
+    """DEPRECATED: replaced by WS /audio/stream (continuous PCM). The overlay no longer calls this.
+
+    ~10 s Opus chunk (1 s overlap) → ElevenLabs STT → transcript.line events
     → Gemini spot → claim.spotted events → check flow.
 
     TODO: services.stt.transcribe, de-duplicate the overlap, services.gemini.spot,
@@ -28,6 +30,21 @@ async def post_audio(
     """
     await chunk.read()
     return Accepted()
+
+
+@app.websocket("/audio/stream")
+async def audio_stream(ws: WebSocket) -> None:
+    """Mic stream: one connection = one transcribing session. Binary frames of raw PCM,
+    signed 16-bit little-endian, mono, 16 kHz, ~100 ms (3200 B) each. Results arrive
+    over SSE (transcript.line, claim.spotted, ...).
+
+    TODO: services/stt.py relays the frames to ElevenLabs realtime
+    (wss://api.elevenlabs.io/v1/speech-to-text/realtime, audio_format=pcm_16000,
+    diarize=true) and publishes transcript.line events. For now frames are discarded.
+    """
+    await ws.accept()
+    while (msg := await ws.receive())["type"] != "websocket.disconnect":
+        pass  # binary frames (msg["bytes"]) are discarded for now; text frames ignored
 
 
 @app.post("/check", status_code=202, response_model=Accepted)
@@ -64,7 +81,7 @@ async def context_webhook(request: Request) -> dict:
 @app.get("/stream")
 async def stream(last_event_id: str | None = Header(default=None)) -> StreamingResponse:
     """SSE. Every event has a seq id; replay after Last-Event-ID, then follow."""
-    after = int(last_event_id) if last_event_id and last_event_id.isdigit() else 0
+    after = log.resume_cursor(last_event_id)
     return StreamingResponse(
         log.follow(after),
         media_type="text/event-stream",

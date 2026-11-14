@@ -1,5 +1,7 @@
 # Phase 2: harden the shell
 
+Superseded in part by `docs/phase8.md`: the backend-restart limitation below is resolved (boot id in the SSE `id`).
+
 ## 2a: Electron security and HUD window
 
 Files: `overlay/src/main/main.ts`, `windows.ts`, both `index.html`.

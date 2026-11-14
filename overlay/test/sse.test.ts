@@ -8,19 +8,28 @@ const at = "2026-01-01T00:00:00.000Z";
 const line = (seq: number, text = `t${seq}`) => ({
   seq, type: "transcript.line", at, payload: { lineId: `l${seq}`, speaker: "A", text },
 });
-const frame = (e: { seq: number; type: string }, id: number = e.seq) =>
-  `id: ${id}\nevent: ${e.type}\ndata: ${JSON.stringify(e)}\n\n`;
+const frame = (e: { seq: number; type: string }, boot = "aaaa") =>
+  `id: ${boot}:${e.seq}\nevent: ${e.type}\ndata: ${JSON.stringify(e)}\n\n`;
 
 let server: Server;
-const requests: IncomingMessage[] = [];
-const conns: ServerResponse[] = [];
+let requests: IncomingMessage[] = [];
+let conns: ServerResponse[] = [];
+let restarted = false; // second scenario: new boot id, seq back at 1
 
 beforeAll(async () => {
   server = createServer((req, res) => {
     requests.push(req);
     res.writeHead(200, { "content-type": "text/event-stream", "cache-control": "no-cache" });
     conns.push(res);
-    if (requests.length === 1) {
+    if (restarted) {
+      if (requests.length === 1) {
+        res.write("retry: 50\n\n" + frame(line(1)) + frame(line(2)) + frame(line(3)));
+        setTimeout(() => res.end(), 100);
+      } else {
+        // "restarted" backend: another boot id, seq begins again at 1
+        res.write(frame(line(1, "after"), "bbbb") + frame(line(2, "after"), "bbbb"));
+      }
+    } else if (requests.length === 1) {
       const bad = { ...line(3), payload: { lineId: "l3" } }; // missing speaker/text
       res.write("retry: 50\n\n");
       res.write(frame(line(1)) + frame(line(2)) + frame(line(2)) + frame(bad) + frame(line(4)));
@@ -51,7 +60,28 @@ describe("subscribe", () => {
       expect(seqs).toEqual([1, 2, 4, 5]); // dup 2 once, invalid 3 dropped, 5 after reconnect
       expect(requests).toHaveLength(2);
       expect(requests[0]!.headers["last-event-id"]).toBeUndefined();
-      expect(requests[1]!.headers["last-event-id"]).toBe("4");
+      expect(requests[1]!.headers["last-event-id"]).toBe("aaaa:4");
+    } finally {
+      stop();
+    }
+  });
+
+  it("delivers events after a backend restart (new boot id, seq back to 1)", async () => {
+    conns.forEach((c) => c.destroy());
+    requests = [];
+    conns = [];
+    restarted = true;
+    const { subscribe } = await import("../dist/main/sse.js");
+    const got: string[] = [];
+    const stop = subscribe({
+      onEvent: (e: { payload: { text: string } }) => got.push(e.payload.text),
+      onStatus: () => {},
+    });
+    try {
+      await expect.poll(() => got.length, { timeout: 3000 }).toBe(5);
+      expect(got).toEqual(["t1", "t2", "t3", "after", "after"]);
+      expect(requests).toHaveLength(2);
+      expect(requests[1]!.headers["last-event-id"]).toBe("aaaa:3"); // old id is sent as-is
     } finally {
       stop();
     }

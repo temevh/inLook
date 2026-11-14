@@ -9,15 +9,16 @@ Status key:
 
 ## Transport (decided)
 
-- Overlay → backend: HTTP POST.
-- Backend → overlay: SSE on `GET /stream`. Every event has a `seq` id (sent as the SSE `id:`). On reconnect the client sends `Last-Event-ID`; the backend replays everything after it, then follows. Keep-alive comments every ~15 s, no-buffering headers.
+- Overlay → backend: HTTP POST; mic audio over a WebSocket (`WS /audio/stream`, proposed, see Endpoints).
+- Backend → overlay: SSE on `GET /stream`. Every event has a `seq`; the SSE `id:` is `<bootId>:<seq>` (**proposed**; `bootId` is a random id per backend process). On reconnect the client sends `Last-Event-ID`. If it is `<currentBootId>:<n>` the backend replays seq > n, then follows; anything else (missing, another boot id, a bare number) replays the whole current log. So the stream survives a backend restart. The overlay scopes its seq de-dupe to the boot id. Keep-alive comments every ~15 s, no-buffering headers.
 - Base URL: overlay reads `INLOOK_BACKEND_URL` (default `http://127.0.0.1:8000`).
 
 ## Endpoints
 
 | Endpoint | Status | Request | Response |
 |---|---|---|---|
-| `POST /audio` | decided (body proposed) | `multipart/form-data`: `chunk` (audio/webm;codecs=opus, ~10 s, ~1 s overlap), `startedAt` (ISO time), `seqNo` (int, per session) | `202 { "accepted": true }`. Transcript lines and claims arrive as events. |
+| `WS /audio/stream` | proposed | WebSocket on the backend URL (http→ws, https→wss). One connection = one transcribing session: opened when transcribing starts, closed (code 1000) when it stops. Only binary frames, overlay → backend: raw PCM, signed 16-bit little-endian, mono, 16 kHz, 1600 samples (3200 B, 100 ms) each; no header, JSON or sequence number. If the socket drops mid-session the overlay reconnects after 1 s (a new connection = a new session); frames are dropped while the socket is not open or when > 320 KB is buffered. | Nothing server → client. Transcript lines and claims arrive as events. |
+| `POST /audio` | replaced by `WS /audio/stream`; deprecated | `multipart/form-data`: `chunk` (audio/webm;codecs=opus, ~10 s, ~1 s overlap), `startedAt` (ISO time), `seqNo` (int, per session). The overlay no longer calls it. | `202 { "accepted": true }` |
 | `POST /check` | decided (body proposed) | JSON, one of: `{ "kind": "text", "text": "...", "source": "selection" \| "claim" }` or `{ "kind": "image", "mime": "image/png", "dataBase64": "...", "source": "screenshot" }` | `202 { "accepted": true, "checkId": "..." }`. Results arrive as events. |
 | `POST /reviews/{id}` | decided (body proposed) | JSON `{ "decision": "accept" \| "reject" }` | `200 { "id": "...", "status": "accepted" \| "rejected" }` |
 | `GET /stream` | decided | header `Last-Event-ID` (optional) | `text/event-stream` of events below |
@@ -29,7 +30,7 @@ Status key:
 { "seq": 42, "type": "claim.verdict", "payload": { }, "at": "2026-11-14T10:00:00Z" }
 ```
 
-SSE framing: `id: <seq>`, `event: <type>`, `data: <envelope JSON>`.
+SSE framing: `id: <bootId>:<seq>` (proposed), `event: <type>`, `data: <envelope JSON>`.
 
 ## Event types
 

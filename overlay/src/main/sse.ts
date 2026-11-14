@@ -19,6 +19,7 @@ const RECREATE_MS = 3000;
 export function subscribe({ onEvent, onStatus }: StreamOptions): () => void {
   let lastEventId: string | undefined;
   let lastSeq = 0;
+  let lastBoot = "";
   let es: EventSource | undefined;
   let timer: NodeJS.Timeout | undefined;
   let stopped = false;
@@ -48,6 +49,10 @@ export function subscribe({ onEvent, onStatus }: StreamOptions): () => void {
       const bad = validateEvent(e);
       if (bad) { console.warn("[sse] dropped invalid event:", bad.slice(0, 300)); return; }
       const ev = e as InlookEvent;
+      // Ids are `<bootId>:<seq>`. A new boot id means the backend restarted and seq began
+      // again at 1, so the seq de-dupe only holds within one boot id.
+      const boot = m.lastEventId.slice(0, m.lastEventId.lastIndexOf(":") + 1);
+      if (boot !== lastBoot) { lastBoot = boot; lastSeq = 0; }
       if (ev.seq <= lastSeq) return; // already seen (replay overlap)
       lastSeq = ev.seq;
       onEvent(ev);
