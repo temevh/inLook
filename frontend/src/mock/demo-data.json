@@ -1,0 +1,38 @@
+{
+ "_note": "MOCK DATA for the dashboard's demo mode. Every name, value and source here is invented. `live` is what the fact's source says today (null: no public source, so a check is unverifiable). `tier` is the tier as stated; a low-tier fact that a strategy relies on is treated as medium, as the backend does. `history` runs through the demo engine once at load, so past reviews, messages and updates are real events in the log. `meeting` is what Play meeting replays. A meeting claim's `autoDecide` makes that person decide the resulting review after `afterMs`, unless they are the one signed in.",
+ "people": [
+  {"id": "p-casey", "name": "Casey Mockford", "role": "CEO", "team": "Leadership", "reportsTo": null},
+  {"id": "p-ada", "name": "Ada Mockridge", "role": "Head of Pricing", "team": "Pricing", "reportsTo": "p-casey"},
+  {"id": "p-noor", "name": "Noor Mockwood", "role": "COO", "team": "Operations", "reportsTo": "p-casey"},
+  {"id": "p-sam", "name": "Sam Sample", "role": "Support Lead", "team": "Support", "reportsTo": "p-noor"},
+  {"id": "p-mira", "name": "Mira Mockwell", "role": "Office Manager", "team": "Operations", "reportsTo": "p-noor"}
+ ],
+ "facts": [
+  {"id": "f-compx-price", "key": "competitor.notion-plus.price-per-seat", "label": "Notion Plus price per seat", "value": "$8 per seat per month", "tier": "high", "sourceUrl": "https://www.notion.com/pricing", "statedBy": "p-sam", "since": "2026-10-03T09:00:00Z", "keywords": ["notion"], "live": {"value": "$10 per seat per month", "evidence": "Notion's pricing page lists Plus at $10 per member / month."}},
+  {"id": "f-eur-usd", "key": "finance.fx.eur-usd", "label": "EUR/USD planning rate", "value": "1 EUR = 1.08 USD", "tier": "high", "sourceUrl": "https://www.ecb.europa.eu/stats/policy_and_exchange_rates/euro_reference_exchange_rates/", "statedBy": "p-ada", "since": "2026-02-01T09:00:00Z", "keywords": ["dollars per euro", "eur/usd", "exchange rate", "euro"], "live": {"value": "1 EUR = 1.16 USD", "evidence": "The ECB reference rate has been between 1.15 and 1.17 USD for the last month."}},
+  {"id": "f-refund-window", "key": "benchmark.apple-store.return-window", "label": "Apple Store return window", "value": "30 days", "tier": "medium", "sourceUrl": "https://www.apple.com/shop/help/returns_refund", "statedBy": "p-sam", "since": "2026-10-10T13:00:00Z", "keywords": ["apple", "return window", "returns"], "live": {"value": "14 days", "evidence": "Apple's returns page says items can be returned within 14 days of delivery."}},
+  {"id": "f-ticket-volume", "key": "support.weekly-ticket-volume", "label": "Weekly support tickets", "value": "340 tickets per week", "tier": "low", "sourceUrl": "https://helpdesk.mock.example/reports/weekly", "statedBy": "p-sam", "since": "2026-10-01T09:00:00Z", "keywords": ["ticket", "tickets"], "live": {"value": "410 tickets per week", "evidence": "The helpdesk weekly report shows 410 tickets on average over the last four weeks."}},
+  {"id": "f-wifi-name", "key": "office.wifi-name", "label": "Office wifi network", "value": "MockNet", "tier": "low", "sourceUrl": null, "statedBy": "p-mira", "since": "2026-09-01T08:00:00Z", "keywords": ["wifi", "wi-fi", "mocknet"], "live": {"value": "MockNet-5G", "evidence": "The office IT sheet lists the guest network as MockNet-5G since the router swap."}}
+ ],
+ "strategies": [
+  {"id": "s-pricing", "name": "Mock Pricing Plan", "owners": ["p-ada"], "summary": "Keep our list price 20% under Notion Plus.", "factIds": ["f-compx-price"]},
+  {"id": "s-support", "name": "Support Plan", "owners": ["p-sam", "p-noor"], "summary": "Staff support for the ticket volume and match Apple's return window.", "factIds": ["f-refund-window", "f-ticket-volume"]},
+  {"id": "s-budget", "name": "2027 Budget", "owners": ["p-casey"], "summary": "Company budget in euros: competitor pricing, the dollar rate and support load.", "factIds": ["f-compx-price", "f-eur-usd", "f-ticket-volume"]}
+ ],
+ "history": [
+  {"at": "2026-11-02T13:30:00Z", "claim": {"factId": "f-refund-window", "text": "Apple gives 30 days for returns", "source": "page"}},
+  {"at": "2026-11-03T10:10:00Z", "decide": {"factId": "f-refund-window", "decision": "reject", "by": "p-sam"}},
+  {"at": "2026-11-13T09:20:00Z", "claim": {"factId": "f-ticket-volume", "text": "We handle about 340 tickets a week", "source": "page"}}
+ ],
+ "meeting": [
+  {"delayMs": 600, "speaker": "Casey Mockford", "line": "Let's check the numbers behind the 2027 budget."},
+  {"delayMs": 1200, "speaker": "Sam Sample", "line": "Notion Plus is eight dollars a seat, so we're clearly cheaper.", "claim": {"factId": "f-compx-price", "text": "Notion Plus costs $8 per seat per month", "autoDecide": {"by": "p-casey", "decision": "accept", "afterMs": 25000}}},
+  {"delayMs": 1200, "speaker": "Ada Mockridge", "line": "And we plan with about 1.10 dollars per euro.", "claim": {"factId": "f-eur-usd", "text": "We plan with 1 EUR = 1.10 USD"}},
+  {"delayMs": 1200, "speaker": "Mira Mockwell", "line": "On returns, we match Apple's thirty-day window.", "claim": {"factId": "f-refund-window", "text": "Apple Store gives 30 days to return items", "autoDecide": {"by": "p-sam", "decision": "accept", "afterMs": 30000}}},
+  {"delayMs": 1200, "speaker": "Mira Mockwell", "line": "Visitors can use MockNet in the lobby.", "claim": {"factId": "f-wifi-name", "text": "The office wifi is called MockNet"}},
+  {"delayMs": 1200, "speaker": "Noor Mockwood", "line": "Ticket volume is still around 340 a week, so staffing holds.", "claim": {"factId": "f-ticket-volume", "text": "Support handles about 340 tickets per week"}},
+  {"delayMs": 1200, "speaker": "Noor Mockwood", "line": "Our mascot won a design award last year, put that on the last slide.", "claim": {"factId": null, "text": "Our mascot won a design award last year"}},
+  {"delayMs": 1200, "speaker": "Mira Mockwell", "line": "Sorry, the guest network is MockNet-5G now.", "claim": {"factId": "f-wifi-name", "text": "The guest wifi is MockNet-5G"}},
+  {"delayMs": 800, "speaker": "Casey Mockford", "line": "Good, let's wrap up there."}
+ ]
+}

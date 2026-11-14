@@ -30,6 +30,7 @@ from typing import Any
 
 from . import config
 from .contract import CheckRequest1, CheckRequest2
+from .flowlog import TAG, step
 from .events import log
 from .services import context_dev, db, gemini
 
@@ -53,6 +54,7 @@ def start(body: CheckRequest1 | CheckRequest2) -> str:
 
 async def run(check_id: str, body: CheckRequest1 | CheckRequest2) -> None:
     """Find the claims in the input, then check each one."""
+    TAG.set(check_id)
     if body.kind == "text":
         origin, label = "selection", body.text.strip()
     else:
@@ -61,17 +63,23 @@ async def run(check_id: str, body: CheckRequest1 | CheckRequest2) -> None:
         if body.kind == "text":
             if body.source.value == "claim" or len(label) <= SHORT_SELECTION:
                 claims = [{"text": label, "quote": label}]
+                step("check", f"short {body.source.value}: checked as one claim, no spot call")
             else:
+                step("gemini.spot", f"find the claims in a {len(label)}-character selection")
                 claims = await gemini.spot([{"text": label}])
         else:
+            step("gemini.vision", "find the claims in the screenshot")
             claims = await gemini.vision(base64.b64decode(body.dataBase64))
     except Exception:
         logger.exception("check %s: could not read claims", check_id)
         await _announce_and_close(label, origin, "unverifiable")
         return
     if not claims:
+        step("gemini.spot", "no checkable claim found")
         await _announce_and_close(label, origin, "no_match")
         return
+    if len(claims) > 1 or body.kind != "text":
+        step("gemini.spot", f"{len(claims)} claim(s): " + "; ".join(repr(c["text"]) for c in claims[:MAX_CLAIMS]))
     await asyncio.gather(*(run_claim(db.new_id("c"), c["text"], c.get("quote") or c["text"], origin,
                                      line_id=c.get("lineId")) for c in claims[:MAX_CLAIMS]))
 
@@ -102,7 +110,9 @@ async def run_claim(claim_id: str, text: str, quote: str, source: str,
                     speaker: str | None = None, line_id: str | None = None) -> None:
     """One claim through match → source → verdict → routing. Never raises.
     `text` (stand-alone claim) is what is shown and matched; `quote` and `speaker` are kept for the log."""
-    logger.info("claim %s from %s%s: %r (quote %r)", claim_id, source, f" ({speaker})" if speaker else "", text, quote)
+    logger.debug("claim %s from %s%s: %r (quote %r)", claim_id, source, f" ({speaker})" if speaker else "", text, quote)
+    TAG.set(claim_id)
+    step("claim", f"from {source}{f' ({speaker})' if speaker else ''}: {text!r}")
     try:
         await _spotted(claim_id, text, source, line_id)
         await _check_claim(claim_id, text)
@@ -147,12 +157,17 @@ async def _match_and_lookup(text: str, claim_id: str | None = None) -> tuple[str
     """("no_match", None, None) | ("recent", fact, last verdict payload) | ("found", fact, lookup result).
     Publishes only claim.progress steps, so the claim deadline can cancel it at any point."""
     facts = await db.list_facts()
+    step("db.facts", f"{len(facts)} stored facts to match against")
     fact_id = await gemini.match(text, facts)
     fact = next((f for f in facts if f["_id"] == fact_id), None)
     if fact is None:
+        step("gemini.match", "no stored fact matches this claim (claim.unverified no_match)")
         return "no_match", None, None
+    step("gemini.match", f"→ {fact['_id']} {fact['label']!r} (stored: {fact['value']}, tier {fact['tier']})")
     recent = _recent.get(fact["_id"])
     if recent and asyncio.get_running_loop().time() - recent[0] < REPEAT_WINDOW_S:
+        ago = round(asyncio.get_running_loop().time() - recent[0])
+        step("check", f"checked {ago} s ago: same verdict ({recent[1]['verdict']}), no new lookup")
         return "recent", fact, recent[1]
     await _progress(claim_id, "matched", fact)
     return "found", fact, await _lookup(fact, text, claim_id)
@@ -167,12 +182,19 @@ async def _lookup(fact: dict, query: str | None, claim_id: str | None = None) ->
     source_url = fact.get("sourceUrl")
     await _progress(claim_id, "reading", fact, source_url)  # no sourceUrl: the web is searched
     if source_url:
+        step("context.dev", f"scrape {source_url}")
         page = await context_dev.scrape(source_url)
+        step("context.dev", f"page read, {len(page or '')} characters")
     else:
-        results = await context_dev.search(query or f"{fact['label']} {fact['value']}")
+        q = query or f"{fact['label']} {fact['value']}"
+        step("context.dev", f"no source page: search {q!r}")
+        results = await context_dev.search(q)
         if not results:
+            step("context.dev", "search found nothing (claim.unverified unverifiable)")
             return None
         source_url, page = results[0]["url"], results[0]["markdown"]
+        step("context.dev", f"top result {source_url}")
+    step("gemini.verdict", f"compare the page with the stored value {fact['value']!r}")
     return await gemini.verdict_card(fact, page), source_url
 
 
@@ -199,6 +221,8 @@ async def _publish_and_route(claim_id: str, fact: dict, found: tuple[dict, str] 
         "oldValue": fact["value"], "newValue": result["newValue"], "evidence": result["evidence"],
         "sourceUrl": source_url, "card": _verdict_card(fact, result, tier),
     }
+    new = f": {fact['value']} → {result['newValue']}" if result["verdict"] == "outdated" else ""
+    step("gemini.verdict", f"{result['verdict']}{new} · card {verdict['card']['title']!r}, criticality {tier}")
     await log.publish("claim.verdict", verdict)
     _recent[fact["_id"]] = (asyncio.get_running_loop().time(), verdict)
     if result["verdict"] == "outdated":
@@ -208,6 +232,8 @@ async def _publish_and_route(claim_id: str, fact: dict, found: tuple[dict, str] 
 async def recheck_fact(fact: dict) -> None:
     """A re-check nobody said out loud (the page changed, or "re-check now"). Never raises."""
     claim_id = db.new_id("c")
+    TAG.set(claim_id)
+    step("recheck", f"{fact['label']} (stored: {fact['value']}), no spoken claim")
     try:
         await _spotted(claim_id, f"Re-checking {fact['label']}: {fact['value']}", "page")
         await check_fact(claim_id, fact)
@@ -262,11 +288,15 @@ async def _route(fact_id: str, new_value: str, evidence: str, source_url: str) -
     async with _route_lock:
         fact = await db.get_fact(fact_id)  # re-read: another claim may have handled it meanwhile
         if fact is None or fact["status"] == "pending_review" or fact["value"] == new_value:
+            step("route", "a review is already open (or the value already changed): nobody is asked again")
             return
         tier = await db.fact_tier(fact)
+        raised = f" (stored {fact['tier']}, raised: a strategy relies on it)" if tier != fact["tier"] else ""
         line = f"{fact['label']}: {fact['value']} → {new_value}"
         if tier == "low":
+            step("route", f"tier low{raised} → save the new version at once")
             version = await db.apply_version(fact_id, new_value, source_url, "inlook")
+            step("db.facts", f"{fact['label']}: append version {new_value!r} by inlook (automatic)")
             forget(fact_id)
             await log.publish("fact.updated", {
                 "factId": fact_id, "version": version,
@@ -278,7 +308,12 @@ async def _route(fact_id: str, new_value: str, evidence: str, source_url: str) -
             reviewers = [fact["statedBy"]] if fact.get("statedBy") else []
         else:
             reviewers = sorted({owner for s in strategies for owner in s["owners"]})
+        names = ", ".join(p["name"] for p in await db.people(reviewers)) or "nobody"
+        step("route", f"tier medium{raised} → review by {names}, who stated it" if tier == "medium" or not strategies
+             else f"tier high → review by {names} (owners of {len(strategies)} relying strategies), flag them, message the owners")
         review = await db.create_review(fact, new_value, evidence, tier, reviewers)
+        step("db.reviews", f"insert {review['_id']} ({tier}) for {names}")
+        step("db.facts", f"{fact['label']}: status pending_review")
         await log.publish("review.created", {
             "reviewId": review["_id"], "factId": fact_id, "oldValue": fact["value"], "newValue": new_value,
             "evidence": evidence, "tier": tier, "reviewers": await db.people(reviewers),
@@ -293,6 +328,7 @@ async def _flag_and_notify(fact: dict, new_value: str, strategies: list[dict]) -
     newly_flagged = {s["_id"] for s in await db.flag_strategies(fact["_id"])}
     for strategy in strategies:
         if strategy["_id"] in newly_flagged:
+            step("db.strategies", f"{strategy['name']}: status flagged")
             await log.publish("strategy.flagged", {
                 "strategyId": strategy["_id"], "name": strategy["name"], "factId": fact["_id"],
             })
@@ -301,6 +337,7 @@ async def _flag_and_notify(fact: dict, new_value: str, strategies: list[dict]) -
             f"{fact['label']} changed: {fact['value']} → {new_value}. "
             f"{strategy['name']} relies on the old value and needs a look.",
         )
+        step("db.messages", f"to {', '.join(p['name'] for p in await db.people(message['to']))}: {message['text']!r}")
         await log.publish("message.created", {
             "messageId": message["_id"], "to": await db.people(message["to"]), "strategyId": message["strategyId"],
             "factId": message["factId"], "text": message["text"],

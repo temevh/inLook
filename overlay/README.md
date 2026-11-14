@@ -15,7 +15,7 @@ Needs an X11 session with a compositor for transparency (Mutter on GNOME, or `pi
 
 | Env | Default | |
 |---|---|---|
-| `INLOOK_BACKEND_URL` | `http://127.0.0.1:8000` | backend base URL |
+| `INLOOK_BACKEND_URL` | `https://inlook.onrender.com` | backend base URL (local: `http://127.0.0.1:8000`) |
 | `INLOOK_HOTKEY` | `CommandOrControl+Alt+K` | global "check now": selection if any, else screen |
 | `INLOOK_ACCEPT_HOTKEY` | `CommandOrControl+Alt+A` | global: accept the newest pending review in the HUD |
 | `INLOOK_REJECT_HOTKEY` | `CommandOrControl+Alt+R` | global: reject it |
