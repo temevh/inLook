@@ -56,6 +56,16 @@ if [[ node_modules/.package-lock.json -nt package-lock.json ]]; then
 else
   npm ci
 fi
+# Electron 45 has no postinstall: the binary is only fetched on first use, so npm ci
+# can leave node_modules/electron without dist/. Fetch it here (no-op when present),
+# whether or not npm ci ran.
+electron_bin() { node -e 'process.stdout.write(require("electron"))' 2>/dev/null; }
+if ! { bin="$(electron_bin)" && [[ -x "$bin" ]]; }; then
+  echo "electron binary missing, fetching"
+  node node_modules/electron/install.js
+  bin="$(electron_bin)" && [[ -x "$bin" ]] || { echo "ERROR: electron binary still missing after install.js" >&2; exit 1; }
+fi
+echo "electron binary: $bin"
 if [[ -f dist/main/main.js ]] && [[ -z "$(find src package.json tsconfig*.json -newer dist/main/main.js -print -quit)" ]]; then
   echo "dist up to date"
 else

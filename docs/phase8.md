@@ -43,7 +43,8 @@ Demo laptop `san` (Debian 13, GNOME on Xorg, 1920×1080), synced with `scripts/s
 - Selection: double-clicking "PLATYPUS42" in xterm sent `{"kind":"text","text":"PLATYPUS42","source":"selection"}`, via button and hotkey.
 - Mic: `audio-sink.py` got 119 frames over 11.8 s (10.1/s, max gap 117 ms). The wav is pcm_s16le 16 kHz mono, 11.9 s. A tone played through the laptop speaker was picked up (overall RMS −17.9 dBFS). The first ~0.8 s is silence (mic start-up).
 
-Noted, not fixed:
-- `scripts/launch-overlay.sh` sources `~/.config/inlook/env` after the caller's environment, so the file wins over an `INLOOK_BACKEND_URL` set by the caller.
-- After `npm ci` on `san` the Electron binary was missing until `node node_modules/electron/install.js` ran.
-- The widget window measured 264×290 instead of 232×248.
+Found on the run and fixed afterwards:
+- `scripts/launch-overlay.sh` now lets the caller's environment win: `~/.config/inlook/env` only fills variables that are not already set (the `INLOOK_BACKEND_URL` default is unchanged). Checked: no caller value → file value; caller value → caller value; no file → default; args pass through `run-over-ssh.sh`. It applies on `san` after the next `scripts/sync-to.sh san`.
+- `scripts/setup-debian.sh` step 4: Electron 45 has no postinstall, so `npm ci` can leave `node_modules/electron` without its binary. After the npm step (also when `npm ci` is skipped as up to date) the script resolves the binary via `require('electron')`, runs `node node_modules/electron/install.js` if it is missing, and exits 1 if it is still missing. Checked on `san` with `dist/` moved aside, then restored.
+
+Rerun setup only for a fresh checkout or a wiped `node_modules`; `san` already has the binary.
