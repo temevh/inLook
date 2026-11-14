@@ -4,6 +4,8 @@
 
 Someone in a meeting says *"Notion Plus is eight dollars a seat, so we're clearly cheaper."* inLook hears it, finds the matching fact in company memory, re-reads the source page, and sees that the price is now $10. Because two strategies rely on that number, it flags both and asks just their owners to accept the new value. Everyone else keeps working.
 
+ <img src="docs/images/desk-demo-ada.png" alt="My desk in demo mode with the person switcher">
+
 ---
 
 ## Contents
