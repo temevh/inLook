@@ -3,9 +3,10 @@
 Settled things are in `DECISIONS.md`. P0 = demo cannot work without it. P1 = demo is risky without it. P2 = later.
 
 ## P0
-- [ ] Build the mic path: relay `WS /audio/stream` to ElevenLabs, publish `transcript.line`, spot claims, call `check.check_claim` (`backend/app/main.py`). Or drop it and demo scene 06 with hotkey + selection.
+- [x] Build the mic path: relay `WS /audio/stream` to ElevenLabs, publish `transcript.line`, spot claims, call `check.check_claim` (`backend/app/listen.py`).
+- [ ] Rehearse the mic path with the real mic on the demo laptop: two voices, a pause between speakers; check the speaker names (`INLOOK_SPEAKERS`).
 - [ ] Demo trigger for a page re-check: an overlay hotkey or widget button that calls `POST /recheck` (`overlay/src/main/`).
-- [ ] Run Gemini `spot` (long selections) and `vision` (screenshots) for real; `match` and `verdict_card` work on the free tier. Free tier: about 20 requests a day per model, so plan the demo takes, or get a paid key.
+- [ ] Run Gemini `vision` (screenshots) for real; `spot` (mic path), `match` and `verdict_card` work on the free tier. Each spoken claim costs 3 calls (spot, match, verdict). Free tier: about 20 requests a day per model, so plan the demo takes, or get a paid key.
 - [ ] Set up the demo laptop: `backend/.env` keys, laptop IP on the Atlas access list, `uv run python -m app.seed` before every take, a tunnel + `PUBLIC_BASE_URL` + `python -m app.monitors sync` for the webhook.
 
 ## P1
@@ -20,7 +21,7 @@ Settled things are in `DECISIONS.md`. P0 = demo cannot work without it. P1 = dem
 
 ## P2
 - [ ] Make `POST /reviews` take `check._route_lock`.
-- [ ] Stop Accept showing two cards for one fact.
+- [x] Stop Accept showing two cards for one fact: the review card turns into the update (or "Kept") and fades (`overlay/src/renderer/hud/hud.ts`).
 - [ ] Add a HUD test for a "still current" verdict.
 - [ ] Confirm the "proposed" payloads in `shared/CONTRACT.md`.
 - [ ] Confirm `scripts/sync-to.sh` should copy `backend/.env` to the demo laptop.

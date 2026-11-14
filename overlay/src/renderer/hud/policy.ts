@@ -40,3 +40,13 @@ export class FactCards {
     return k !== undefined && usable(k) ? k : own;
   }
 }
+
+/** "Label: old → new" (the card text the backend writes for a change) → its parts, or null for any other text.
+ *  Splits at the last " → " and the last ": " before it, so a label or value with a colon still works. */
+export function splitChange(text: string): { label: string; old: string; new: string } | null {
+  const arrow = text.lastIndexOf(" → ");
+  const colon = arrow < 0 ? -1 : text.lastIndexOf(": ", arrow);
+  if (colon < 0) return null;
+  const parts = { label: text.slice(0, colon), old: text.slice(colon + 2, arrow), new: text.slice(arrow + 3) };
+  return parts.label && parts.old && parts.new ? parts : null;
+}

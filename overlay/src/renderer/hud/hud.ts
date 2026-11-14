@@ -1,7 +1,7 @@
 // HUD: renders SSE events into cards and transcript lines.
 import type { HudCard, InlookEvent } from "../../shared/contract.gen";
 import type { OverlayState } from "../../shared/ipc";
-import { evictionTarget, FactCards, rankOf, type CardInfo } from "./policy.js";
+import { evictionTarget, FactCards, rankOf, splitChange, type CardInfo } from "./policy.js";
 
 const cards = document.getElementById("cards")!;
 const transcript = document.getElementById("transcript")!;
@@ -20,6 +20,9 @@ const claimText = new Map<string, string>(); // claim text for the unverified ca
 const CLAIM_TEXT_MAX = 100;
 const factCards = new FactCards(); // factId → key of the card showing its verdict
 const reviewKeys = new Map<string, string>(); // reviewId → key of the card showing it
+const acceptedCards = new Map<string, string>(); // factId → key of the card that turned into its update on Accept
+// How long an outcome stays readable before its card fades: an accepted update, a rejected review, an automatic update.
+const UPDATED_MS = 4000, KEPT_MS = 2200, AUTO_UPDATED_MS = 5000, OUTCOME_FADE_MS = 450;
 const timers = new Map<string, number>(); // per card key: delayed dismissals, cancelled when the key is updated
 
 // Motion: transform/opacity only. Reduced motion keeps short opacity fades, no movement.
@@ -102,8 +105,8 @@ function upsertCard(key: string, build: (card: HTMLElement) => void) {
     card.className = fresh ? "card" : "card swap"; // swap: content rises in on the card that stays
     delete card.dataset.tier;
     build(card);
-    // Verdict-style cards land with one ring pulse; checking and unverified stay quiet.
-    if (!card.classList.contains("checking") && !card.classList.contains("unverified")) card.classList.add("land");
+    // Verdict-style cards land with one ring pulse (green for an update); checking, unverified and kept stay quiet.
+    if (!["checking", "unverified", "kept"].some((c) => card!.classList.contains(c))) card.classList.add("land");
     fit();
     if (fresh) enter(card);
   });
@@ -124,6 +127,27 @@ const fillCard = (card: HTMLElement, c: HudCard, evidence?: string) => {
   card.append(el("p", "fact", c.fact));
   if (evidence) card.append(el("p", "meta", evidence));
 };
+
+/** The fact line of a change: "Label: ~~old~~ → new", or the plain text when it is not "Label: old → new". */
+function changeLine(text: string) {
+  const p = el("p", "fact"), parts = splitChange(text);
+  if (!parts) p.textContent = text;
+  else p.append(`${parts.label}: `, el("s", "old", parts.old), " → ", el("strong", "new", parts.new));
+  return p;
+}
+
+/** The fact's card shows its new value: green, a check that pops in, the old value struck through. */
+function showUpdated(key: string, factText: string, meta: string, ms: number) {
+  upsertCard(key, (c) => {
+    c.classList.add("updated");
+    const h = el("header", "head");
+    const title = el("h2");
+    title.append(el("i", "tick"), "Fact updated");
+    h.append(title);
+    c.append(h, changeLine(factText), el("p", "meta", meta));
+  });
+  later(key, ms, () => dismiss(key, OUTCOME_FADE_MS));
+}
 
 function unverified(claimId: string, reason: string) {
   upsertCard(claimId, (c) => {
@@ -205,14 +229,20 @@ function render(e: InlookEvent) {
       }
       break;
     }
-    case "fact.updated":
-      // Reuse the fact's verdict card (same headline) unless it is a review card: that one belongs to the review.
-      upsertCard(factCards.keyFor(e.payload.factId, `fact:${e.payload.factId}`, (k) => {
+    case "fact.updated": {
+      // After Accept the review card has already turned into this update: nothing new pops up.
+      const accepted = acceptedCards.get(e.payload.factId);
+      acceptedCards.delete(e.payload.factId);
+      if (accepted && cards.querySelector(keySel(accepted))) break;
+      // An automatic update (low tier, no review): the fact's verdict card turns into it, unless that card is a
+      // review still waiting for a decision.
+      const key = factCards.keyFor(e.payload.factId, `fact:${e.payload.factId}`, (k) => {
         const c = cards.querySelector(keySel(k));
         return !!c && !c.classList.contains("review");
-      }), (c) =>
-        fillCard(c, e.payload.card, `Source: ${e.payload.version.source}`));
+      });
+      showUpdated(key, e.payload.card.fact, `Source: ${e.payload.version.source || "Inlook"}`, AUTO_UPDATED_MS);
       break;
+    }
     case "review.created": {
       // Replace the fact's verdict card in place (same headline); review.closed finds it through reviewKeys.
       const key = factCards.keyFor(e.payload.factId, `review:${e.payload.reviewId}`, (k) => {
@@ -229,17 +259,28 @@ function render(e: InlookEvent) {
       break;
     }
     case "review.closed": {
-      // Show the outcome the event carries for a moment, then close the card.
+      // The review card itself shows the outcome, then fades: Accept turns it into the update (fact.updated,
+      // right behind, adds nothing), Reject into "Kept" with the stored value.
       const key = reviewKeys.get(e.payload.reviewId) ?? `review:${e.payload.reviewId}`;
+      reviewKeys.delete(e.payload.reviewId);
       const card = cards.querySelector<HTMLElement>(keySel(key));
       if (!card) break;
-      flip(() => {
-        card.classList.add("resolved");
-        card.querySelector(".actions")?.replaceWith(el("p", `result ${e.payload.status}`, e.payload.status === "accepted" ? "Accepted" : "Rejected"));
-        card.querySelector(".sendstate")?.remove();
-        fit();
-      });
-      later(key, 1400, () => dismiss(key));
+      const factText = card.querySelector(".fact")?.textContent ?? "";
+      if (e.payload.status === "accepted") {
+        acceptedCards.set(e.payload.factId, key);
+        showUpdated(key, factText, "Accepted · saved as the current value", UPDATED_MS);
+      } else {
+        const parts = splitChange(factText);
+        upsertCard(key, (c) => {
+          c.classList.add("kept");
+          head(c, "Kept");
+          const p = el("p", "fact");
+          if (parts) p.append(`${parts.label}: `, el("strong", undefined, parts.old));
+          else p.textContent = factText;
+          c.append(p, el("p", "meta", "Rejected · the stored value stays"));
+        });
+        later(key, KEPT_MS, () => dismiss(key, OUTCOME_FADE_MS));
+      }
       break;
     }
     case "strategy.flagged":
@@ -249,7 +290,7 @@ function render(e: InlookEvent) {
       });
       break;
     case "strategy.healthy":
-      dismiss(`strategy:${e.payload.strategyId}`);
+      dismiss(`strategy:${e.payload.strategyId}`, OUTCOME_FADE_MS); // fades together with the updated fact
       break;
     case "message.created":
       upsertCard(`message:${e.payload.messageId}`, (c) => {
