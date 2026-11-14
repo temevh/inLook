@@ -20,6 +20,8 @@ import time
 from collections.abc import AsyncIterator
 from datetime import datetime, timezone
 
+from pydantic import ValidationError
+
 from . import config
 from .contract import InlookEvent
 
@@ -145,8 +147,15 @@ class MongoEventLog(EventLog):
             seen = self._version
             batch = await db.events_after(cursor)
             for doc in batch:
-                event = InlookEvent.model_validate(doc)
-                cursor = event.root.seq
+                cursor = doc["seq"]
+                try:
+                    event = InlookEvent.model_validate(doc)
+                except ValidationError as err:
+                    # Stored before a contract change, or written by another process: skip it rather
+                    # than end the stream for every client.
+                    logger.warning("events: skipping seq %s (%s), it breaks the contract: %s",
+                                   doc.get("seq"), doc.get("type"), err.errors(include_url=False)[:1])
+                    continue
                 yield _frame(event)
                 last_sent = time.monotonic()
             if batch:
