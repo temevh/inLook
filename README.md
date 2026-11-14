@@ -1,14 +1,8 @@
 # inLook
 
-**inLook catches outdated facts in meetings, flags the strategies that depend on them, and notifies only their owners.**
+**Engineering teams get paged when servers break, now leadership gets paged when strategy breaks**
 
 Someone in a meeting says *"Notion Plus is eight dollars a seat, so we're clearly cheaper."* inLook hears it, finds the matching fact in company memory, re-reads the source page, and sees that the price is now $10. Because two strategies rely on that number, it flags both and asks just their owners to accept the new value. Everyone else keeps working.
-
-> Hackathon build: about 24 hours, 2 to 3 people, with a 2-minute pitch video. All people, strategies and companies shown are **mock data**.
-
-<p align="center">
-  <img src="docs/images/desk-demo-after-meeting.png" alt="The inLook dashboard after a meeting: a pending high-tier review, a flagged strategy, the viewer's scope and every claim checked live" width="900">
-</p>
 
 ---
 
@@ -301,7 +295,7 @@ Good people to sign in as: `p-ada` (default), `p-casey` (CEO, decides the most),
 | <img src="docs/images/ripple.png" alt="Facts page with version history and ripple diagram"><br>**Facts**: company memory, version history and who a change reaches | <img src="docs/images/desk-ada-after-accept.png" alt="My desk after accepting a change"><br>**After a decision**: the strategy heals and the inbox records it |
 | <img src="docs/images/desk-demo-ada.png" alt="My desk in demo mode with the person switcher"><br>**Demo mode**: switch person without losing the demo | <img src="docs/images/mobile-preview.png" alt="The dashboard at phone width"><br>**Responsive**: the dashboard on a phone |
 
-**Mock backend terminal**: every request with who sent it, each step the real backend would take, and the response.
+**Backend terminal**: every request with who sent it, each step the real backend would take, and the response.
 
 <img src="docs/images/mock-backend-terminal.png" alt="Terminal output of the mock backend showing Gemini, Context.dev, routing, MongoDB and SSE steps for each request" width="900">
 
@@ -316,15 +310,6 @@ Good people to sign in as: `p-ada` (default), `p-casey` (CEO, decides the most),
 | <img src="docs/images/viz-scene-06-live-check.png" alt="Scene: inLook checks claims while the meeting is still going"><br>*inLook checks claims while the meeting is still going.* | <img src="docs/images/viz-scene-08-flag.png" alt="Scene: a high-criticality fact goes stale and only its strategies are flagged"><br>*A high-criticality fact goes stale. Only its strategies are flagged.* |
 | <img src="docs/images/viz-scene-09-notify.png" alt="Scene: only the owners are asked to review"><br>*Only its owners are asked to review. Everyone else keeps working.* | <img src="docs/images/viz-scene-04-routing.png" alt="Scene: each fact reaches only the people who rely on it"><br>*Each fact reaches only the people who rely on it.* |
 
-<details>
-<summary><b>Organisation-wide flow concepts</b></summary>
-
-| | |
-|---|---|
-| <img src="docs/images/viz-bloom.png" alt="Bloom: data radiating through the organisation"><br>**Bloom**: data radiating through the organisation | <img src="docs/images/viz-transit.png" alt="Transit: the organisation as a line map"><br>**Transit**: the organisation as a line map |
-| <img src="docs/images/viz-tributary.png" alt="Tributary: from sources to people"><br>**Tributary**: from sources to people | <img src="docs/images/viz-network.png" alt="Network: one message moving between branches"><br>**Network**: one message moving between branches |
-
-</details>
 
 ---
 
@@ -335,6 +320,3 @@ Good people to sign in as: `p-ada` (default), `p-casey` (CEO, decides the most),
 - [Backend](backend/README.md): endpoints, logs, MongoDB collections, Context.dev monitors
 - [Dashboard](frontend/README.md): how the snapshot and stream work, scope rules, mock data, deploying the mock backend
 - [Overlay](overlay/README.md): layout, security model, demo-laptop scripts
-- [Decisions](DECISIONS.md) and [TODO](TODO.md)
-
-Future work claimed in the pitch: record and replay inputs, saving new facts from meetings, Slack and other integrations, multiple users with their own overlays, a strategy editor, and passive screen capture.
