@@ -1,6 +1,9 @@
-// HUD card policy (no DOM): eviction order and fact-card reuse. Runs the built code in dist/web (see `pretest`).
+// HUD logic without DOM: eviction order, change text, status wording, hotkey labels. Runs the built code in dist/web (see `pretest`).
 import { describe, expect, it } from "vitest";
-import { evictionTarget, FactCards, rankOf, splitChange, type CardInfo } from "../dist/web/renderer/hud/policy.js";
+import {
+  compactChange, domainOf, evictionTarget, factLabel, initials, isFiller, keycaps, numberParts, rankOf, rollFrame,
+  splitChange, statusOf, type CardInfo,
+} from "../dist/web/renderer/hud/policy.js";
 
 const low: CardInfo = { kind: "claim", tier: "low" };
 const medium: CardInfo = { kind: "claim", tier: "medium" };
@@ -30,23 +33,6 @@ describe("eviction", () => {
   });
 });
 
-describe("FactCards", () => {
-  const usable = () => true;
-  it("reuses the verdict card of the same fact, else the event's own key", () => {
-    const f = new FactCards();
-    f.verdict("f1", "c1");
-    expect(f.keyFor("f1", "fact:f1", usable)).toBe("c1");
-    expect(f.keyFor("f2", "fact:f2", usable)).toBe("fact:f2");
-    expect(f.keyFor("f1", "fact:f1", () => false)).toBe("fact:f1");
-  });
-  it("points a fact at its latest verdict card and forgets the oldest past the cap", () => {
-    const f = new FactCards(2);
-    f.verdict("f1", "c1"); f.verdict("f1", "c2"); f.verdict("f2", "c3"); f.verdict("f3", "c4");
-    expect(f.keyFor("f1", "own", usable)).toBe("own");
-    expect(f.keyFor("f3", "own", usable)).toBe("c4");
-  });
-});
-
 describe("splitChange", () => {
   it("splits the backend's change text into label, old and new value", () => {
     expect(splitChange("Notion Plus price per seat: $8 per seat per month → $10 per seat per month")).toEqual(
@@ -58,5 +44,68 @@ describe("splitChange", () => {
   });
   it("returns null for text that is not a change", () => {
     for (const text of ["Mock Pricing Plan", "Price → $10", "Price: $8", ": $8 → $10", "Price: $8 → "]) expect(splitChange(text)).toBeNull();
+  });
+});
+
+describe("compactChange", () => {
+  it("moves the words both values end with into a unit", () => {
+    expect(compactChange("$8 per seat per month", "$10 per seat per month")).toEqual({ old: "$8", new: "$10", unit: "per seat per month" });
+    expect(compactChange("€59 per seat", "€39 per seat")).toEqual({ old: "€59", new: "€39", unit: "per seat" });
+  });
+  it("leaves values whole when more than one token differs, or nothing is shared", () => {
+    expect(compactChange("30 days", "14 calendar days")).toEqual({ old: "30 days", new: "14 calendar days", unit: "" });
+    expect(compactChange("MockNet", "MockNet-5G")).toEqual({ old: "MockNet", new: "MockNet-5G", unit: "" });
+    expect(compactChange("per seat", "per seat")).toEqual({ old: "per seat", new: "per seat", unit: "" });
+  });
+});
+
+describe("rolling a number", () => {
+  it("reads one number with its affixes", () => {
+    expect(numberParts("$10")).toEqual({ prefix: "$", value: 10, decimals: 0, suffix: "" });
+    expect(numberParts("3.5%")).toEqual({ prefix: "", value: 3.5, decimals: 1, suffix: "%" });
+    for (const text of ["MockNet", "14 calendar 2", ""]) expect(numberParts(text)).toBeNull();
+  });
+  it("rolls between values that look alike, and only those", () => {
+    expect(rollFrame("$8", "$10", 0)).toBe("$8");
+    expect(rollFrame("$8", "$10", 0.5)).toBe("$9");
+    expect(rollFrame("$8", "$10", 1)).toBe("$10");
+    expect(rollFrame("3%", "3.5%", 1)).toBe("3.5%");
+    expect(rollFrame("$8", "€10", 0.5)).toBeNull();
+    expect(rollFrame("MockNet", "MockNet-5G", 0.5)).toBeNull();
+  });
+});
+
+describe("wording", () => {
+  it("says the connection and mic state in the user's words", () => {
+    const s = (stream: string, transcribing = false, audio = "off") => statusOf({ stream, transcribing, audio });
+    expect(s("closed", true, "live")).toEqual({ text: "Offline", tone: "off" });
+    expect(s("connecting")).toEqual({ text: "Connecting…", tone: "wait" });
+    expect(s("open")).toEqual({ text: "Live", tone: "live" });
+    expect(s("open", true, "live")).toEqual({ text: "Listening", tone: "listening" });
+    expect(s("open", true, "connecting").tone).toBe("wait");
+    expect(s("open", true, "reconnecting").text).toBe("Mic reconnecting…");
+  });
+  it("spots transcript lines with nothing to read", () => {
+    for (const text of ["Uh", "Yes.", "Inspiration.", "  "]) expect(isFiller(text)).toBe(true);
+    for (const text of ["Okay, pricing slide.", "$8", "Easily compete"]) expect(isFiller(text)).toBe(false);
+  });
+  it("shortens sources, names and hotkeys", () => {
+    expect(domainOf("https://www.notion.com/pricing")).toBe("notion.com");
+    expect(domainOf("https://apple.com/shop/help/returns_refund")).toBe("apple.com");
+    for (const bad of [null, undefined, "", "not a url"]) expect(domainOf(bad)).toBe("");
+    expect(initials("Ada Mockridge")).toBe("AM");
+    expect(initials("  sam  ")).toBe("S");
+    expect(initials("Anna Maria Virtanen")).toBe("AV");
+    expect(keycaps("CommandOrControl+Alt+A")).toEqual(["Ctrl", "Alt", "A"]);
+    expect(keycaps("")).toEqual([]);
+  });
+});
+
+describe("factLabel", () => {
+  it("names the fact from a change line, a still-current line, or returns the text", () => {
+    expect(factLabel("Notion Plus price per seat: $8 per seat per month → $10 per seat per month")).toBe("Notion Plus price per seat");
+    expect(factLabel("Notion Plus price per seat: $10 per seat per month (still current)", "$10 per seat per month")).toBe("Notion Plus price per seat");
+    expect(factLabel("Mock Pricing Plan", "$10")).toBe("Mock Pricing Plan");
+    expect(factLabel("Plan: Plus: $10 (still current)", "$10")).toBe("Plan: Plus");
   });
 });

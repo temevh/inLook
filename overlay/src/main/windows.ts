@@ -3,7 +3,7 @@ import { BrowserWindow, screen } from "electron";
 import { join } from "node:path";
 import { pathToFileURL } from "node:url";
 import { config } from "./config";
-import { CLOSED } from "./geometry";
+import { CLOSED, OPEN } from "./geometry";
 
 const preload = join(__dirname, "..", "preload", "preload.js");
 // Renderer output lives in dist/web (ES modules), apart from the CommonJS main build.
@@ -21,7 +21,7 @@ function lockDown(win: BrowserWindow): void {
 
 const webPreferences = { preload, contextIsolation: true, sandbox: true, nodeIntegration: false };
 
-/** Transparent, frameless, always-on-top side strip. Click-through by default. */
+/** Transparent, frameless, always-on-top side strip. Click-through until it draws something (setHudExtent). */
 export function createHud(): BrowserWindow {
   const { workArea } = screen.getPrimaryDisplay();
   const width = config.hudWidth;
@@ -48,27 +48,52 @@ export function createHud(): BrowserWindow {
   lockDown(hud);
   hud.setAlwaysOnTop(true, "screen-saver");
   hud.setVisibleOnAllWorkspaces(true);
-  // Fully click-through. On Linux { forward: true } does not work, so hover cannot wake it.
+  // Click-through while empty; setHudExtent opens up exactly the part that shows something.
   hud.setIgnoreMouseEvents(true);
   hud.once("ready-to-show", () => hud.showInactive());
   void hud.loadFile(page("hud"));
   return hud;
 }
 
-/** Switch the HUD between click-through and accepting clicks (review accept/reject). */
-export function setHudInteractive(hud: BrowserWindow, on: boolean): void {
-  hud.setIgnoreMouseEvents(!on);
-  hud.setFocusable(on);
-  if (on) hud.focus();
+const SHRINK_DELAY_MS = 500; // let exit and glide animations finish inside the old shape before it shrinks
+
+/** Make the top `height` px of the HUD (what it currently draws on) receive the mouse, and leave the rest
+ *  click-through: clicks below the last card reach the app underneath, with no mode to switch.
+ *  Uses the X11 window shape (setShape), which also limits where the window draws; the HUD itself is never
+ *  moved or resized. Growing applies at once, shrinking after a moment. Returns the setter. */
+export function hudExtentSetter(hud: BrowserWindow): (height: number) => void {
+  let applied = 0, timer: NodeJS.Timeout | undefined;
+  const apply = (height: number) => {
+    if (hud.isDestroyed()) return;
+    applied = height;
+    const [width = 0] = hud.getSize();
+    if (height <= 0) {
+      hud.setIgnoreMouseEvents(true);
+      hud.setShape([{ x: 0, y: 0, width: 1, height: 1 }]); // an empty list would mean "whole window"
+    } else {
+      hud.setShape([{ x: 0, y: 0, width, height }]);
+      hud.setIgnoreMouseEvents(false);
+    }
+  };
+  return (height: number) => {
+    const [, max = 0] = hud.isDestroyed() ? [] : hud.getSize();
+    const h = Math.max(0, Math.min(Math.ceil(height), max));
+    clearTimeout(timer);
+    if (h === applied) return;
+    if (h > applied) apply(h);
+    else timer = setTimeout(() => apply(h), SHRINK_DELAY_MS);
+  };
 }
 
 /** Navball window: transparent, frameless, always on top, as small as the ball (main/navball.ts resizes it). */
 export function createWidget(): BrowserWindow {
   const { workArea } = screen.getPrimaryDisplay();
   const margin = 16;
+  // Far enough from the HUD that the opened fan (a square of OPEN px around the ball) does not cover it.
+  const clear = margin + (OPEN - CLOSED) / 2;
   const x = config.hudEdge === "right"
-    ? workArea.x + workArea.width - config.hudWidth - CLOSED - margin
-    : workArea.x + config.hudWidth + margin;
+    ? workArea.x + workArea.width - config.hudWidth - CLOSED - clear
+    : workArea.x + config.hudWidth + clear;
   const widget = new BrowserWindow({
     x, y: workArea.y + workArea.height - CLOSED - margin,
     width: CLOSED, height: CLOSED,

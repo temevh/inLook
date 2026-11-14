@@ -11,10 +11,10 @@ Settled things are in `DECISIONS.md`. P0 = demo cannot work without it. P1 = dem
 
 ## P1
 - [ ] Stop the HUD replaying old events after a backend restart (`backend/app/events.py`, `overlay/src/main/sse.ts`).
-- [ ] Fix the "still current" card: it shows "Fact updated" and never goes away. Choose a new title or no card (`backend/app/check.py`, `overlay/src/renderer/hud/hud.ts`).
+- [x] Fix the "still current" card: the HUD shows it as "Up to date" with the stored value and its source, and it fades after 4 s (`overlay/src/renderer/hud/hud.ts`). The backend still titles it "Fact updated" (`backend/app/check.py`); the HUD no longer uses that title.
 - [ ] Prove a real Context.dev monitor webhook reaches the backend through the tunnel (`monitors run`, then check the log and `monitors status`).
 - [ ] Show version history for scene 07 (`overlay/src/renderer/hud/hud.ts`).
-- [ ] Show who a message is for in the HUD, and let message cards dismiss (scenes 08-09).
+- [x] Show who a message is for in the HUD (scenes 08-09): the people notified and the strategies affected are lines on the fact's own card ("Affects", "Review by … notified"), which fades with its outcome. A message or flag for a fact with no card still gets a card of its own, which does not dismiss.
 - [ ] Write tests: `/check` and `/reviews` over HTTP, the Mongo event log, overlay-to-backend.
 - [ ] Agree with the team: the spec says "seed.json in memory, no database", this branch loads seed.json into MongoDB Atlas. Also get a yes on the unconfirmed choices in `DECISIONS.md`.
 - [ ] What a repeated claim should show: it now gets the fact's last verdict (5-minute window, `backend/app/check.py`); the spec only says "skipped".
@@ -26,7 +26,7 @@ Settled things are in `DECISIONS.md`. P0 = demo cannot work without it. P1 = dem
 - [ ] Confirm the "proposed" payloads in `shared/CONTRACT.md`.
 - [ ] Confirm `scripts/sync-to.sh` should copy `backend/.env` to the demo laptop.
 - [ ] Remove `GEMINI_EMBEDDING_MODEL` from your local `backend/.env`.
-- [ ] Overlay HUD: label `claim.spotted` cards with source `page` as "Source page changed" instead of "From page" (`overlay/src/renderer/hud/hud.ts`).
+- [x] Overlay HUD: `claim.spotted` cards with source `page` read "Source page re-check" (`overlay/src/renderer/hud/hud.ts`).
 
 ## Docs to fix
 - [ ] Spec (`.plans/overlay-architecture-spec.md`): scenes 06-09 are not all built; MongoDB is no longer unconfirmed; the event log is no longer in memory.

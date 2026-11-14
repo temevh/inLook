@@ -1,8 +1,8 @@
 @import "../fonts/fonts.css";
-/* Dark, like the HUD. The window is transparent; the ball (black, white edge), bubbles and label are dark
-   surfaces, and the whole navball is at 75% opacity (end of file). */
+/* Dark, like the HUD. The window is transparent; the ball (black, white edge) is solid, the bubbles and label are
+   dark surfaces with a slightly see-through background and full-strength icons and text. */
 :root {
-  --surface: hsl(233 20% 10.5%); --surface-hover: hsl(233 18% 16%); --line: hsl(233 12% 24%); --line-strong: hsl(233 10% 32%);
+  --surface: hsl(233 20% 10.5% / .92); --surface-hover: hsl(233 18% 17%); --line: hsl(233 12% 24%); --line-strong: hsl(233 10% 32%);
   --fg: hsl(220 20% 96%); --muted: hsl(220 10% 70%);
   --primary: #3b82f6; --primary-hover: #2563eb; --primary-soft: hsl(218 45% 15%); --primary-line: hsl(218 50% 30%);
   --ink: #070709; --ink-hover: #242426; --on-ink: #fff;
@@ -67,5 +67,7 @@ button:disabled { opacity: .6; cursor: default; }
   .bubble[aria-busy="true"]::after, .badge[data-state="live"] { animation: none; }
 }
 
-/* The ball, its bubbles and the label are a little see-through, like the HUD. */
-.navball { opacity: .75; }
+/* While the mic hears something, a ring around the ball follows the voice level. */
+.ball::after { content: ""; position: absolute; inset: -5px; border-radius: 50%; border: 2px solid var(--ok); opacity: 0; transform: scale(.9); transition: transform .12s linear, opacity .2s var(--ease); pointer-events: none; }
+.navball[data-listening="true"] .ball::after { opacity: calc(.25 + var(--level, 0) * .75); transform: scale(calc(1 + var(--level, 0) * .16)); }
+@media (prefers-reduced-motion: reduce) { .ball::after { transition: none; } }
