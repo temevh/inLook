@@ -1,0 +1,40 @@
+{
+  "name": "inlook-frontend",
+  "version": "1.0.0",
+  "description": "inLook dashboard: Vue 3 app (src/) plus the read-only Prisma data API (server/) over the backend MongoDB Atlas database",
+  "scripts": {
+    "dev": "vite",
+    "dev:demo": "vite --mode demo",
+    "build": "vue-tsc --noEmit -p tsconfig.app.json && vite build",
+    "preview": "vite preview",
+    "test": "vitest run",
+    "api": "tsx watch --env-file=.env server/index.ts",
+    "db:check": "tsx --env-file=.env server/check-db.ts",
+    "db:pull": "prisma db pull",
+    "db:generate": "prisma generate",
+    "typecheck": "tsc && vue-tsc --noEmit -p tsconfig.app.json",
+    "postinstall": "prisma generate"
+  },
+  "author": "",
+  "license": "ISC",
+  "type": "module",
+  "dependencies": {
+    "@fontsource-variable/rethink-sans": "^5.3.0",
+    "@fontsource/doto": "^5.3.0",
+    "@prisma/client": "^6.19.3",
+    "pinia": "^4.1.0",
+    "vue": "^3.5.45",
+    "vue-router": "^5.0.11"
+  },
+  "devDependencies": {
+    "@types/node": "^26.6.6",
+    "@vitejs/plugin-vue": "^6.0.11",
+    "prisma": "^6.19.3",
+    "tsx": "^4.23.15",
+    "typescript": "^5.9.3",
+    "vite": "^8.3.8",
+    "vitest": "^5.1.0",
+    "vue-tsc": "^3.3.14"
+  },
+  "private": true
+}
