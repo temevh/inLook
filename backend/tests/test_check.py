@@ -60,7 +60,7 @@ class CheckFlowTest(unittest.IsolatedAsyncioTestCase):
     def types(self) -> list[str]:
         return [e["type"] for e in self.published()]
 
-    async def claim(self, text: str = "Notion Plus costs $8 per seat") -> None:
+    async def claim(self, text: str = "Salesforce Advanced costs $350 per user") -> None:
         await check.run_claim(db.new_id("c"), text, text, "selection")
 
     async def strategy(self, strategy_id: str) -> dict:
@@ -71,14 +71,14 @@ class CheckFlowTest(unittest.IsolatedAsyncioTestCase):
     async def test_progress_steps(self):
         """Between spotted and the verdict the HUD is told: which fact matched, then which page is read."""
         self.match.return_value = COMPX
-        self.verdict.return_value = outdated("$10 per seat per month")
+        self.verdict.return_value = outdated("$395 per user per month")
         await self.claim()
         self.assertEqual([e.root.type for e in events.log._events][:4],
                          ["claim.spotted", "claim.progress", "claim.progress", "claim.verdict"])
         matched, reading = self.steps()
         self.assertEqual((matched["step"], matched["factId"], matched["label"]),
-                         ("matched", COMPX, "Notion Plus price per seat"))
-        self.assertEqual((reading["step"], reading["sourceUrl"]), ("reading", "https://www.notion.com/pricing"))
+                         ("matched", COMPX, "Salesforce Sales Cloud Advanced price per user"))
+        self.assertEqual((reading["step"], reading["sourceUrl"]), ("reading", "https://www.salesforce.com/sales/pricing/"))
 
     async def test_progress_without_a_match_or_a_source_page(self):
         await self.claim("The mascot is a purple llama")
@@ -90,7 +90,7 @@ class CheckFlowTest(unittest.IsolatedAsyncioTestCase):
 
     async def test_a_lost_progress_event_does_not_cost_the_verdict(self):
         self.match.return_value = COMPX
-        self.verdict.return_value = outdated("$10 per seat per month")
+        self.verdict.return_value = outdated("$395 per user per month")
         publish = events.log.publish
 
         async def flaky(type, payload):
@@ -169,7 +169,7 @@ class CheckFlowTest(unittest.IsolatedAsyncioTestCase):
         self.assertIn("still current", verdict["card"]["fact"])
         self.assertEqual(verdict["card"]["criticality"], "high")
         fact = await db.get_fact(COMPX)
-        self.assertEqual((fact["value"], fact["status"]), ("$8 per seat per month", "current"))
+        self.assertEqual((fact["value"], fact["status"]), ("$350 per user per month", "current"))
 
     async def test_criticality_is_always_the_facts_tier(self):
         """Gemini says low; the compx fact is high, so the card must say high."""
@@ -254,21 +254,23 @@ class CheckFlowTest(unittest.IsolatedAsyncioTestCase):
         self.match.return_value = COMPX
         self.verdict.return_value = outdated("$12 per seat per month")
         await self.claim()
-        self.fetch.assert_awaited_once_with("https://www.notion.com/pricing")
+        self.fetch.assert_awaited_once_with("https://www.salesforce.com/sales/pricing/")
         self.search.assert_not_awaited()
 
     # page re-checks (no spoken claim) ----------------------------------------------------
 
     async def test_recheck_of_a_changed_page_runs_the_high_tier_route(self):
         self.verdict.return_value = outdated("$12 per seat per month")
-        count = await check.recheck_url("https://www.notion.com/pricing")
+        # The seed has a second fact on this page (the edition name); this test is about the price fact.
+        await db.database().facts.delete_one({"_id": "f-salesforce-edition"})
+        count = await check.recheck_url("https://www.salesforce.com/sales/pricing/")
         self.assertEqual(count, 1)
         self.match.assert_not_awaited()  # the fact is known: no match call
         self.assertEqual(self.types(), [
             "claim.spotted", "claim.verdict", "review.created", "strategy.flagged", "message.created"])
         spotted = self.published()[0]["payload"]
         self.assertEqual(spotted["source"], "page")
-        self.assertIn("Notion Plus price per seat", spotted["text"])
+        self.assertIn("Salesforce Sales Cloud Advanced price per user", spotted["text"])
 
     async def test_recheck_of_an_unknown_page_does_nothing(self):
         self.assertEqual(await check.recheck_url("https://nobody.example/"), 0)
@@ -329,7 +331,7 @@ class SeedTest(unittest.TestCase):
         wifi = next(f for f in docs["facts"] if f["_id"] == "f-wifi-name")
         self.assertEqual(wifi["tier"], "medium")
         self.assertNotIn("id", wifi)
-        self.assertEqual({p["_id"] for p in docs["people"]}, {"p-ada", "p-sam", "p-mira"})
+        self.assertEqual({p["_id"] for p in docs["people"]}, {"p-ada", "p-sam", "p-mira", "p-tess"})
         self.assertTrue(all(p.get("role") for p in docs["people"]))
 
 

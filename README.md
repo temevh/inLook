@@ -3,7 +3,7 @@
 inLook catches outdated facts in meetings, flags the strategies that depend on them and notifies only their owners.
 Hackathon build: ~24 h, 2–3 people, 2-minute pitch video.
 
-Source of truth: [`.plans/overlay-architecture-spec.md`](.plans/overlay-architecture-spec.md). Product and brand: [`PRODUCT.md`](PRODUCT.md).
+Source of truth: [`.plans/overlay-architecture-spec.md`](.plans/overlay-architecture-spec.md). Product and brand: [`PRODUCT.md`](PRODUCT.md). Live demo script: [`DEMO.md`](DEMO.md).
 
 | Directory | What | Owner |
 |---|---|---|
