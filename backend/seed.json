@@ -2,14 +2,15 @@
   "people": [
     { "id": "p-ada", "name": "Ada Mockridge", "role": "Head of Pricing", "team": "Pricing" },
     { "id": "p-sam", "name": "Sam Sample", "role": "Support Lead", "team": "Support" },
-    { "id": "p-mira", "name": "Mira Mockwell", "role": "Office Manager", "team": "Operations" }
+    { "id": "p-mira", "name": "Mira Mockwell", "role": "Office Manager", "team": "Operations" },
+    { "id": "p-tess", "name": "Tess Testwell", "role": "Account Executive", "team": "Sales" }
   ],
   "facts": [
     {
-      "id": "f-compx-price", "key": "competitor.notion-plus.price-per-seat",
-      "label": "Notion Plus price per seat", "value": "$8 per seat per month", "tier": "high",
-      "sourceUrl": "https://www.notion.com/pricing", "statedBy": "p-sam", "status": "current",
-      "versions": [{ "value": "$8 per seat per month", "source": "https://www.notion.com/pricing", "at": "2026-10-03T09:00:00+00:00", "by": "p-sam" }]
+      "id": "f-compx-price", "key": "competitor.salesforce-advanced.price-per-user",
+      "label": "Salesforce Sales Cloud Advanced price per user", "value": "$350 per user per month", "tier": "high",
+      "sourceUrl": "https://www.salesforce.com/sales/pricing/", "statedBy": "p-sam", "status": "current",
+      "versions": [{ "value": "$350 per user per month", "source": "https://www.salesforce.com/sales/pricing/", "at": "2026-10-03T09:00:00+00:00", "by": "p-sam" }]
     },
     {
       "id": "f-refund-window", "key": "benchmark.apple-store.return-window",
@@ -22,10 +23,41 @@
       "label": "Office wifi network", "value": "MockNet", "tier": "low",
       "sourceUrl": null, "statedBy": "p-mira", "status": "current",
       "versions": [{ "value": "MockNet", "source": "", "at": "2026-09-01T08:00:00+00:00", "by": "p-mira" }]
+    },
+    {
+      "id": "f-hubspot-enterprise", "key": "competitor.hubspot-sales-enterprise.price-per-seat",
+      "label": "HubSpot Sales Hub Enterprise price per seat", "value": "$120 per seat per month", "tier": "medium",
+      "sourceUrl": "https://www.hubspot.com/pricing/sales", "statedBy": "p-ada", "status": "current",
+      "versions": [{ "value": "$120 per seat per month", "source": "https://www.hubspot.com/pricing/sales", "at": "2026-10-07T10:00:00+00:00", "by": "p-ada" }]
+    },
+    {
+      "id": "f-hubspot-onboarding", "key": "competitor.hubspot-sales-enterprise.onboarding-fee",
+      "label": "HubSpot Sales Hub Enterprise onboarding fee", "value": "$3,000 one-time", "tier": "low",
+      "sourceUrl": "https://www.hubspot.com/pricing/sales", "statedBy": "p-sam", "status": "current",
+      "versions": [{ "value": "$3,000 one-time", "source": "https://www.hubspot.com/pricing/sales", "at": "2026-10-07T10:00:00+00:00", "by": "p-sam" }]
+    },
+    {
+      "id": "f-dynamics-enterprise", "key": "competitor.dynamics-365-sales-enterprise.price-per-user",
+      "label": "Microsoft Dynamics 365 Sales Enterprise price per user", "value": "$105 per user per month", "tier": "medium",
+      "sourceUrl": "https://www.microsoft.com/en-us/dynamics-365/products/sales/pricing", "statedBy": "p-ada", "status": "current",
+      "versions": [{ "value": "$105 per user per month", "source": "https://www.microsoft.com/en-us/dynamics-365/products/sales/pricing", "at": "2026-10-12T15:00:00+00:00", "by": "p-ada" }]
+    },
+    {
+      "id": "f-nike-ceo", "key": "account.nike.ceo",
+      "label": "Nike chief executive (CEO)", "value": "John Donahoe", "tier": "high",
+      "sourceUrl": "https://en.wikipedia.org/wiki/Nike,_Inc.", "statedBy": "p-sam", "status": "current",
+      "versions": [{ "value": "John Donahoe", "source": "https://en.wikipedia.org/wiki/Nike,_Inc.", "at": "2026-09-18T11:00:00+00:00", "by": "p-sam" }]
+    },
+    {
+      "id": "f-salesforce-edition", "key": "competitor.salesforce.premium-edition-name",
+      "label": "Salesforce Sales Cloud premium edition name", "value": "Unlimited Edition", "tier": "medium",
+      "sourceUrl": "https://www.salesforce.com/sales/pricing/", "statedBy": "p-ada", "status": "current",
+      "versions": [{ "value": "Unlimited Edition", "source": "https://www.salesforce.com/sales/pricing/", "at": "2026-10-03T09:00:00+00:00", "by": "p-ada" }]
     }
   ],
   "strategies": [
     { "id": "s-pricing", "name": "Mock Pricing Plan", "owners": ["p-ada"], "factIds": ["f-compx-price"], "status": "healthy" },
-    { "id": "s-returns", "name": "Mock Returns Policy", "owners": ["p-sam"], "factIds": ["f-refund-window"], "status": "healthy" }
+    { "id": "s-returns", "name": "Mock Returns Policy", "owners": ["p-sam"], "factIds": ["f-refund-window"], "status": "healthy" },
+    { "id": "s-nike", "name": "Mock Nike Account Plan", "owners": ["p-tess"], "factIds": ["f-nike-ceo"], "status": "healthy" }
   ]
 }

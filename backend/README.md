@@ -76,7 +76,7 @@ app/services/db.py       MongoDB Atlas: client, indexes, fact / review / strateg
 app/services/gemini.py   Gemini calls: spot, match, verdict + card, vision (card schema from shared/)
 app/services/context_dev.py  Context.dev API: scrape, search, monitors, webhook signature check
 app/services/stt.py      ElevenLabs realtime speech-to-text session
-fixtures/mic-demo.wav    two speakers: a question, then the Notion $8 claim (for app.replay)
+fixtures/mic-demo.wav    two speakers: a question, then the Salesforce $350 claim (for app.replay)
 tests/                   python -m unittest; check-flow tests run on a separate `inlook_test` database
 ```
 
@@ -97,7 +97,7 @@ the last event `seq`), `monitors` (Context.dev monitor id, url and webhook signi
   stays monotonic and a running overlay keeps accepting events. Publishing is serialised by a lock (one backend process).
 - Rejecting a review also clears its strategies' flags once nothing is pending (the spec only says so for accept).
 - A `current` verdict reuses the card title "Fact updated" (the contract has no "still current" title).
-- Seeded facts point at real public pages (Notion pricing, Apple return policy) with an older value, so the first
+- Seeded facts point at real public pages (Salesforce Sales Cloud pricing, Apple return policy) with an older value, so the first
   re-check finds them outdated. The wifi fact has no page and goes through Context.dev search.
 - Monitors run every 10 minutes at best, so the demo triggers `POST /recheck`; the monitor is the unattended path.
 

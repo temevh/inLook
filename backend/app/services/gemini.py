@@ -13,6 +13,7 @@ JSON that does not parse is retried after a short pause; other errors (bad reque
 import asyncio
 import json
 import logging
+import re
 from functools import cache
 from typing import Any
 
@@ -21,7 +22,7 @@ from .. import config
 logger = logging.getLogger("inlook.gemini")
 RETRY_PAUSE_S = 1.0
 
-PAGE_CHARS = 30_000  # page text sent to the verdict call
+PAGE_CHARS = 60_000  # page text sent to the verdict call (the Salesforce pricing page is about 32,000)
 
 VERDICTS = ("current", "outdated", "unverifiable")
 
@@ -152,19 +153,48 @@ async def match(claim: str, facts: list[dict]) -> str | None:
 
 
 def _verdict_schema() -> dict:
+    # Evidence first: the model quotes the page before it decides (output follows this key order).
     return {
         "type": "object",
         "properties": {
+            "evidence": {"type": "string", "description": "One sentence from or about the page that supports the verdict."},
             "verdict": {"type": "string", "enum": list(VERDICTS)},
             "newValue": {
                 "type": "string",
                 "description": "The value the page now states, written like the stored value. Empty unless outdated.",
             },
-            "evidence": {"type": "string", "description": "One sentence from or about the page that supports the verdict."},
             "card": card_schema(),
         },
-        "required": ["verdict", "newValue", "evidence", "card"],
+        "required": ["evidence", "verdict", "newValue", "card"],
     }
+
+
+_NUMBER = re.compile(r"\d[\d,]*(?:\.\d+)?")
+
+
+def _numbers(text: str) -> list[str]:
+    """Distinct numbers in text, in order, commas dropped: "$1,200 or 1200.5" → ["1200", "1200.5"]."""
+    found: list[str] = []
+    for match in _NUMBER.findall(text):
+        number = match.replace(",", "").rstrip(".")
+        if number not in found:
+            found.append(number)
+    return found
+
+
+def _swap_number(stored: str, other: str) -> str | None:
+    """The stored value with its one number replaced by the one number in other, else None.
+
+    Only the clear case: both texts hold exactly one number, and they differ (stored "$350 per user per
+    month", other "... $ 395 USD/User/Month ..."). The result keeps the stored style: "$395 per user per month".
+    """
+    old, new = _numbers(stored), _numbers(other)
+    if len(old) != 1 or len(new) != 1 or old[0] == new[0]:
+        return None
+    written = _NUMBER.search(other).group().rstrip(".,")  # as the page writes it: "3,500" stays "3,500"
+    if "," in _NUMBER.search(stored).group() and "," not in written and written.isdigit():
+        written = f"{int(written):,}"  # the stored style uses separators: "3500" becomes "3,500"
+    return _NUMBER.sub(lambda _: written, stored, count=1)
 
 
 async def verdict_card(fact: dict, page_content: str) -> dict:
@@ -179,7 +209,10 @@ async def verdict_card(fact: dict, page_content: str) -> dict:
         "Check a stored fact against the current text of its source page.\n"
         f"Stored fact: {fact['label']} = {fact['value']}"
         f"{' (' + fact['unit'] + ')' if fact.get('unit') else ''}. Criticality tier: {fact['tier']}.\n"
-        "- current: the page supports the stored value.\n"
+        "First quote, in evidence, the page's sentence that gives this value. Then decide:\n"
+        "- current: the page states the same value. Compare every number exactly: $350 and $395 are "
+        "different values, so that is outdated. Wording such as \"USD/User/Month\" or \"billed annually\" "
+        "does not change the value.\n"
         "- outdated: the page states a different value for the same thing. Put only that value in newValue, "
         "in the same style and units as the stored value, without the fact's label (stored \"$8 per seat per "
         "month\" becomes e.g. \"$10 per seat per month\", not \"Price = $10 per seat per month\").\n"
@@ -193,13 +226,26 @@ async def verdict_card(fact: dict, page_content: str) -> dict:
     if verdict not in VERDICTS:
         verdict = "unverifiable"
     new_value = str(data.get("newValue") or "").strip()
+    evidence = str(data.get("evidence") or "").strip()
+    card = data.get("card") if isinstance(data.get("card"), dict) else {}
+    if verdict == "current" and (page_value := _swap_number(str(fact["value"]), evidence)):
+        # The small model sometimes quotes a different number and still answers "current".
+        logger.warning("verdict 'current' contradicts its evidence (%r vs %r): treating as outdated",
+                       fact["value"], evidence)
+        verdict, new_value = "outdated", page_value
+        card = {**card, "title": "Fact outdated", "fact": f"{fact['label']}: {fact['value']} → {page_value}"}
+    elif verdict == "outdated" and (styled := _swap_number(str(fact["value"]), new_value)) and styled != new_value:
+        # Keep the stored wording: "$395 USD/User/Month" becomes "$395 per user per month", so the HUD shows
+        # only the number changing.
+        new_value = styled
+        card = {**card, "fact": f"{fact['label']}: {fact['value']} → {styled}"}
     if verdict == "outdated" and not new_value:
         verdict = "unverifiable"
     return {
         "verdict": verdict,
         "newValue": new_value if verdict == "outdated" else None,
-        "evidence": str(data.get("evidence") or "").strip(),
-        "card": data.get("card") if isinstance(data.get("card"), dict) else {},
+        "evidence": evidence,
+        "card": card,
     }
 
 
