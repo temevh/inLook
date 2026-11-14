@@ -39,6 +39,19 @@ GEMINI_ATTEMPTS = int(os.getenv("GEMINI_ATTEMPTS", "2"))
 CHECK_TIMEOUT_S = float(os.getenv("CHECK_TIMEOUT_S", "45"))
 ELEVENLABS_API_KEY = os.getenv("ELEVENLABS_API_KEY", "")
 
+# Mic path (WS /audio/stream → ElevenLabs realtime STT → transcript.line → Gemini spot → check_claim).
+# scribe_v3_live is the only realtime model with speaker labels. A pause of STT_VAD_SILENCE_S ends a line.
+ELEVENLABS_MODEL = os.getenv("ELEVENLABS_MODEL", "scribe_v3_live")
+STT_LANGUAGE = os.getenv("STT_LANGUAGE", "en")
+STT_VAD_SILENCE_S = float(os.getenv("STT_VAD_SILENCE_S", "0.8"))
+# Speaker labels are mapped to names in the order people first speak; extra speakers become "Speaker N".
+SPEAKERS = [s.strip() for s in os.getenv("INLOOK_SPEAKERS", "Mira Mockwell,Sam Sample").split(",") if s.strip()]
+# Transcript lines are sent to Gemini's spot call in batches, SPOT_DEBOUNCE_S after the first new line.
+# With SPOT_PREFILTER on (default), only lines with a number, a currency or a word from a stored fact are
+# sent: small talk costs no Gemini quota.
+SPOT_DEBOUNCE_S = float(os.getenv("SPOT_DEBOUNCE_S", "1.5"))
+SPOT_PREFILTER = os.getenv("SPOT_PREFILTER", "1") != "0"
+
 # MongoDB Atlas. Without MONGODB_URI the backend runs on the in-memory event log and /check and
 # /reviews answer 503 (they need the stored facts).
 MONGODB_URI = os.getenv("MONGODB_URI", "")

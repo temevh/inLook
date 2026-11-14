@@ -12,7 +12,7 @@ from fastapi.responses import JSONResponse, StreamingResponse
 from pymongo.errors import ConnectionFailure
 from pydantic import BaseModel, ValidationError
 
-from . import check, config
+from . import check, config, listen
 from .contract import AcceptedResponse, CheckRequest, ReviewRequest, ReviewResponse
 from .events import log
 from .services import context_dev, db
@@ -50,16 +50,14 @@ async def database_unreachable(_: Request, exc: ConnectionFailure) -> JSONRespon
 @app.websocket("/audio/stream")
 async def audio_stream(ws: WebSocket) -> None:
     """Mic stream: one connection = one transcribing session. Binary frames of raw PCM,
-    s16le, mono, 16 kHz, ~100 ms (3200 B) each. Results arrive over SSE.
+    s16le, mono, 16 kHz, ~100 ms (3200 B) each. Nothing goes back on the socket: results arrive over SSE.
 
-    TODO: relay the frames to ElevenLabs realtime STT
-    (wss://api.elevenlabs.io/v1/speech-to-text/realtime, audio_format=pcm_16000,
-    diarize=true), map speaker labels to names, publish transcript.line, then spot
-    claims with Gemini. For now frames are discarded.
+    The frames are relayed to ElevenLabs realtime STT; each line becomes transcript.line, and lines that
+    may hold a claim go to Gemini spot and then check_claim (app/listen.py). Without ELEVENLABS_API_KEY,
+    or when ElevenLabs is unavailable, the session stays open and its audio is discarded.
     """
     await ws.accept()
-    while (await ws.receive())["type"] != "websocket.disconnect":
-        pass
+    await listen.relay(ws)
 
 
 @app.post("/check", status_code=202, response_model=AcceptedResponse)
