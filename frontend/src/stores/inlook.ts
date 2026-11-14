@@ -1,5 +1,7 @@
 // The one store. Live mode: load a snapshot from /api, then fold every newer /stream event into it.
-// Demo mode: start from the seed and fold events that src/data/demo.ts produces in the browser.
+// Demo mode: if the mock backend (server/mock-backend.ts, `npm run mock`) answers, demo mode talks to it
+// exactly like live mode talks to the real services, under /mock. Otherwise it starts from the seed and
+// folds events that src/data/demo.ts produces in the browser.
 import { defineStore } from "pinia";
 import { computed, reactive, ref, watch } from "vue";
 import * as api from "../data/api";
@@ -46,6 +48,8 @@ export const useInlook = defineStore("inlook", () => {
   const busy = reactive<Record<string, boolean>>({});
   const toast = ref<{ text: string; tone: Tone } | null>(null);
   const playing = ref(false);
+  /** Demo mode only: true when the mock backend answers and serves the demo, false when it runs in the browser. */
+  const backed = ref(false);
   const meetingIndex = ref(0);
 
   let seen = new Set<number>();
@@ -80,7 +84,7 @@ export const useInlook = defineStore("inlook", () => {
   const hidden = ref<string[]>(readStored("hidden", []));
   const seenAt = ref<string>(readStored("seenAt", ""));
   // Each person has their own hidden items and read state: reload them when the signed-in person changes.
-  watch(viewerId, () => { hidden.value = readStored("hidden", []); seenAt.value = readStored("seenAt", ""); });
+  watch(viewerId, (id) => { api.actAs(id); hidden.value = readStored("hidden", []); seenAt.value = readStored("seenAt", ""); });
   const allInbox = computed(() => (viewer.value ? buildInbox(viewer.value.id, scope.value, records, log.value) : []));
   const inbox = computed(() => allInbox.value.filter((i) => !hidden.value.includes(i.key)));
   const hiddenCount = computed(() => allInbox.value.length - inbox.value.length);
@@ -190,7 +194,7 @@ export const useInlook = defineStore("inlook", () => {
         bootId ??= b;
         receive(e);
       },
-    });
+    }, api.streamUrl());
   }
 
   function startDemo() {
@@ -210,10 +214,18 @@ export const useInlook = defineStore("inlook", () => {
 
   async function start() {
     stop();
+    const run = demoRun;
     meetingIndex.value = 0;
-    if (mode.value === "demo") startDemo();
-    else await startLive();
+    if (mode.value === "live") { backed.value = false; api.useBackend(""); await startLive(); return; }
+    loading.value = true;
+    const alive = await api.mockAlive();
+    if (run !== demoRun) return; // started again meanwhile
+    backed.value = alive;
+    if (alive) { api.useBackend("/mock", viewerId.value); await startLive(); }
+    else { api.useBackend(""); startDemo(); }
   }
+  /** Demo mode without the mock backend: everything happens in the browser. */
+  const local = () => mode.value === "demo" && !backed.value;
 
   function setMode(m: DataMode) {
     mode.value = m;
@@ -225,14 +237,15 @@ export const useInlook = defineStore("inlook", () => {
     const rev = records.reviews[reviewId];
     if (!rev || busy[reviewId]) return;
     busy[reviewId] = true;
-    if (mode.value === "demo") {
+    if (local()) {
       await sleep(700);
       rev.closedBy = viewerId.value;
       await runSteps(demo.decide(records, rev, decision, new Date().toISOString(), viewerId.value));
       return;
     }
     try {
-      await api.decideReview(reviewId, decision);
+      if (backed.value) rev.closedBy = viewerId.value;
+      await api.decideReview(reviewId, decision, viewerId.value);
       // The spinner stays until review.closed arrives on the stream.
       setTimeout(() => { if (busy[reviewId]) { delete busy[reviewId]; say("Saved, but the confirmation has not arrived yet.", "info"); } }, 15000);
     } catch (err) {
@@ -245,7 +258,7 @@ export const useInlook = defineStore("inlook", () => {
     const key = `f:${factId}`;
     if (busy[key]) return;
     busy[key] = true;
-    if (mode.value === "demo") {
+    if (local()) {
       const fact = records.facts[factId];
       await runSteps(demo.routeClaim(records, { text: `Re-check: ${fact?.label ?? factId}`, source: "page", factId }, new Date().toISOString()));
       return;
@@ -262,7 +275,7 @@ export const useInlook = defineStore("inlook", () => {
   async function checkText(text: string) {
     const t = text.trim();
     if (!t) return;
-    if (mode.value === "demo") {
+    if (local()) {
       await runSteps(demo.routeClaim(records, { text: t, source: "selection", factId: demo.matchFact(t, records) }, new Date().toISOString()));
       return;
     }
@@ -288,7 +301,17 @@ export const useInlook = defineStore("inlook", () => {
       if (mode.value === "live" && !item.claim) { meetingIndex.value++; continue; }
       await sleep(mode.value === "live" ? 4000 : item.delayMs);
       if (!playing.value || run !== demoRun || loop !== meetingLoop) break;
-      if (mode.value === "demo") {
+      if (mode.value === "demo" && backed.value) {
+        // The mock backend gets each line as the transcriber would deliver it and spots the claims itself.
+        const lineId = `line-${meetingIndex.value + 1}`;
+        try { await api.devEvent("transcript.line", { lineId, speaker: item.speaker, text: item.line }); }
+        catch (err) { say(`The mock backend did not take the line: ${(err as Error).message}`, "error"); playing.value = false; break; }
+        meetingIndex.value++;
+        if (item.claim) {
+          if (item.claim.autoDecide && item.claim.factId) scheduleAutoDecide(item.claim.factId, item.claim.autoDecide);
+          await sleep(3000); // let the check finish before the next line, as in the browser demo
+        }
+      } else if (mode.value === "demo") {
         const lineId = `line-${meetingIndex.value + 1}`;
         emitDemo("transcript.line", { lineId, speaker: item.speaker, text: item.line });
         meetingIndex.value++;
@@ -317,7 +340,8 @@ export const useInlook = defineStore("inlook", () => {
       const rev = Object.values(records.reviews).find((x) => x.factId === factId && x.status === "pending" && x.reviewers.includes(a.by));
       if (!rev || busy[rev.id]) return;
       rev.closedBy = a.by;
-      void runSteps(demo.decide(records, rev, a.decision, new Date().toISOString(), a.by));
+      if (backed.value) void api.decideReview(rev.id, a.decision, a.by).catch(() => { /* already closed */ });
+      else void runSteps(demo.decide(records, rev, a.decision, new Date().toISOString(), a.by));
     }, a.afterMs);
   }
 
@@ -332,13 +356,15 @@ export const useInlook = defineStore("inlook", () => {
     } catch { /* not in a browser */ }
   }
 
-  function resetDemo() {
-    if (mode.value === "demo") void start();
+  async function resetDemo() {
+    if (mode.value !== "demo") return;
+    if (backed.value) await api.resetMock().catch(() => { /* gone: start() falls back to the browser demo */ });
+    void start();
   }
 
   return {
     mode, connection, loading, apiError, records, log, viewerId, viewer, scope, org, claims, lastSeq,
-    busy, toast, playing, meetingIndex, meetingDone,
+    busy, toast, playing, backed, meetingIndex, meetingDone,
     inbox, hiddenCount, unread, seenAt, hide, hideAll, unhideAll, markRead,
     start, stop, setMode, setViewer, decide, recheck, checkText, playMeeting, resetDemo, receive, useSnapshot,
   };

@@ -9,6 +9,7 @@
     "preview": "vite preview",
     "test": "vitest run",
     "api": "tsx watch --env-file=.env server/index.ts",
+    "mock": "tsx server/mock-backend.ts",
     "db:check": "tsx --env-file=.env server/check-db.ts",
     "db:pull": "prisma db pull",
     "db:generate": "prisma generate",

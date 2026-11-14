@@ -8,7 +8,8 @@ const store = useInlook();
 
 
 const conn = computed(() => {
-  if (store.mode === "demo") return { label: store.playing ? "Demo · receiving" : `Demo data · seq ${store.lastSeq}`, cls: store.playing ? "primary" : "ok" };
+  if (store.mode === "demo" && store.backed && store.connection === "live") return { label: store.playing ? "Mock backend · receiving" : `Mock backend · seq ${store.lastSeq}`, cls: store.playing ? "primary" : "ok" };
+  if (store.mode === "demo" && !store.backed) return { label: store.playing ? "Demo · receiving" : `Demo data · seq ${store.lastSeq}`, cls: store.playing ? "primary" : "ok" };
   switch (store.connection) {
     case "live": return { label: `Live · seq ${store.lastSeq}`, cls: "ok" };
     case "connecting": return { label: "Connecting…", cls: "navy" };

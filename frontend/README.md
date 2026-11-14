@@ -9,6 +9,26 @@ npm install            # also runs prisma generate
 npm run dev:demo       # dashboard on http://localhost:5173 with built-in mock data, nothing else needed
 ```
 
+Demo with the mock backend, so every action goes over HTTP and SSE like live mode and a terminal shows what
+the backend "does":
+
+```bash
+npm run mock           # terminal 1: mock backend on http://localhost:8787 (MOCK_PORT to change)
+npm run dev:demo       # terminal 2: dashboard; demo mode finds the mock backend through /mock
+```
+
+**Mock backend** (`server/mock-backend.ts`, MOCK DATA). A stand-in for `backend/` that answers the same
+contract (`shared/CONTRACT.md`): `GET /stream` (SSE with `<bootId>:<seq>` ids and Last-Event-ID replay),
+`POST /check`, `POST /recheck`, `POST /reviews/{id}` (404 / 409 like the real one), `GET /health`, and the data
+API's `GET /api/*`. Play meeting sends each transcript line to `POST /dev/events`, standing in for the
+ElevenLabs relay, and the mock spots the claims in it. `POST /dev/reset` (the Reset button) reseeds it and
+changes the boot id. Claims run through the same engine as the in-browser demo (`src/data/demo.ts`), so the
+results match. For every request the terminal prints who sent it (`x-inlook-user`, a mock-only header), the
+body, each step the real backend would take (Gemini spot / match / verdict, Context.dev scrape, tier routing,
+MongoDB writes, SSE publishes with their seq) and the response. Gemini, Context.dev, ElevenLabs and MongoDB
+are simulated; nothing leaves the process. When the mock backend is not running, demo mode runs in the browser
+as before; the top bar says which (`Mock backend · seq N` or `Demo data · seq N`).
+
 Live, against the real backend:
 
 ```bash
@@ -24,7 +44,8 @@ The Live / Demo switch in the top bar changes mode at any time; `?demo` in the U
 top bar: `?user=<person id>` in the URL (e.g. `?user=p-noor`), else `VITE_INLOOK_USER` in `.env`, else Ada
 Mockridge (`p-ada`). Mock people: `p-casey` (CEO), `p-noor` (COO), `p-ada`, `p-sam`, `p-mira`.
 Vite proxies `/api` to the data API and `/stream`, `/check`, `/recheck`, `/reviews` to the backend, so neither
-needs CORS. Override the targets with `INLOOK_API_URL` and `INLOOK_BACKEND_URL` in `.env`.
+needs CORS, and `/mock/*` to the mock backend. Override the targets with `INLOOK_API_URL`,
+`INLOOK_BACKEND_URL` and `INLOOK_MOCK_URL` in `.env`.
 
 ```bash
 npm test               # reducer and hierarchy-scope tests (vitest)
@@ -105,6 +126,7 @@ What to try in demo mode:
 - `src/styles/base.css`: brand tokens from the root `PRODUCT.md`.
 - `prisma/schema.prisma`: models from `prisma db pull`. `reviews`, `messages` and `events` were empty at
   introspection, so their fields are written by hand from `backend/app/services/db.py` and `backend/app/events.py`.
+- `server/mock-backend.ts`: the mock backend for demo mode (`npm run mock`), see "Run it".
 - `server/index.ts`: read-only JSON API. Prisma runs only here, never in the browser. The FastAPI backend stays
   the only writer.
 
