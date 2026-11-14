@@ -7,7 +7,13 @@ export interface MeetingLine {
   delayMs: number;
   speaker: string;
   line: string;
-  claim?: { factId: string | null; text: string; source?: Source };
+  claim?: {
+    factId: string | null;
+    text: string;
+    source?: Source;
+    /** Someone else decides the review this claim opens, after afterMs, unless they are signed in. */
+    autoDecide?: { by: string; decision: "accept" | "reject"; afterMs: number };
+  };
 }
 
 export const MEETING = data.meeting as MeetingLine[];

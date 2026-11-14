@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { decide, matchFact, routeClaim, type Step } from "../src/data/demo";
-import { applyEvent, claimsFrom } from "../src/lib/fold";
+import { applyEvent, claimsFrom, misstates, numbersIn } from "../src/lib/fold";
 import { buildInbox } from "../src/lib/inbox";
 import { scoped, scopeOf } from "../src/lib/scope";
 import { MEETING } from "../src/mock/script";
@@ -83,9 +83,11 @@ describe("the meeting", () => {
     const meeting = claimsFrom(log).filter((c) => c.speaker).reverse();
     expect(meeting.map((c) => c.state)).toEqual([
       "outdated", "outdated", "current", "outdated", "outdated", "current", "current", "unverifiable", "unverified",
-      "outdated", "outdated", "outdated", "current", "outdated", "current", "outdated", "current",
+      "outdated", "outdated", "outdated", "current", "outdated", "current", "outdated", "current", "current",
     ]);
     expect(meeting[0].speaker).toBe("Sam Sample");
+    // Only the API rate limit was misstated: memory says 120 (updated automatically), the speaker said 100.
+    expect(meeting.filter((c) => c.misstated).map((c) => c.factId)).toEqual(["f-api-rate-limit"]);
   });
 
   it("heals a strategy only when none of its facts is in review", () => {
@@ -134,6 +136,34 @@ describe("hierarchy scope", () => {
     expect(view("p-mira").strategies).toHaveLength(0);
     expect(view("p-jon").strategies.map((s) => s.id)).toEqual(["s-cloud-plan"]); // owned by his report
     expect(view("p-elin").strategies).toHaveLength(3);
+  });
+});
+
+describe("misstated numbers", () => {
+  it("reads numbers the way people write them", () => {
+    expect(numbersIn("$100,000 in sales, 5.50 per click, 24%")).toEqual([100000, 5.5, 24]);
+  });
+  it("flags a claim whose number company memory does not hold", () => {
+    expect(misstates("The API allows 100 requests per minute", "120 requests per minute")).toBe(true);
+    expect(misstates("We plan with 1 EUR = 1.08 USD", "1 EUR = 1.08 USD")).toBe(false);
+    expect(misstates("The office wifi is called MockNet", "MockNet")).toBe(false);
+  });
+});
+
+describe("decisions by other people", () => {
+  it("records who decided, in the review and the new version", () => {
+    const { r } = replay(false);
+    const slack = Object.values(r.reviews).find((x) => x.factId === "f-slack-price")!;
+    expect(slack.closedBy).toBe("p-ada");
+    expect(r.facts["f-slack-price"].versions.at(-1)?.by).toBe("p-ada");
+  });
+
+  it("tells the others, but not the person who decided", () => {
+    const { r, log } = replay(false);
+    const kinds = (id: string) => buildInbox(id, scoped(id, r), r, log).map((i) => `${i.kind}: ${i.text.slice(0, 20)}`);
+    expect(kinds("p-viktor")).toContain("Accepted: Ada Mockridge accept");
+    expect(kinds("p-ada").some((k) => k.startsWith("Accepted: Ada"))).toBe(false);
+    expect(kinds("p-tess")).toContain("Kept old value: Raj Testwell kept 20");
   });
 });
 

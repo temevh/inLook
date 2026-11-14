@@ -13,12 +13,13 @@ const store = useInlook();
 const RECENT_MS = 12 * 60 * 60 * 1000;
 const recent = computed(() => store.claims.filter((c) => Date.now() - Date.parse(c.at) < RECENT_MS));
 
-type Filter = "all" | "scope" | ClaimState;
+type Filter = "all" | "scope" | "misstated" | ClaimState;
 const filter = ref<Filter>("all");
 const counts = computed(() => {
-  const c: Record<string, number> = { all: recent.value.length, scope: 0 };
+  const c: Record<string, number> = { all: recent.value.length, scope: 0, misstated: 0 };
   for (const x of recent.value) {
     c[x.state] = (c[x.state] ?? 0) + 1;
+    if (x.misstated) c.misstated++;
     if (x.factId && store.scope.facts.has(x.factId)) c.scope++;
   }
   return c;
@@ -26,11 +27,15 @@ const counts = computed(() => {
 const filters = computed(() => [
   { id: "all" as Filter, label: "All" },
   { id: "scope" as Filter, label: "In your scope" },
+  { id: "misstated" as Filter, label: "Misstated" },
   ...(["outdated", "current", "unverifiable", "unverified", "checking"] as ClaimState[]).map((s) => ({ id: s as Filter, label: CLAIM[s].label.replace("…", "") })),
 ].filter((f) => f.id === "all" || counts.value[f.id]));
 const claims = computed(() =>
   recent.value.filter((c) =>
-    filter.value === "all" ? true : filter.value === "scope" ? !!c.factId && store.scope.facts.has(c.factId) : c.state === filter.value),
+    filter.value === "all" ? true
+      : filter.value === "scope" ? !!c.factId && store.scope.facts.has(c.factId)
+      : filter.value === "misstated" ? !!c.misstated
+      : c.state === filter.value),
 );
 
 const transcript = computed(() => {

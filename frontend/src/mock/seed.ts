@@ -10,7 +10,7 @@ import { withHierarchy } from "./org";
 interface HistoryItem {
   at: string;
   claim?: { factId: string; text: string; source: Source };
-  decide?: { factId: string; decision: "accept" | "reject" };
+  decide?: { factId: string; decision: "accept" | "reject"; by: string };
 }
 
 export function demoSnapshot(): Snapshot {
@@ -40,7 +40,10 @@ export function demoSnapshot(): Snapshot {
     if (h.claim) play(routeClaim(r, h.claim, h.at), h.at);
     if (h.decide) {
       const review = Object.values(r.reviews).find((x) => x.factId === h.decide!.factId && x.status === "pending");
-      if (review) play(decide(r, review, h.decide.decision, h.at), h.at);
+      if (review) {
+        review.closedBy = h.decide.by;
+        play(decide(r, review, h.decide.decision, h.at, h.decide.by), h.at);
+      }
     }
   }
   return { ...r, events: events.reverse() };

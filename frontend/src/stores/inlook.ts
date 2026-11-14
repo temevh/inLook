@@ -1,7 +1,7 @@
 // The one store. Live mode: load a snapshot from /api, then fold every newer /stream event into it.
 // Demo mode: start from the seed and fold events that src/data/demo.ts produces in the browser.
 import { defineStore } from "pinia";
-import { computed, reactive, ref } from "vue";
+import { computed, reactive, ref, watch } from "vue";
 import * as api from "../data/api";
 import * as demo from "../data/demo";
 import { openStream } from "../data/stream";
@@ -79,6 +79,8 @@ export const useInlook = defineStore("inlook", () => {
   }
   const hidden = ref<string[]>(readStored("hidden", []));
   const seenAt = ref<string>(readStored("seenAt", ""));
+  // Each person has their own hidden items and read state: reload them when the signed-in person changes.
+  watch(viewerId, () => { hidden.value = readStored("hidden", []); seenAt.value = readStored("seenAt", ""); });
   const allInbox = computed(() => (viewer.value ? buildInbox(viewer.value.id, scope.value, records, log.value) : []));
   const inbox = computed(() => allInbox.value.filter((i) => !hidden.value.includes(i.key)));
   const hiddenCount = computed(() => allInbox.value.length - inbox.value.length);
@@ -225,7 +227,8 @@ export const useInlook = defineStore("inlook", () => {
     busy[reviewId] = true;
     if (mode.value === "demo") {
       await sleep(700);
-      await runSteps(demo.decide(records, rev, decision, new Date().toISOString()));
+      rev.closedBy = viewerId.value;
+      await runSteps(demo.decide(records, rev, decision, new Date().toISOString(), viewerId.value));
       return;
     }
     try {
@@ -292,6 +295,7 @@ export const useInlook = defineStore("inlook", () => {
         if (item.claim) {
           await sleep(700);
           await runSteps(demo.routeClaim(records, { ...item.claim, source: item.claim.source ?? "audio", lineId }, new Date().toISOString()));
+          if (item.claim.autoDecide && item.claim.factId) scheduleAutoDecide(item.claim.factId, item.claim.autoDecide);
         }
       } else {
         try { await api.checkClaim(item.claim!.text); }
@@ -302,6 +306,32 @@ export const useInlook = defineStore("inlook", () => {
     if (run === demoRun && loop === meetingLoop) playing.value = false;
   }
 
+  /**
+   * Demo only: someone else decides a review on their own after a while, so the signed-in person sees
+   * a review closed by a colleague. Skipped when that colleague is the one signed in: then it is theirs to do.
+   */
+  function scheduleAutoDecide(factId: string, a: { by: string; decision: "accept" | "reject"; afterMs: number }) {
+    const run = demoRun;
+    setTimeout(() => {
+      if (run !== demoRun || mode.value !== "demo" || viewerId.value === a.by) return;
+      const rev = Object.values(records.reviews).find((x) => x.factId === factId && x.status === "pending" && x.reviewers.includes(a.by));
+      if (!rev || busy[rev.id]) return;
+      rev.closedBy = a.by;
+      void runSteps(demo.decide(records, rev, a.decision, new Date().toISOString(), a.by));
+    }, a.afterMs);
+  }
+
+  /** Demo only: sign in as someone else, keeping everything that has happened so far. */
+  function setViewer(id: string) {
+    if (mode.value !== "demo" || !records.people[id]) return;
+    viewerId.value = id;
+    try {
+      const url = new URL(location.href);
+      url.searchParams.set("user", id);
+      history.replaceState(history.state, "", url);
+    } catch { /* not in a browser */ }
+  }
+
   function resetDemo() {
     if (mode.value === "demo") void start();
   }
@@ -310,6 +340,6 @@ export const useInlook = defineStore("inlook", () => {
     mode, connection, loading, apiError, records, log, viewerId, viewer, scope, org, claims, lastSeq,
     busy, toast, playing, meetingIndex, meetingDone,
     inbox, hiddenCount, unread, seenAt, hide, hideAll, unhideAll, markRead,
-    start, stop, setMode, decide, recheck, checkText, playMeeting, resetDemo, receive, useSnapshot,
+    start, stop, setMode, setViewer, decide, recheck, checkText, playMeeting, resetDemo, receive, useSnapshot,
   };
 });

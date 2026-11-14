@@ -47,13 +47,31 @@ export function buildInbox(viewer: string, scope: Scoped, r: Records, log: Inloo
     });
   }
 
-  // Facts in your scope that changed, automatically or through a review.
+  // Reviews someone else decided: on facts in your scope, or ones you were asked about too.
+  for (const e of log) {
+    if (e.type !== "review.closed") continue;
+    const rev = r.reviews[e.payload.reviewId];
+    if (!rev || rev.closedBy === viewer || !(rev.reviewers.includes(viewer) || scope.facts.has(rev.factId))) continue;
+    const who = rev.closedBy ? personName(rev.closedBy, r) : "A reviewer";
+    const accepted = e.payload.status === "accepted";
+    items.push({
+      key: `d-${rev.id}`, at: e.at, kind: accepted ? "Accepted" : "Kept old value", tone: accepted ? "ok" : "quiet", meta: clock(e.at),
+      text: accepted
+        ? `${who} accepted ${label(rev.factId)}: ${rev.oldValue} → ${rev.newValue}.${rev.reviewers.includes(viewer) ? " You were asked too; nothing left for you to do." : ""}`
+        : `${who} kept ${rev.oldValue} for ${label(rev.factId)} instead of ${rev.newValue}.`,
+      actions: [{ label: "Version history", to: `/facts/${rev.factId}` }],
+    });
+  }
+
+  // Facts in your scope that changed automatically, or that you accepted.
   for (const e of log) {
     if (e.type !== "fact.updated" || !scope.facts.has(e.payload.factId)) continue;
     const auto = e.payload.version.by === "inlook";
+    // Someone else's accept is already an "Accepted" item above; only automatic updates and your own remain.
+    if (!auto && e.payload.version.by !== viewer) continue;
     items.push({
       key: `u-${e.seq}`, at: e.at, kind: "Updated", tone: "ok", meta: clock(e.at),
-      text: `${e.payload.card.fact} · ${auto ? "updated automatically by inLook (low tier, no review needed)" : "accepted in review"}`,
+      text: `${e.payload.card.fact} · ${auto ? "updated automatically by inLook (low tier, no review needed)" : "you accepted it"}`,
       actions: [{ label: "Version history", to: `/facts/${e.payload.factId}` }],
     });
   }

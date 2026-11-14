@@ -1,5 +1,5 @@
 {
- "_note": "MOCK DATA for the dashboard's demo mode. Every name, value and source here is invented. `live` is what the fact's source says today (null: no public source, so a check is unverifiable). `tier` is the tier as stated; a low-tier fact that a strategy relies on is treated as medium, as the backend does. `history` runs through the demo engine once at load, so past reviews, messages and updates are real events in the log. `meeting` is what Play meeting replays.",
+ "_note": "MOCK DATA for the dashboard's demo mode. Every name, value and source here is invented. `live` is what the fact's source says today (null: no public source, so a check is unverifiable). `tier` is the tier as stated; a low-tier fact that a strategy relies on is treated as medium, as the backend does. `history` runs through the demo engine once at load, so past reviews, messages and updates are real events in the log. `meeting` is what Play meeting replays. A meeting claim's `autoDecide` makes that person decide the resulting review after `afterMs`, unless they are the one signed in.",
  "people": [
   {"id": "p-casey", "name": "Casey Mockford", "role": "CEO", "team": "Leadership", "reportsTo": null},
   {"id": "p-ada", "name": "Ada Mockridge", "role": "Head of Pricing", "team": "Pricing", "reportsTo": "p-casey"},
@@ -61,14 +61,14 @@
  ],
  "history": [
   {"at": "2026-10-06T08:30:00Z", "claim": {"factId": "f-competitor-launch", "text": "MockDesk AI ships in Q2 2027", "source": "page"}},
-  {"at": "2026-10-07T11:00:00Z", "decide": {"factId": "f-competitor-launch", "decision": "accept"}},
+  {"at": "2026-10-07T11:00:00Z", "decide": {"factId": "f-competitor-launch", "decision": "accept", "by": "p-omar"}},
   {"at": "2026-10-20T09:15:00Z", "claim": {"factId": "f-slack-price", "text": "Slack Pro costs $7.25 per user", "source": "page"}},
-  {"at": "2026-10-21T08:40:00Z", "decide": {"factId": "f-slack-price", "decision": "accept"}},
+  {"at": "2026-10-21T08:40:00Z", "decide": {"factId": "f-slack-price", "decision": "accept", "by": "p-ada"}},
   {"at": "2026-10-28T07:05:00Z", "claim": {"factId": "f-office-hours", "text": "The office opens at nine", "source": "page"}},
   {"at": "2026-11-02T13:30:00Z", "claim": {"factId": "f-discount-cap", "text": "Reps can discount up to 20%", "source": "selection"}},
-  {"at": "2026-11-03T10:10:00Z", "decide": {"factId": "f-discount-cap", "decision": "reject"}},
+  {"at": "2026-11-03T10:10:00Z", "decide": {"factId": "f-discount-cap", "decision": "reject", "by": "p-raj"}},
   {"at": "2026-11-04T14:00:00Z", "claim": {"factId": "f-cloud-cost", "text": "Instances cost $0.0912 an hour", "source": "page"}},
-  {"at": "2026-11-05T09:30:00Z", "decide": {"factId": "f-cloud-cost", "decision": "accept"}},
+  {"at": "2026-11-05T09:30:00Z", "decide": {"factId": "f-cloud-cost", "decision": "accept", "by": "p-dana"}},
   {"at": "2026-11-08T06:45:00Z", "claim": {"factId": "f-api-rate-limit", "text": "The API allows 100 requests per minute", "source": "page"}},
   {"at": "2026-11-10T12:20:00Z", "claim": {"factId": "f-hubspot-price", "text": "HubSpot Starter is $20 per seat", "source": "selection"}},
   {"at": "2026-11-11T10:05:00Z", "claim": {"factId": "f-salary-band", "text": "Support agents earn €2,800–3,300", "source": "page"}},
@@ -77,10 +77,10 @@
  ],
  "meeting": [
   {"delayMs": 600, "speaker": "Casey Mockford", "line": "Quick round before the board pack goes out. Pricing first."},
-  {"delayMs": 1000, "speaker": "Sam Sample", "line": "Notion Plus is eight dollars a seat, so we're clearly cheaper.", "claim": {"factId": "f-compx-price", "text": "Notion Plus costs $8 per seat per month"}},
+  {"delayMs": 1000, "speaker": "Sam Sample", "line": "Notion Plus is eight dollars a seat, so we're clearly cheaper.", "claim": {"factId": "f-compx-price", "text": "Notion Plus costs $8 per seat per month", "autoDecide": {"by": "p-raj", "decision": "accept", "afterMs": 25000}}},
   {"delayMs": 1000, "speaker": "Elin Mockberg", "line": "All of that assumes 1.08 dollars per euro.", "claim": {"factId": "f-eur-usd", "text": "We plan with 1 EUR = 1.08 USD"}},
   {"delayMs": 1000, "speaker": "Leo Placeholder", "line": "And Slack Pro is eight seventy-five per user, I checked last month.", "claim": {"factId": "f-slack-price", "text": "Slack Pro costs $8.75 per user per month"}},
-  {"delayMs": 1000, "speaker": "Mira Mockwell", "line": "On returns, we match Apple's thirty-day window.", "claim": {"factId": "f-refund-window", "text": "Apple Store gives 30 days to return items"}},
+  {"delayMs": 1000, "speaker": "Mira Mockwell", "line": "On returns, we match Apple's thirty-day window.", "claim": {"factId": "f-refund-window", "text": "Apple Store gives 30 days to return items", "autoDecide": {"by": "p-sam", "decision": "reject", "afterMs": 30000}}},
   {"delayMs": 1000, "speaker": "Mira Mockwell", "line": "Visitors can use MockNet in the lobby.", "claim": {"factId": "f-wifi-name", "text": "The office wifi is called MockNet"}},
   {"delayMs": 1000, "speaker": "Viktor Stubbs", "line": "Enterprise customers get 99.9 percent uptime.", "claim": {"factId": "f-uptime-sla", "text": "We commit to 99.9% uptime"}},
   {"delayMs": 1000, "speaker": "Elin Mockberg", "line": "Remember GDPR fines go up to four percent of turnover.", "claim": {"factId": "f-gdpr-fine-cap", "text": "GDPR fines are capped at 4% of global annual turnover"}},
@@ -94,6 +94,7 @@
   {"delayMs": 1000, "speaker": "Tess Dummond", "line": "I'm sharing the slide with the office logistics.", "claim": {"factId": "f-parking", "text": "12 visitor parking spots", "source": "screenshot"}},
   {"delayMs": 1000, "speaker": "Noor Mockwood", "line": "Ticket volume is still around 340 a week, so staffing holds.", "claim": {"factId": "f-ticket-volume", "text": "Support handles about 340 tickets per week"}},
   {"delayMs": 1000, "speaker": "Dana Stubworth", "line": "Hosting is about eight cents an hour per instance.", "claim": {"factId": "f-cloud-cost", "text": "Cloud instances cost $0.0816 per hour"}},
+  {"delayMs": 1000, "speaker": "Dana Stubworth", "line": "And the public API still allows a hundred requests a minute.", "claim": {"factId": "f-api-rate-limit", "text": "The public API allows 100 requests per minute"}},
   {"delayMs": 800, "speaker": "Casey Mockford", "line": "Great, let's wrap up there."}
  ]
 }

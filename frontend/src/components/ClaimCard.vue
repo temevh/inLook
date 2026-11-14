@@ -10,7 +10,7 @@ const state = computed(() => CLAIM[props.claim.state]);
 const detail = computed(() => {
   const c = props.claim;
   if (c.state === "outdated") return `${c.oldValue} → ${c.newValue} · ${c.tier === "low" ? "updated automatically" : "in review"}`;
-  if (c.state === "current") return `Matches ${c.oldValue}`;
+  if (c.state === "current") return c.misstated ? `The source agrees with company memory: ${c.oldValue}` : `Matches ${c.oldValue}`;
   if (c.state === "unverified") return "No matching fact in company memory";
   if (c.state === "unverifiable") return "No public source to check it against";
   return "";
@@ -22,9 +22,11 @@ const detail = computed(() => {
     <div class="tags">
       <Pill :tone="state.tone">{{ state.label }}</Pill>
       <span class="muted small">{{ SOURCE_LABEL[claim.source] ?? claim.source }}<template v-if="claim.speaker"> · {{ claim.speaker }}</template></span>
+      <Pill v-if="claim.misstated" tone="warn">Misstated</Pill>
       <Pill v-if="inScope" tone="low">In your scope</Pill>
     </div>
     <p class="text">“{{ claim.text }}”</p>
+    <p v-if="claim.misstated" class="small misstated">The speaker's number differs from company memory, which holds {{ claim.oldValue }}.</p>
     <p v-if="detail" class="muted small">{{ detail }}</p>
   </article>
 </template>
@@ -36,4 +38,5 @@ const detail = computed(() => {
 .claim.unverified, .claim.unverifiable { border-style: dashed; }
 .tags { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; }
 .text { font-size: 0.875rem; line-height: 1.4; }
+.misstated { color: #f0b44c; line-height: 1.4; }
 </style>

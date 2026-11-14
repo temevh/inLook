@@ -68,9 +68,27 @@ export interface Claim {
   oldValue?: string;
   newValue?: string | null;
   tier?: string;
+  /**
+   * The claim's numbers differ from what company memory held when it was checked: the speaker misstated
+   * the fact, whatever its source says. Worked out here from the text, so it needs no backend field.
+   */
+  misstated?: boolean;
   /** Who said it, when the claim came from a transcript line. */
   speaker?: string;
   at: string;
+}
+
+/** Numbers in a text, "100,000" read as 100000 and "5.50" as 5.5. */
+export function numbersIn(text: string): number[] {
+  return (text.match(/\d[\d,]*(?:\.\d+)?/g) ?? []).map((n) => Number(n.replace(/,(?=\d{3}\b)/g, ""))).filter((n) => !Number.isNaN(n));
+}
+
+/** True when the claim names a number that the stored value does not contain. */
+export function misstates(claim: string, stored: string): boolean {
+  const said = numbersIn(claim);
+  if (!said.length) return false;
+  const known = numbersIn(stored);
+  return said.some((n) => !known.includes(n));
 }
 
 /** Claims are not stored anywhere: they are folded from the event log (oldest first). */
@@ -85,7 +103,10 @@ export function claimsFrom(log: InlookEvent[]): Claim[] {
       byId.set(e.payload.claimId, { id: e.payload.claimId, seq: e.seq, text: e.payload.text, source: e.payload.source, state: "checking", speaker, at: e.at });
     } else if (e.type === "claim.verdict") {
       const c = byId.get(e.payload.claimId);
-      if (c) Object.assign(c, { state: e.payload.verdict, factId: e.payload.factId, oldValue: e.payload.oldValue, newValue: e.payload.newValue, tier: e.payload.card.criticality });
+      if (c) Object.assign(c, {
+        state: e.payload.verdict, factId: e.payload.factId, oldValue: e.payload.oldValue, newValue: e.payload.newValue,
+        tier: e.payload.card.criticality, misstated: misstates(c.text, e.payload.oldValue),
+      });
     } else if (e.type === "claim.unverified") {
       const c = byId.get(e.payload.claimId);
       if (c) c.state = "unverified";

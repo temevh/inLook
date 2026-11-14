@@ -2,6 +2,7 @@
 import { computed, onMounted, onUnmounted } from "vue";
 import { RouterLink, RouterView } from "vue-router";
 import AppHeader from "./components/AppHeader.vue";
+import NotifyToasts from "./components/NotifyToasts.vue";
 import { useInlook } from "./stores/inlook";
 
 const store = useInlook();
@@ -48,6 +49,8 @@ const banner = computed(() => {
       <div v-if="store.toast" class="toast" :class="store.toast.tone" role="status">{{ store.toast.text }}</div>
     </Transition>
 
+    <NotifyToasts />
+
     <main class="main">
       <RouterView />
     </main>
@@ -71,7 +74,7 @@ const banner = computed(() => {
 .banner.bad { background: var(--tint-danger); border: 1px solid var(--danger); }
 .banner.warn { background: var(--tint-warning); border: 1px solid var(--warning); }
 .banner .actions { margin-left: auto; display: flex; gap: 8px; }
-.toast { position: fixed; right: 24px; bottom: 24px; z-index: 10; max-width: 420px; padding: 12px 16px; border-radius: var(--r-btn); font-size: 0.875rem; box-shadow: 0 8px 24px rgb(0 0 0 / 0.4); }
+.toast { position: fixed; left: 24px; bottom: 24px; z-index: 10; max-width: 420px; padding: 12px 16px; border-radius: var(--r-btn); font-size: 0.875rem; box-shadow: 0 8px 24px rgb(0 0 0 / 0.4); }
 .toast.ok { background: var(--tint-success); border: 1px solid var(--success); }
 .toast.info { background: var(--tint-primary); border: 1px solid var(--navy); }
 .toast.error { background: var(--tint-danger); border: 1px solid var(--danger); }

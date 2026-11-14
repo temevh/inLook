@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed } from "vue";
 import { RouterLink, useRoute, useRouter } from "vue-router";
+import FactRipple from "../components/FactRipple.vue";
 import Pill from "../components/Pill.vue";
 import { day, domain, personName } from "../lib/format";
 import { factStatus, TIER } from "../lib/labels";
@@ -55,6 +56,7 @@ function select(id: string) {
 
 <template>
   <div class="facts">
+    <div class="left">
     <section class="card table-card" aria-labelledby="facts-h">
       <div class="head">
         <h1 id="facts-h">Company memory</h1>
@@ -79,6 +81,9 @@ function select(id: string) {
         </table>
       </div>
     </section>
+
+    <div v-if="selected" class="scroll"><FactRipple :fact="selected" /></div>
+    </div>
 
     <aside v-if="selected" class="card panel" aria-labelledby="fact-h">
       <div class="row"><span class="label">Fact</span><Pill :tone="tierOf(selected.id).tone">{{ tierOf(selected.id).label }}</Pill></div>
@@ -123,7 +128,8 @@ function select(id: string) {
 
 <style scoped>
 .facts { display: flex; flex-wrap: wrap; gap: 20px; align-items: flex-start; }
-.table-card { flex: 999 1 560px; min-width: 0; }
+.left { flex: 999 1 560px; min-width: 0; display: flex; flex-direction: column; gap: 20px; }
+.table-card { min-width: 0; }
 .head { padding: 16px; display: flex; flex-wrap: wrap; align-items: baseline; gap: 10px; }
 .head h1 { font-size: 1.25rem; }
 .scroll { overflow-x: auto; }

@@ -80,6 +80,21 @@ Good people to sign in as with `?user=`: `p-ada` (default; her strategies pull i
 levels down), `p-casey` (CEO, everything), `p-jon` (middle manager, owns nothing but sees his report's strategy),
 `p-mira` (only low-tier facts, until the lease review lands on her), `p-hana` (gets the raised-tier review).
 
+Demo-only extras:
+
+- **Sign in as** (click your name in the top bar): switch person without losing the demo. Each person's list
+  shows how many decisions wait on them.
+- **Colleagues decide on their own**: a meeting claim's `autoDecide` in the JSON makes that person decide its
+  review after a delay (Raj accepts the Notion price after 25 s, Sam keeps the Apple return window after 30 s),
+  unless they are the one signed in. Others get an "Accepted" or "Kept old value" notification naming them, and
+  the new version in the fact's history is credited to them.
+- **Misstated claims**: when a claim's numbers differ from what company memory held, the card says so, whatever
+  the source says (Dana's "100 requests a minute" while memory holds 120). This is worked out from the text, so it
+  works in live mode too.
+- **Ripple diagram** on the Facts page: the selected fact, the strategies relying on it and their owners. Edges
+  animate while a change is in review; flagged strategies and the people asked to decide are marked.
+- **Notification pop-ups** for anything new that reaches the bell, with its main action ("Decide now").
+
 What to try in demo mode:
 
 1. Play meeting. Watch Notion's price ask four people across three strategies, and the exchange rate flag two
@@ -97,6 +112,7 @@ What to try in demo mode:
 
 - `src/stores/inlook.ts`: the one Pinia store (snapshot, stream, demo engine, actions).
 - `src/data/`: `api.ts` (fetch wrappers), `stream.ts` (EventSource), `demo.ts` (in-browser backend stand-in).
+- `src/components/UserMenu.vue`, `FactRipple.vue`, `NotifyToasts.vue`: person switcher (demo), ripple diagram, pop-ups.
 - `src/views/`: My desk, Meetings (transcript, claims, Check a claim), Facts (with version history), Strategies, Activity.
 - `src/components/NotificationBell.vue` and `src/lib/inbox.ts`: the bell. Each notification links to its action
   (Decide now, the strategy, the fact) and can be hidden. Hidden items and read state are kept per person in

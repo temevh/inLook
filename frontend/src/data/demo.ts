@@ -99,14 +99,17 @@ export function routeClaim(r: Records, c: DemoClaim, when: string): Step[] {
   return steps;
 }
 
-/** A reviewer's decision, and the strategies it heals. */
-export function decide(r: Records, review: Review, decision: "accept" | "reject", when: string): Step[] {
+/**
+ * A reviewer's decision, and the strategies it heals. `by` is who decided: the contract's review.closed
+ * does not carry it, so the caller also sets `review.closedBy`; the new fact version records it too.
+ */
+export function decide(r: Records, review: Review, decision: "accept" | "reject", when: string, by = "reviewer"): Step[] {
   const fact = r.facts[review.factId];
   const steps: Step[] = [step(0, "review.closed", { reviewId: review.id, factId: review.factId, status: decision === "accept" ? "accepted" : "rejected" })];
   if (decision === "accept" && fact) {
     steps.push(step(200, "fact.updated", {
       factId: fact.id,
-      version: { value: review.newValue, source: fact.sourceUrl ?? "", at: when, by: "reviewer" },
+      version: { value: review.newValue, source: fact.sourceUrl ?? "", at: when, by },
       card: { title: "Fact updated", criticality: review.tier, fact: `${fact.label}: ${review.oldValue} → ${review.newValue}` },
     }));
   }
