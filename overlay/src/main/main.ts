@@ -9,13 +9,13 @@ import { readSelection } from "./selection";
 import { subscribe } from "./sse";
 import { createHud, createWidget, isOwnPage, setHudInteractive } from "./windows";
 import type { InlookEvent, ReviewDecision } from "../shared/contract";
-import type { IpcInvoke, IpcPush, OverlayState } from "../shared/ipc";
+import type { CheckResult, IpcInvoke, IpcPush, OverlayState } from "../shared/ipc";
 
 // X11 only (spec "Platform"). Transparency needs a compositor (Mutter or picom).
 app.commandLine.appendSwitch("ozone-platform", "x11");
 app.commandLine.appendSwitch("enable-transparent-visuals");
 
-const state: OverlayState = { hudInteractive: false, transcribing: false, stream: "connecting" };
+const state: OverlayState = { hudInteractive: false, transcribing: false, stream: "connecting", audio: "off" };
 let hud: BrowserWindow | undefined;
 let widget: BrowserWindow | undefined;
 
@@ -84,13 +84,24 @@ function registerIpc() {
   });
 }
 
+// One instance only: a second launch quits and brings the existing widget back.
+const gotLock = app.requestSingleInstanceLock();
+if (!gotLock) app.quit();
+app.on("second-instance", () => {
+  if (!widget || widget.isDestroyed()) return;
+  if (widget.isMinimized()) widget.restore();
+  widget.showInactive();
+});
+
 app.whenReady().then(() => {
+  if (!gotLock) return;
   // Mic permission for our own pages only.
   session.defaultSession.setPermissionRequestHandler((wc, permission, cb, details) =>
     cb(permission === "media" && isOwnPage(details.requestingUrl ?? wc.getURL())));
   session.defaultSession.setPermissionCheckHandler((wc, permission, _origin, details) =>
     permission === "media" && isOwnPage(details.requestingUrl ?? wc?.getURL()));
 
+  audioStream.onStatus((s) => { state.audio = s; pushState(); });
   registerIpc();
   hud = createHud();
   widget = createWidget();
@@ -112,8 +123,12 @@ app.whenReady().then(() => {
   });
 
   // "Check now": the selection if there is one, otherwise the screen.
+  // The result goes to the widget, like the button path, so it shows "sent" or the error.
   const ok = globalShortcut.register(config.checkHotkey, async () => {
-    await ((await readSelection()) ? checkSelection() : checkScreen());
+    const what = (await readSelection()) ? "selection" : "screen";
+    const r = await (what === "selection" ? checkSelection() : checkScreen());
+    const result: CheckResult = { what, ...r };
+    if (widget && !widget.isDestroyed()) widget.webContents.send("inlook:check-result" satisfies IpcPush, result);
   });
   if (!ok) console.warn(`[inlook] hotkey ${config.checkHotkey} is taken`);
 });

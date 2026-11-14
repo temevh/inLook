@@ -14,9 +14,10 @@ export async function captureScreen(hide: BrowserWindow[] = []): Promise<Buffer>
   const { width, height } = display.size;
   const sf = display.scaleFactor;
 
-  // Hide our own windows so the HUD/widget are not in the shot.
-  const visible = hide.filter((w) => !w.isDestroyed() && w.isVisible());
-  visible.forEach((w) => w.hide());
+  // Hide our own windows so the HUD/widget are not in the shot. Opacity 0 first: it takes
+  // effect at once, while Mutter's hide fade can outlast the wait and ghost into the PNG.
+  const visible = hide.filter((w) => !w.isDestroyed() && w.isVisible()).map((w) => ({ w, opacity: w.getOpacity() }));
+  visible.forEach(({ w }) => { w.setOpacity(0); w.hide(); });
   await new Promise((r) => setTimeout(r, 150));
   try {
     const sources = await withTimeout(desktopCapturer.getSources({
@@ -30,6 +31,10 @@ export async function captureScreen(hide: BrowserWindow[] = []): Promise<Buffer>
     const k = Math.min(1, MAX_SIDE / Math.max(w, h), Math.sqrt(MAX_AREA / (w * h)));
     return (k < 1 ? img.resize({ width: Math.round(w * k), height: Math.round(h * k), quality: "good" }) : img).toPNG();
   } finally {
-    visible.forEach((w) => w.showInactive());
+    for (const { w, opacity } of visible) {
+      if (w.isDestroyed()) continue;
+      w.setOpacity(opacity);
+      w.showInactive();
+    }
   }
 }

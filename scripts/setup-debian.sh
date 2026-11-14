@@ -10,13 +10,12 @@ export PATH="$HOME/.local/bin:$PATH"
 
 log() { printf '\n==> %s\n' "$*"; }
 installed() { dpkg-query -W -f='${Status}' "$1" 2>/dev/null | grep -q 'install ok installed'; }
-has_candidate() { apt-cache policy "$1" 2>/dev/null | grep -q 'Candidate: [^(]'; }
+has_candidate() { apt-cache policy "$1" 2>/dev/null | grep 'Candidate: [^(]' >/dev/null; }
 # Debian 13 renamed many libs with a t64 suffix (libasound2 -> libasound2t64).
 pick() { if has_candidate "${1}t64"; then echo "${1}t64"; else echo "$1"; fi; }
 
 # 1. Electron runtime libraries.
 log "apt runtime libraries"
-sudo apt-get update -qq
 pkgs=(ca-certificates curl rsync xdg-utils libnss3 libxss1 libgbm1 libxshmfence1 libdrm2 libxtst6
       libnotify4 libsecret-1-0 libuuid1 libxkbfile1
       "$(pick libasound2)" "$(pick libgtk-3-0)" "$(pick libatk-bridge2.0-0)" "$(pick libatk1.0-0)"
@@ -24,6 +23,7 @@ pkgs=(ca-certificates curl rsync xdg-utils libnss3 libxss1 libgbm1 libxshmfence1
 missing=()
 for p in "${pkgs[@]}"; do installed "$p" || missing+=("$p"); done
 if ((${#missing[@]})); then
+  sudo apt-get update -qq
   sudo apt-get install -y --no-install-recommends "${missing[@]}"
 else
   echo "all present"

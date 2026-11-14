@@ -20,6 +20,7 @@ const bridge: InlookBridge = {
   getState: () => invoke("state:get"),
   onEvent: (cb) => listen("inlook:event", cb),
   onState: (cb) => listen("inlook:state", cb),
+  onCheckResult: (cb) => listen("inlook:check-result", cb),
 };
 
 contextBridge.exposeInMainWorld("inlook", bridge);

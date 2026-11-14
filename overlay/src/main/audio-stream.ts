@@ -4,6 +4,7 @@
 // open; if it drops mid-session it reconnects after a short delay (a new
 // connection is a new session for the backend).
 import { config } from "./config";
+import type { AudioStatus } from "../shared/ipc";
 
 const RECONNECT_MS = 1000;
 const MAX_BUFFERED_BYTES = 320_000; // ~10 s of audio; beyond that the link is stalled, drop frames
@@ -11,6 +12,14 @@ const MAX_BUFFERED_BYTES = 320_000; // ~10 s of audio; beyond that the link is s
 let ws: WebSocket | undefined;
 let active = false;
 let retry: NodeJS.Timeout | undefined;
+let status: AudioStatus = "off";
+let listener: ((s: AudioStatus) => void) | undefined;
+
+function setStatus(s: AudioStatus) {
+  if (s === status) return;
+  status = s;
+  listener?.(s);
+}
 
 const url = () => `${config.backendUrl.replace(/^http/, "ws")}/audio/stream`;
 
@@ -21,18 +30,32 @@ function connect() {
   const lost = () => {
     if (ws !== sock) return; // already replaced or stopped
     ws = undefined;
-    if (active) retry = setTimeout(connect, RECONNECT_MS);
+    if (active) {
+      setStatus("reconnecting");
+      retry = setTimeout(connect, RECONNECT_MS);
+    }
   };
-  sock.addEventListener("open", () => console.log("[inlook] audio stream open"));
+  sock.addEventListener("open", () => {
+    if (ws !== sock) return;
+    console.log("[inlook] audio stream open");
+    setStatus("live");
+  });
   sock.addEventListener("error", () => console.warn("[inlook] audio stream error"));
   sock.addEventListener("close", lost);
 }
 
 export const audioStream = {
+  /** Current state: connecting / live / reconnecting while transcribing, off otherwise. */
+  get status(): AudioStatus { return status; },
+
+  /** Called on every state change (one listener). */
+  onStatus(cb: (s: AudioStatus) => void) { listener = cb; },
+
   /** Transcribing started: open the session. */
   start() {
     if (active) return;
     active = true;
+    setStatus("connecting");
     connect();
   },
 
@@ -43,6 +66,7 @@ export const audioStream = {
     const sock = ws;
     ws = undefined;
     if (sock && sock.readyState <= WebSocket.OPEN) sock.close(1000);
+    setStatus("off");
   },
 
   /** One PCM frame; dropped unless the socket is open. */

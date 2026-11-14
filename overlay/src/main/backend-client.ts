@@ -1,17 +1,28 @@
 // Typed HTTP client for the backend contract (shared/CONTRACT.md).
 import { config } from "./config";
+import { OFFLINE_MESSAGE, httpErrorMessage } from "./errors";
 import type { AcceptedResponse, CheckRequest, ReviewDecision, ReviewResponse } from "../shared/contract";
 
+/** `message` is the short text shown to the user. Status 0 means the backend was unreachable. */
 export class BackendError extends Error {
-  constructor(readonly status: number, readonly body: string, path: string) {
-    super(`backend ${path} → ${status}: ${body.slice(0, 200)}`);
+  constructor(readonly status: number, readonly body: string, readonly path: string) {
+    super(status === 0 ? OFFLINE_MESSAGE : httpErrorMessage(status));
   }
 }
 
 async function request<T>(path: string, init: RequestInit): Promise<T> {
-  const res = await fetch(config.backendUrl + path, init);
-  const text = await res.text();
-  if (!res.ok) throw new BackendError(res.status, text, path);
+  let res: Response, text: string;
+  try {
+    res = await fetch(config.backendUrl + path, init);
+    text = await res.text();
+  } catch (err) {
+    console.warn(`[inlook] backend ${path} unreachable: ${(err as Error).message}`);
+    throw new BackendError(0, String(err), path);
+  }
+  if (!res.ok) {
+    console.warn(`[inlook] backend ${path} → ${res.status}: ${text.slice(0, 200)}`);
+    throw new BackendError(res.status, text, path);
+  }
   return (text ? JSON.parse(text) : {}) as T;
 }
 

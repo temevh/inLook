@@ -1,11 +1,12 @@
 // Widget: transcribe on/off, check selection, check screen, toggle HUD interactive.
 import { MicCapture } from "./mic.js";
+import type { AudioStatus } from "../../shared/ipc";
 
 const $ = (id: string) => document.getElementById(id) as HTMLButtonElement;
 const note = document.getElementById("note")!;
 const calm = matchMedia("(prefers-reduced-motion: reduce)");
 let clearTimer = 0;
-/** One status line. Progress holds until the next message, success clears itself, errors stay until the next action. */
+/** One status line. Progress holds until the next message; success and errors clear themselves (errors later). */
 const say = (text: string, kind: "info" | "progress" | "error" = "info") => {
   clearTimeout(clearTimer);
   note.textContent = text;
@@ -14,8 +15,11 @@ const say = (text: string, kind: "info" | "progress" | "error" = "info") => {
   note.animate(
     [{ opacity: 0, transform: calm.matches ? "none" : "translateY(3px)" }, { opacity: 1, transform: "none" }],
     { duration: 200, easing: "cubic-bezier(.22, 1, .36, 1)" });
-  if (kind === "info") clearTimer = window.setTimeout(() => say(""), 3000);
+  if (kind !== "progress") clearTimer = window.setTimeout(() => say(""), kind === "error" ? 5000 : 3000);
 };
+/** Electron prefixes IPC rejections with "Error invoking remote method '…': Error: "; show only the message. */
+const plain = (err: unknown) =>
+  (err instanceof Error ? err.message : String(err)).replace(/^Error invoking remote method '[^']*': (Error: )?/, "");
 const pressed = (b: HTMLButtonElement, on: boolean) => b.setAttribute("aria-pressed", String(on));
 
 /** Disable the button and mark it busy while `fn` runs, so a slow request cannot be sent twice. */
@@ -27,7 +31,7 @@ async function busy(b: HTMLButtonElement, fn: () => Promise<void>) {
 }
 
 const mic = new MicCapture((pcm) => {
-  window.inlook.sendAudioFrame(pcm).catch((err: Error) => { if (mic.running) say(`Audio not sent: ${err.message}`, "error"); });
+  window.inlook.sendAudioFrame(pcm).catch((err: Error) => { if (mic.running) say(`Audio not sent: ${plain(err)}`, "error"); });
 });
 
 $("transcribe").onclick = () => busy($("transcribe"), async () => {
@@ -37,7 +41,7 @@ $("transcribe").onclick = () => busy($("transcribe"), async () => {
     await window.inlook.setTranscribing(mic.running);
     say(""); // the toggle shows the state
   } catch (err) {
-    say(`Mic unavailable: ${(err as Error).message}`, "error");
+    say(`Mic unavailable: ${plain(err)}`, "error");
   }
 });
 
@@ -49,7 +53,7 @@ const check = (b: HTMLButtonElement, progress: string, done: string, call: () =>
       const r = await call();
       if (r.ok) say(done); else say(r.error ?? "Failed", "error");
     } catch (err) {
-      say(`Failed: ${(err as Error).message}`, "error");
+      say(`Failed: ${plain(err)}`, "error");
     }
   });
 
@@ -59,7 +63,18 @@ $("screen").onclick = () => check($("screen"), "Checking screen…", "Screenshot
 let hudInteractive = false;
 $("hud").onclick = () => void window.inlook.setHudInteractive(!hudInteractive);
 
+const MIC_LABEL: Record<AudioStatus, string> = { off: "", connecting: "Connecting", live: "Listening", reconnecting: "Reconnecting" };
+const micStatus = document.getElementById("mic-status")!;
+
+// The hotkey runs in main; its outcome arrives here and is shown like a button check.
+window.inlook.onCheckResult((r) => {
+  if (r.ok) say(r.what === "selection" ? "Selection sent" : "Screenshot sent");
+  else say(r.error ?? "Failed", "error");
+});
+
 window.inlook.onState((s) => {
+  micStatus.dataset.state = s.audio;
+  micStatus.textContent = MIC_LABEL[s.audio];
   hudInteractive = s.hudInteractive;
   pressed($("hud"), s.hudInteractive);
   pressed($("transcribe"), s.transcribing);

@@ -64,7 +64,7 @@ export function setHudInteractive(hud: BrowserWindow, on: boolean): void {
 /** Small always-on-top control window, normal mouse input, slight opacity. */
 export function createWidget(): BrowserWindow {
   const { workArea } = screen.getPrimaryDisplay();
-  const width = 232, height = 248, margin = 16;
+  const width = 252, height = 264, margin = 16;
   const x = config.hudEdge === "right"
     ? workArea.x + workArea.width - config.hudWidth - width - margin
     : workArea.x + config.hudWidth + margin;
@@ -76,6 +76,9 @@ export function createWidget(): BrowserWindow {
     maximizable: false,
     fullscreenable: false,
     skipTaskbar: true,
+    // Not focusable (like the HUD): clicks still reach the buttons, but GNOME's
+    // focus-stealing prevention no longer raises "'inLook widget' is ready" on show.
+    focusable: false,
     alwaysOnTop: true,
     opacity: 0.92,
     show: false,

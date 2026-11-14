@@ -28,12 +28,21 @@ button[aria-pressed="true"]:disabled:hover { background: hsl(210 100% 57% / .12)
 button[aria-busy="true"]:not([aria-pressed])::after { content: ""; flex: none; width: 12px; height: 12px; border-radius: 50%; border: 2px solid hsl(233 12% 30%); border-top-color: var(--fg); animation: spin .7s linear infinite; }
 @keyframes spin { to { transform: rotate(360deg); } }
 
-.note { font-size: .75rem; color: var(--muted); min-height: 1.3em; line-height: 1.35; padding: 2px 2px 0; text-wrap: pretty; }
+/* Status line: large and near-white so it reads from across a room; errors stay red. */
+.note { font-size: .9375rem; font-weight: 500; color: hsl(220 15% 86%); min-height: 2.7em; line-height: 1.35; padding: 2px 2px 0; text-wrap: pretty; }
 .note[data-kind="progress"] { color: var(--fg); }
 .note[data-kind="error"] { color: var(--high); }
+
+/* Mic state beside the Transcribe switch; a green dot pulses while audio is live. */
+.mic-status { margin-left: auto; font-size: .75rem; font-weight: 500; color: var(--muted); display: inline-flex; align-items: center; gap: 5px; }
+.mic-status[data-state="off"] { display: none; }
+.mic-status[data-state="live"] { color: var(--fg); }
+.mic-status[data-state="live"]::before { content: ""; width: 7px; height: 7px; border-radius: 50%; background: #3ddc84; box-shadow: 0 0 0 0 hsl(145 70% 55% / .55); animation: listen 1.8s ease-out infinite; }
+@keyframes listen { to { box-shadow: 0 0 0 6px hsl(145 70% 55% / 0); } }
 
 @media (prefers-reduced-motion: reduce) {
   button:active { transform: none; }
   button[aria-busy="true"]:not([aria-pressed])::after { animation: none; }
+  .mic-status[data-state="live"]::before { animation: none; }
   button[aria-pressed]::before { transition-property: background; }
 }

@@ -1,5 +1,6 @@
 // HUD: renders SSE events into cards and transcript lines.
 import type { HudCard, InlookEvent } from "../../shared/contract";
+import { evictionTarget, FactCards, rankOf, type CardInfo } from "./policy.js";
 
 const cards = document.getElementById("cards")!;
 const transcript = document.getElementById("transcript")!;
@@ -16,6 +17,8 @@ const el = <K extends keyof HTMLElementTagNameMap>(tag: K, cls?: string, text?: 
 const keySel = (key: string) => `[data-key="${CSS.escape(key)}"]`;
 const claimText = new Map<string, string>(); // claim text for the unverified card; dropped once the claim resolves
 const CLAIM_TEXT_MAX = 100;
+const factCards = new FactCards(); // factId → key of the card showing its verdict
+const reviewKeys = new Map<string, string>(); // reviewId → key of the card showing it
 const timers = new Map<string, number>(); // per card key: delayed dismissals, cancelled when the key is updated
 
 // Motion: transform/opacity only. Reduced motion keeps short opacity fades, no movement.
@@ -49,14 +52,23 @@ function later(key: string, ms: number, fn: () => void) {
   timers.set(key, window.setTimeout(() => { timers.delete(key); fn(); }, ms));
 }
 
-/** Keep every card fully visible: drop the oldest finished cards until the stack fits.
- *  Cards waiting for a review decision are never dropped. */
+const cardInfo = (c: Element): CardInfo => {
+  const key = (c as HTMLElement).dataset.key ?? "", has = (cls: string) => c.classList.contains(cls);
+  return {
+    tier: (c as HTMLElement).dataset.tier,
+    kind: has("review") ? "review" : key.startsWith("strategy:") ? "strategy" : has("message") ? "message" : "claim",
+    resolved: has("resolved"), unverified: has("unverified"),
+  };
+};
+
+/** Keep every card fully visible. When space runs out, drop the least important first: older transcript lines,
+ *  then low, then medium, then high cards, then strategies and messages. Pending reviews are never dropped. */
 function fit() {
   while (cards.children.length > MAX_CARDS || cards.scrollHeight > cards.clientHeight + 1) {
-    const oldest = [...cards.children].slice(1).reverse()
-      .find((c) => !c.classList.contains("review") || c.classList.contains("resolved"));
-    if (!oldest) break;
-    oldest.remove();
+    if (cards.children.length <= MAX_CARDS && transcript.children.length > 1) { transcript.firstElementChild!.remove(); continue; }
+    const i = evictionTarget([...cards.children].map((c) => rankOf(cardInfo(c))));
+    if (i < 0) break;
+    cards.children[i]!.remove();
   }
 }
 
@@ -183,23 +195,39 @@ function render(e: InlookEvent) {
     case "claim.verdict": {
       const v = e.payload;
       if (v.verdict === "unverifiable") unverified(v.claimId, "unverifiable");
-      else { claimText.delete(v.claimId); upsertCard(v.claimId, (c) => fillCard(c, v.card, v.evidence)); }
+      else {
+        claimText.delete(v.claimId);
+        factCards.verdict(v.factId, v.claimId);
+        upsertCard(v.claimId, (c) => fillCard(c, v.card, v.evidence));
+      }
       break;
     }
     case "fact.updated":
-      upsertCard(`fact:${e.payload.factId}`, (c) =>
+      // Reuse the fact's verdict card (same headline) unless it is a review card: that one belongs to the review.
+      upsertCard(factCards.keyFor(e.payload.factId, `fact:${e.payload.factId}`, (k) => {
+        const c = cards.querySelector(keySel(k));
+        return !!c && !c.classList.contains("review");
+      }), (c) =>
         fillCard(c, e.payload.card, `Source: ${e.payload.version.source}`));
       break;
-    case "review.created":
-      upsertCard(`review:${e.payload.reviewId}`, (c) => {
+    case "review.created": {
+      // Replace the fact's verdict card in place (same headline); review.closed finds it through reviewKeys.
+      const key = factCards.keyFor(e.payload.factId, `review:${e.payload.reviewId}`, (k) => {
+        const c = cards.querySelector(keySel(k)); // not another review that is still pending
+        return !!c && (!c.classList.contains("review") || c.classList.contains("resolved"));
+      });
+      reviewKeys.set(e.payload.reviewId, key);
+      if (reviewKeys.size > CLAIM_TEXT_MAX) reviewKeys.delete(reviewKeys.keys().next().value!);
+      upsertCard(key, (c) => {
         c.classList.add("review");
         fillCard(c, e.payload.card, e.payload.evidence);
         c.append(reviewActions(e.payload.reviewId));
       });
       break;
+    }
     case "review.closed": {
       // Show the outcome the event carries for a moment, then close the card.
-      const key = `review:${e.payload.reviewId}`;
+      const key = reviewKeys.get(e.payload.reviewId) ?? `review:${e.payload.reviewId}`;
       const card = cards.querySelector<HTMLElement>(keySel(key));
       if (!card) break;
       flip(() => {
