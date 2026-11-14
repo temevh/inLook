@@ -20,7 +20,7 @@
       "reviewId": "r-refund-window", "factId": "f-refund-window",
       "oldValue": "30 days", "newValue": "14 days",
       "evidence": "Terms page now states a 14-day refund window.",
-      "tier": "medium", "reviewers": ["p-sam"],
+      "tier": "medium", "reviewers": [{"id": "p-sam", "name": "Sam Sample", "role": "Support Lead"}],
       "card": { "title": "Needs review", "criticality": "medium", "fact": "Refund window: 30 → 14 days" } } },
   { "delayMs": 2000, "type": "claim.spotted", "payload": { "claimId": "c4", "text": "The mock mascot is a purple llama", "source": "audio" } },
   { "delayMs": 1200, "type": "claim.unverified", "payload": { "claimId": "c4", "reason": "no_match" } },

@@ -34,4 +34,4 @@ app/services/gemini.py  Gemini calls (stubs); card schema from shared/
 tests/                  python -m unittest
 ```
 
-Not built and not decided (see the spec): storage (MongoDB), Context.dev source re-checks and page watching.
+Data model and `check_claim`: the spec, "Data model". Not decided: Context.dev source re-checks and page watching.

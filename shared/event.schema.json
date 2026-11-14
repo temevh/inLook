@@ -364,7 +364,7 @@
         "reviewers": {
           "type": "array",
           "items": {
-            "type": "string"
+            "$ref": "#/$defs/Person"
           }
         },
         "card": {
@@ -559,7 +559,7 @@
         "to": {
           "type": "array",
           "items": {
-            "type": "string"
+            "$ref": "#/$defs/Person"
           }
         },
         "strategyId": {
@@ -605,6 +605,26 @@
         "type",
         "payload",
         "at"
+      ]
+    },
+    "Person": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "name": {
+          "type": "string"
+        },
+        "role": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "id",
+        "name",
+        "role"
       ]
     }
   }

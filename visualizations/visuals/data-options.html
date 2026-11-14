@@ -1,0 +1,236 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Inlook · Data options</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Schibsted+Grotesk:wght@400;600;800&family=JetBrains+Mono:wght@500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="base.css">
+<style>
+  /* same palette as the diagrams and scenes */
+  :root { --ground:#0f1216; --ground-2:#171b21; --leaf:#eceef1; --leaf-dim:#a3abb7; --line:#2b313b; --hot:#5fd4b4;
+          --sans:"Schibsted Grotesk",system-ui,sans-serif; --serif:var(--sans); --mono:"JetBrains Mono",ui-monospace,monospace; }
+  header.bar h1 { font-weight: 800; }
+  main { width: min(1100px, 100%); margin: 0 auto; padding: 2rem clamp(1rem,3vw,2.5rem) 4rem; }
+  .lede { max-width: 70ch; font-size: 1.05rem; color: var(--leaf-dim); }
+  .lede code { color: var(--leaf); }
+  section { margin-top: 3rem; }
+  h2 { font-size: .95rem; letter-spacing: .12em; text-transform: uppercase; margin: 0 0 1rem; }
+  .opt { border: 1.5px solid var(--line); border-radius: 14px; padding: 1.1rem 1.3rem; margin-top: .9rem; background: var(--ground); }
+  .opt.rec { border-color: var(--hot); }
+  .opt h3 { font-size: 1.1rem; margin: 0 0 .5rem; display: flex; gap: .7rem; align-items: center; flex-wrap: wrap; }
+  .pill { font-size: .7rem; font-weight: 600; letter-spacing: .12em; text-transform: uppercase; color: var(--ground);
+          background: var(--hot); border-radius: 999px; padding: .2rem .6rem; }
+  p { margin: .4rem 0; line-height: 1.5; color: var(--leaf-dim); }
+  pre { background: var(--ground-2); border: 1px solid var(--line); border-radius: 10px; padding: .8rem 1rem;
+        overflow-x: auto; margin: .6rem 0; font: 500 .85rem/1.55 var(--mono); color: var(--leaf); }
+  code { font-family: var(--mono); font-size: .88em; }
+  ul { margin: .5rem 0 0; padding: 0; list-style: none; display: grid; gap: .3rem; }
+  li { line-height: 1.45; color: var(--leaf-dim); }
+  li b { color: var(--leaf); font-weight: 600; }
+</style>
+</head>
+<body>
+<header class="bar"><h1>Inlook · Data options</h1></header>
+<main>
+<p class="lede">Person 2 turns input (mic, selection, screenshot) into claims. Person 3 checks the claims: match, source re-check, verdict, tier routing, storage, reviews. They connect through one function, <code>check_claim</code>.</p>
+
+<section>
+<h2>1. <code>check_claim</code> input</h2>
+<div class="opt rec">
+<h3>A. Standalone claim, check_claim owns the lifecycle <span class="pill">Recommended</span></h3>
+<pre>check_claim({ text, quote, source: "audio"|"selection"|"screenshot", speaker?, lineId? })</pre>
+<p><code>text</code> is rewritten by Gemini <code>spot</code> to stand alone ("Competitor X charges €59 per seat"); <code>quote</code> is the raw words. check_claim makes the claimId, publishes <code>claim.spotted</code>, then checks.</p>
+<ul>
+<li><b>Pros:</b> the claimId is made in one place; person 3 owns everything from "Checking…" to the verdict; person 2's interface is one call.</li>
+<li><b>Cons:</b> <code>spot</code> must rewrite claims well ("they charge €59" needs the earlier lines).</li>
+</ul>
+</div>
+<div class="opt">
+<h3>B. Person 2 publishes claim.spotted first</h3>
+<pre>publish("claim.spotted", { claimId, … })
+check_claim({ claimId, text, source })</pre>
+<p>Person 2 publishes <code>claim.spotted</code> with a claimId, then calls <code>check_claim({ claimId, text, source })</code>.</p>
+<ul>
+<li><b>Pros:</b> the HUD shows "Checking…" even before person 3's code exists.</li>
+<li><b>Cons:</b> two owners for one claim's lifecycle; claimIds made in two places.</li>
+</ul>
+</div>
+<div class="opt">
+<h3>C. Raw text, person 3 finds the claims too</h3>
+<pre>check_text({ text, source, lines? })</pre>
+<p>Person 3 runs spot and check in one Gemini call.</p>
+<ul>
+<li><b>Pros:</b> possibly one Gemini call instead of two.</li>
+<li><b>Cons:</b> person 2 has almost nothing left to own; one function does two jobs; screenshots don't fit.</li>
+</ul>
+</div>
+</section>
+
+<section>
+<h2>2. How check_claim is called</h2>
+<div class="opt rec">
+<h3>A. Fire and forget <span class="pill">Recommended</span></h3>
+<p>check_claim starts a background task and returns at once.</p>
+<ul>
+<li><b>Pros:</b> transcription never waits; checks run in parallel.</li>
+<li><b>Cons:</b> verdicts can arrive out of order (fine, because cards are keyed by claimId).</li>
+</ul>
+</div>
+<div class="opt">
+<h3>B. Await, one at a time</h3>
+<ul>
+<li><b>Pros:</b> simplest; strict order.</li>
+<li><b>Cons:</b> a 3–10 s check holds up every claim behind it.</li>
+</ul>
+</div>
+<div class="opt">
+<h3>C. Queue + 1 worker</h3>
+<ul>
+<li><b>Pros:</b> ordered, and doesn't block input.</li>
+<li><b>Cons:</b> the wait grows when many claims come in; more code.</li>
+</ul>
+</div>
+</section>
+
+<section>
+<h2>3. Repeated claims</h2>
+<div class="opt rec">
+<h3>A. check_claim skips a fact already checked in the last N minutes <span class="pill">Recommended</span></h3>
+<ul>
+<li><b>Pros:</b> catches the same fact even when it's worded differently.</li>
+<li><b>Cons:</b> the match call still runs on every repeat.</li>
+</ul>
+</div>
+<div class="opt">
+<h3>B. spot drops claims whose text matches a recent one</h3>
+<ul>
+<li><b>Pros:</b> no Gemini call for repeats.</li>
+<li><b>Cons:</b> misses rewordings.</li>
+</ul>
+</div>
+<div class="opt">
+<h3>C. No dedup</h3>
+<ul>
+<li><b>Pros:</b> no code.</li>
+<li><b>Cons:</b> noisy HUD, extra Gemini cost.</li>
+</ul>
+</div>
+</section>
+
+<section>
+<h2>4. Fact shape</h2>
+<div class="opt rec">
+<h3>A. Flat fact, value as text, versions embedded <span class="pill">Recommended</span></h3>
+<pre>{ id, key, label, value: "€59 per seat", tier: "low"|"medium"|"high", sourceUrl, statedBy,
+  status: "current"|"outdated"|"pending_review", versions: [{ value, source, at, by }] }</pre>
+<ul>
+<li><b>Pros:</b> matches the existing <code>FactVersion</code> and the card line "€59 → €39"; one read per fact; Gemini compares text well.</li>
+<li><b>Cons:</b> no number comparisons or thresholds.</li>
+</ul>
+</div>
+<div class="opt">
+<h3>B. Typed value</h3>
+<pre>value: { amount: 59, unit: "EUR/seat" }   // or a type tag per fact</pre>
+<ul>
+<li><b>Pros:</b> exact comparisons; can be charted.</li>
+<li><b>Cons:</b> every kind of fact (names, dates, wifi names) needs its own shape; Gemini must output exact numbers.</li>
+</ul>
+</div>
+<div class="opt">
+<h3>C. Versions in their own collection</h3>
+<pre>facts    { id, currentVersionId, … }
+versions { id, factId, value, source, at, by }</pre>
+<ul>
+<li><b>Pros:</b> easy history queries and an audit trail.</li>
+<li><b>Cons:</b> two writes per update and joins; too much for a demo.</li>
+</ul>
+</div>
+</section>
+
+<section>
+<h2>5. Where the data lives (demo)</h2>
+<div class="opt rec">
+<h3>A. JSON seed file loaded into memory <span class="pill">Recommended</span></h3>
+<pre>backend/seed.json   // facts, strategies, people · loaded at start</pre>
+<ul>
+<li><b>Pros:</b> no setup; restarting resets it for every demo take; easy to review in git.</li>
+<li><b>Cons:</b> changes are lost on restart; one process only.</li>
+</ul>
+</div>
+<div class="opt">
+<h3>B. SQLite</h3>
+<ul>
+<li><b>Pros:</b> persists in one file; real queries.</li>
+<li><b>Cons:</b> schema and migration code.</li>
+</ul>
+</div>
+<div class="opt">
+<h3>C. MongoDB Atlas (the spec's original plan, unconfirmed)</h3>
+<ul>
+<li><b>Pros:</b> change streams; matches the spec.</li>
+<li><b>Cons:</b> needs an account and a network connection during the demo; most code.</li>
+</ul>
+</div>
+</section>
+
+<section>
+<h2>6. Other records</h2>
+<div class="opt rec">
+<h3>Keep the spec's shapes <span class="pill">Recommended</span></h3>
+<pre>strategies { id, name, owners: [personId], factIds: [factId], status: "healthy"|"flagged" }
+people     { id, name, role, team }
+reviews    { id, factId, oldValue, newValue, evidence, tier, reviewers: [personId], status: "pending"|"accepted"|"rejected" }
+messages   { id, to: [personId], strategyId, factId, text, at }</pre>
+</div>
+</section>
+
+<section>
+<h2>7. Tier</h2>
+<div class="opt rec">
+<h3>A. Stored per fact, floor applied at load <span class="pill">Recommended</span></h3>
+<p>Any fact a strategy uses is raised to at least medium when the seed loads.</p>
+<ul>
+<li><b>Pros:</b> one place for the rule; tier is just a field at check time.</li>
+<li><b>Cons:</b> changing a strategy's facts means reloading.</li>
+</ul>
+</div>
+<div class="opt">
+<h3>B. Computed at every check</h3>
+<ul>
+<li><b>Pros:</b> always current.</li>
+<li><b>Cons:</b> the rule runs in the hot path; easy to forget in one place.</li>
+</ul>
+</div>
+</section>
+
+<section>
+<h2>8. IDs</h2>
+<div class="opt rec">
+<h3>A. Readable slugs <span class="pill">Recommended</span></h3>
+<pre>f-compx-price   s-pricing   p-ada</pre>
+<ul>
+<li><b>Pros:</b> already used by the mock fixtures; readable in logs and the HUD.</li>
+<li><b>Cons:</b> must be unique by hand.</li>
+</ul>
+</div>
+<div class="opt">
+<h3>B. UUIDs</h3>
+<ul>
+<li><b>Pros:</b> never collide.</li>
+<li><b>Cons:</b> unreadable; the fixtures need changing.</li>
+</ul>
+</div>
+<div class="opt">
+<h3>C. Mongo ObjectIds</h3>
+<ul>
+<li><b>Pros:</b> native if Mongo is chosen.</li>
+<li><b>Cons:</b> ties the IDs to the storage choice.</li>
+</ul>
+</div>
+</section>
+</main>
+</body>
+</html>

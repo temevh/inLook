@@ -6,7 +6,7 @@ Dashboards, fact browsing and the company-wide flow are pre-made visuals in `vis
 
 Ownership: Ant builds the overlay (`overlay/`) and the HTTP/SSE contract (`shared/`). Others own the backend internals, the database and the Context.dev integration.
 
-**UNCONFIRMED** marks anything not decided yet: all of MongoDB (hosting, collections, fields, change stream), all of Context.dev, and embedding-first claim noticing versus Gemini spotting claims first.
+**UNCONFIRMED** marks anything not decided yet: all of Context.dev, and embedding-first claim noticing versus Gemini spotting claims first.
 
 ## Scope
 
@@ -31,7 +31,7 @@ Claimed as future work (pitch only): `live / record / replay` input adapters (li
             Context.dev (UNCONFIRMED)
                  ▲ fetch source page
                  │
-Overlay app ◄─SSE── Inlook backend ──► MongoDB (UNCONFIRMED)
+Overlay app ◄─SSE── Inlook backend ──► seed.json (in memory)
 (Electron)  ──HTTP──►     │
   mic PCM (WS),           ├──► ElevenLabs STT (transcript, speaker labels)
   selection, screenshots  └──► Gemini (claims, match, verdict + card, vision)
@@ -66,12 +66,11 @@ One Electron app is both the "overlay backend" and "overlay frontend" from the s
   - `POST /reviews/:id` — accept or reject a pending change.
   - `POST /webhooks/context` — **UNCONFIRMED, not built.** Context.dev page-change notification; re-checks the facts that use that page.
   - `GET /stream` — SSE, every event with a `seq`; SSE `id` is `<bootId>:<seq>` (**proposed**), replay with `Last-Event-ID`; another boot id replays the whole log.
-- The live-update pattern comes from Goblin Drill (`routes_live.py:272`, `sim/live.py:55`): append-only event log with a sequence cursor, SSE replay-then-follow, keep-alives, no-buffering headers. The skeleton keeps the log in memory; the boot id keeps clients working across a backend restart. **UNCONFIRMED:** an `events` collection in MongoDB and a change stream in place of the in-memory log.
+- The live-update pattern comes from Goblin Drill (`routes_live.py:272`, `sim/live.py:55`): append-only event log with a sequence cursor, SSE replay-then-follow, keep-alives, no-buffering headers. The skeleton keeps the log in memory; the boot id keeps clients working across a backend restart.
 
 ### Database
 
-- Strategies and people are **mock data**, seeded by a script.
-- **UNCONFIRMED:** MongoDB on the Atlas free tier (change streams without setting up a replica set), with `pymongo` (async).
+- Strategies and people are **mock data** in `backend/seed.json`, loaded into memory (see "Data model"). No database for the demo.
 
 ### Gemini
 
@@ -111,21 +110,40 @@ Everything in this section is UNCONFIRMED.
   - Needs a public backend URL during the demo (tunnel or deployed host).
   - Fallback if Context.dev has no watching, or checks too slowly for the demo: the backend re-fetches every `sourceUrl` itself every N minutes, with the same verdict flow.
 
-## Data model (UNCONFIRMED)
+## Data model (decided)
 
-Collections and fields are a proposal. The tier rules and routing in the next section are decided.
+Agreed by the team before the build. Persons 2 (input → claims) and 3 (claims → verdict → routing) meet at `check_claim`.
+
+### `check_claim` (backend, internal)
 
 ```
-facts       { _id, key, label, value, unit, tier: low|medium|high, sourceUrl,
-              statedBy, statedIn, statedAt, versions: [{ value, source, at, by }],
-              status: current|outdated|pending_review }
-strategies  { _id, name, owners: [personId], factIds: [factId], status: healthy|flagged }
-people      { _id, name, team }
-reviews     { _id, factId, oldValue, newValue, evidence, tier, reviewers: [personId],
-              status: pending|accepted|rejected }
-messages    { _id, to: [personId], strategyId, factId, text, at }
-events      { seq, type, payload, at }   // SSE source, written for every change
+check_claim({ text, quote, source: "audio"|"selection"|"screenshot", speaker?, lineId? })
 ```
+
+- `text`: the claim rewritten by Gemini spot to stand alone ("Competitor X charges €59 per seat"). `quote`: the raw words.
+- `check_claim` makes the `claimId`, publishes `claim.spotted`, then checks. It owns the claim from "Checking…" to the verdict.
+- Fire and forget: it starts a background task and returns at once. Verdicts may arrive out of order; cards are keyed by `claimId`.
+- Repeats: after matching, a fact already checked in the last N minutes is skipped.
+
+### Records
+
+Stored in `backend/seed.json`, loaded into memory at start. A restart resets the demo; changes are not persisted.
+
+```
+facts      { id, key, label, value, tier: low|medium|high, sourceUrl, statedBy: personId,
+             status: current|outdated|pending_review, versions: [{ value, source, at, by }] }
+strategies { id, name, owners: [personId], factIds: [factId], status: healthy|flagged }
+people     { id, name, role, team }
+reviews    { id, factId, oldValue, newValue, evidence, tier, reviewers: [personId],
+             status: pending|accepted|rejected }
+messages   { id, to: [personId], strategyId, factId, text, at }
+```
+
+- `value` is display text ("€59 per seat"), not a typed number.
+- `tier` is stored per fact; the floor (a fact any strategy uses is at least medium) is applied when the seed loads.
+- IDs are readable slugs: `f-…` facts, `s-…` strategies, `p-…` people (as in `overlay/mock/`).
+- Events carry people as `{ id, name, role }`, not bare ids, so the HUD can show who is asked or notified (`shared/CONTRACT.md`).
+- Speaker labels map to people by a fixed list in config.
 
 ## Fact-check flow
 
@@ -172,5 +190,4 @@ events      { seq, type, payload, at }   // SSE source, written for every change
 - Context.dev API surface and rate limits, whether it offers page watching, and how often it checks.
 - ElevenLabs STT latency and whether its realtime mode returns speaker labels.
 - Which real public page is the demo source.
-- MongoDB hosting, collections, fields and change stream.
 - Embedding-first claim noticing versus Gemini spotting claims first.

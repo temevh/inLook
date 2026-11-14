@@ -12,10 +12,10 @@
       "reviewId": "r-compx-price", "factId": "f-compx-price",
       "oldValue": "€59 per seat", "newValue": "€39 per seat",
       "evidence": "Competitor X pricing page now lists €39 per seat.",
-      "tier": "high", "reviewers": ["p-ada"],
+      "tier": "high", "reviewers": [{"id": "p-ada", "name": "Ada Mockridge", "role": "Head of Pricing"}],
       "card": { "title": "Needs review", "criticality": "high", "fact": "Competitor X: €59 → €39 per seat" } } },
   { "delayMs": 600, "type": "strategy.flagged", "payload": { "strategyId": "s-pricing", "name": "Mock Pricing Plan", "factId": "f-compx-price" } },
   { "delayMs": 900, "type": "message.created", "payload": {
-      "messageId": "m1", "to": ["p-ada"], "strategyId": "s-pricing", "factId": "f-compx-price",
+      "messageId": "m1", "to": [{"id": "p-ada", "name": "Ada Mockridge", "role": "Head of Pricing"}], "strategyId": "s-pricing", "factId": "f-compx-price",
       "text": "Competitor X dropped to €39 per seat. Mock Pricing Plan relies on the old €59 and needs a look." } }
 ]
