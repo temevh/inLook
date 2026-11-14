@@ -22,11 +22,15 @@ uv run python -m app.monitors sync     # one Context.dev page monitor per source
 uv run python -m app.monitors status   # state, last run, last change, last error
 ```
 
+Timeouts (all in `.env`): Gemini `GEMINI_TIMEOUT_S` (20) per attempt x `GEMINI_ATTEMPTS` (2); a claim gets
+`CHECK_TIMEOUT_S` (45) to reach a verdict, then its HUD card closes as "unverifiable". Context.dev reads and
+event publishing retry transient failures once or twice (`DECISIONS.md` has the details).
+
 If Atlas does not answer at startup (bad network, IP not on the Atlas access list), the server starts anyway
 on the in-memory event log and logs a warning: `/stream`, `/dev/events` and `/health` work, `/check`, `/reviews`
 and `/recheck` answer 503 "database unreachable". Restart it once Atlas is reachable. `GET /health` shows
 `{"database": "connected" | "unreachable" | "off", "events": "mongo" | "memory"}`. MongoDB calls time out after
-`MONGODB_TIMEOUT_MS` (default 5000).
+`MONGODB_TIMEOUT_MS` (default 15000); the startup check waits `MONGODB_STARTUP_TIMEOUT_S` (default 10).
 
 Without `MONGODB_URI` the server still runs on the in-memory event log (`/dev/events` and `/stream` work);
 `/check` and `/reviews` answer 503 because they need the stored facts. `INLOOK_EVENTS=memory` forces the

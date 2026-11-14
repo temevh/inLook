@@ -6,12 +6,20 @@ spot, match, verdict + card, vision. GEMINI_EMBEDDING_MODEL for large fact sets 
 Every function validates what the model returns and degrades to "nothing found" instead of raising on
 a malformed answer. A missing key or a failed request raises; app/check.py turns that into an
 "unverifiable" claim so the HUD never hangs on "Checking…".
+
+Each call is bounded: GEMINI_TIMEOUT_S per attempt, GEMINI_ATTEMPTS attempts. A timeout, a 429, a 5xx or
+JSON that does not parse is retried after a short pause; other errors (bad request, missing key) are not.
 """
+import asyncio
 import json
+import logging
 from functools import cache
 from typing import Any
 
 from .. import config
+
+logger = logging.getLogger("inlook.gemini")
+RETRY_PAUSE_S = 1.0
 
 PAGE_CHARS = 30_000  # page text sent to the verdict call
 
@@ -39,16 +47,38 @@ def client():
     return genai.Client(api_key=config.GEMINI_API_KEY)
 
 
+def _retryable(exc: BaseException) -> bool:
+    """Worth another attempt: a timeout, rate limit, server error, dropped connection or unreadable JSON."""
+    from google.genai import errors
+    if isinstance(exc, (TimeoutError, json.JSONDecodeError, errors.ServerError)):
+        return True
+    if isinstance(exc, errors.ClientError):
+        return getattr(exc, "code", None) == 429
+    import httpx
+    return isinstance(exc, httpx.TransportError)
+
+
 async def _generate_json(contents: Any, schema: dict) -> dict:
     from google.genai import types
-    response = await client().aio.models.generate_content(
-        model=config.GEMINI_MODEL,
-        contents=contents,
-        config=types.GenerateContentConfig(
-            response_mime_type="application/json", response_json_schema=schema, temperature=0,
-        ),
-    )
-    return json.loads(response.text)
+    gen = client()  # raises at once without a key: no point retrying that
+    attempts = max(1, config.GEMINI_ATTEMPTS)
+    for attempt in range(1, attempts + 1):
+        try:
+            response = await asyncio.wait_for(gen.aio.models.generate_content(
+                model=config.GEMINI_MODEL,
+                contents=contents,
+                config=types.GenerateContentConfig(
+                    response_mime_type="application/json", response_json_schema=schema, temperature=0,
+                ),
+            ), config.GEMINI_TIMEOUT_S)
+            return json.loads(response.text)
+        except Exception as exc:
+            if attempt == attempts or not _retryable(exc):
+                raise
+            logger.warning("gemini attempt %d/%d failed (%s: %s); retrying",
+                           attempt, attempts, type(exc).__name__, exc)
+            await asyncio.sleep(RETRY_PAUSE_S * attempt)
+    raise AssertionError("unreachable")
 
 
 _CLAIMS_SCHEMA = {

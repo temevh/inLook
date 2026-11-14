@@ -12,7 +12,6 @@ Settled things are in `DECISIONS.md`. P0 = demo cannot work without it. P1 = dem
 ## P1
 - [ ] Stop the HUD replaying old events after a backend restart (`backend/app/events.py`, `overlay/src/main/sse.ts`).
 - [ ] Fix the "still current" card: it shows "Fact updated" and never goes away. Choose a new title or no card (`backend/app/check.py`, `overlay/src/renderer/hud/hud.ts`).
-- [ ] Add timeouts to Gemini calls and to each claim, so "Checking…" never hangs (`backend/app/services/gemini.py`, `backend/app/check.py`).
 - [ ] Prove a real Context.dev monitor webhook reaches the backend through the tunnel (`monitors run`, then check the log and `monitors status`).
 - [ ] Show version history for scene 07 (`overlay/src/renderer/hud/hud.ts`).
 - [ ] Show who a message is for in the HUD, and let message cards dismiss (scenes 08-09).

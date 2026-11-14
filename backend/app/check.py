@@ -28,6 +28,7 @@ import base64
 import logging
 from typing import Any
 
+from . import config
 from .contract import CheckRequest1, CheckRequest2
 from .events import log
 from .services import context_dev, db, gemini
@@ -114,21 +115,38 @@ async def run_claim(claim_id: str, text: str, quote: str, source: str,
 
 
 async def _check_claim(claim_id: str, text: str) -> None:
+    """Match, then look the fact up at its source, within CHECK_TIMEOUT_S; then publish and route."""
+    try:
+        outcome = await asyncio.wait_for(_match_and_lookup(text), config.CHECK_TIMEOUT_S)
+    except TimeoutError:
+        logger.warning("claim %s: no verdict within %ss", claim_id, config.CHECK_TIMEOUT_S)
+        await log.publish("claim.unverified", {"claimId": claim_id, "reason": "unverifiable"})
+        return
+    kind, fact, found = outcome
+    if kind == "no_match":
+        await log.publish("claim.unverified", {"claimId": claim_id, "reason": "no_match"})
+    elif kind == "recent":
+        await log.publish("claim.verdict", {**found, "claimId": claim_id})  # checked moments ago: same answer
+    else:
+        await _publish_and_route(claim_id, fact, found)
+
+
+async def _match_and_lookup(text: str) -> tuple[str, dict | None, Any]:
+    """("no_match", None, None) | ("recent", fact, last verdict payload) | ("found", fact, lookup result).
+    Publishes nothing, so the claim deadline can cancel it at any point."""
     facts = await db.list_facts()
     fact_id = await gemini.match(text, facts)
     fact = next((f for f in facts if f["_id"] == fact_id), None)
     if fact is None:
-        await log.publish("claim.unverified", {"claimId": claim_id, "reason": "no_match"})
-        return
+        return "no_match", None, None
     recent = _recent.get(fact["_id"])
     if recent and asyncio.get_running_loop().time() - recent[0] < REPEAT_WINDOW_S:
-        await log.publish("claim.verdict", {**recent[1], "claimId": claim_id})  # checked moments ago: same answer
-        return
-    await check_fact(claim_id, fact, query=text)
+        return "recent", fact, recent[1]
+    return "found", fact, await _lookup(fact, text)
 
 
-async def check_fact(claim_id: str, fact: dict, query: str | None = None) -> None:
-    """Re-check one stored fact at its source through Context.dev, publish the verdict, route it.
+async def _lookup(fact: dict, query: str | None) -> tuple[dict, str] | None:
+    """(verdict result, source url) from the fact's page, or None when no source page was found.
 
     With a sourceUrl the page is scraped fresh. Without one, Context.dev searches the web for `query`
     (the spoken claim, else the fact's label and value) and the top result with content is the source.
@@ -139,10 +157,28 @@ async def check_fact(claim_id: str, fact: dict, query: str | None = None) -> Non
     else:
         results = await context_dev.search(query or f"{fact['label']} {fact['value']}")
         if not results:
-            await log.publish("claim.unverified", {"claimId": claim_id, "reason": "unverifiable"})
-            return
+            return None
         source_url, page = results[0]["url"], results[0]["markdown"]
-    result = await gemini.verdict_card(fact, page)
+    return await gemini.verdict_card(fact, page), source_url
+
+
+async def check_fact(claim_id: str, fact: dict, query: str | None = None) -> None:
+    """Re-check one stored fact at its source through Context.dev, publish the verdict, route it.
+    The lookup has CHECK_TIMEOUT_S; publishing and routing are not cut off half-way."""
+    try:
+        found = await asyncio.wait_for(_lookup(fact, query), config.CHECK_TIMEOUT_S)
+    except TimeoutError:
+        logger.warning("claim %s: no verdict for %s within %ss", claim_id, fact["_id"], config.CHECK_TIMEOUT_S)
+        await log.publish("claim.unverified", {"claimId": claim_id, "reason": "unverifiable"})
+        return
+    await _publish_and_route(claim_id, fact, found)
+
+
+async def _publish_and_route(claim_id: str, fact: dict, found: tuple[dict, str] | None) -> None:
+    if found is None:
+        await log.publish("claim.unverified", {"claimId": claim_id, "reason": "unverifiable"})
+        return
+    result, source_url = found
     tier = await db.fact_tier(fact)
     verdict = {
         "claimId": claim_id, "factId": fact["_id"], "verdict": result["verdict"],
@@ -180,7 +216,14 @@ def start_background(coro) -> None:
     """Run work after the HTTP response (Context.dev wants a webhook acknowledged within 15 s)."""
     task = asyncio.create_task(coro)
     _tasks.add(task)
-    task.add_done_callback(_tasks.discard)
+    task.add_done_callback(_task_done)
+
+
+def _task_done(task: asyncio.Task) -> None:
+    """Background work must not fail silently."""
+    _tasks.discard(task)
+    if not task.cancelled() and task.exception() is not None:
+        logger.error("background task %s failed", task.get_name(), exc_info=task.exception())
 
 
 def forget(fact_id: str) -> None:

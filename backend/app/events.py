@@ -90,6 +90,33 @@ class EventLog:
                     yield ": keep-alive\n\n"
 
 
+PUBLISH_ATTEMPTS = 3
+PUBLISH_PAUSE_S = 0.5
+
+
+async def _retrying(call):
+    """An Atlas blip (connection dropped, primary stepping down) gets two more attempts, so a claim card is
+    still closed and a review still reaches the HUD. Other errors are raised at once."""
+    from pymongo.errors import ConnectionFailure
+    for attempt in range(1, PUBLISH_ATTEMPTS + 1):
+        try:
+            return await call()
+        except ConnectionFailure as exc:
+            if attempt == PUBLISH_ATTEMPTS:
+                raise
+            logger.warning("events: MongoDB call failed (%s); retrying", type(exc).__name__)
+            await asyncio.sleep(PUBLISH_PAUSE_S * attempt)
+
+
+async def _insert_once(db, doc: dict) -> None:
+    """Insert an event; a retry after an insert that did land is a duplicate seq, which counts as done."""
+    from pymongo.errors import DuplicateKeyError
+    try:
+        await db.insert_event(doc)
+    except DuplicateKeyError:
+        pass
+
+
 class MongoEventLog(EventLog):
     """Events in MongoDB, followers woken by a change stream.
 
@@ -106,7 +133,7 @@ class MongoEventLog(EventLog):
 
     async def start(self) -> None:
         from .services import db
-        if not await db.ping():
+        if not await db.ping(config.MONGODB_STARTUP_TIMEOUT_S):
             self.offline = True
             logger.warning("MongoDB Atlas is unreachable: this run uses the in-memory event log. Endpoints that "
                            "need the database answer 503. Restart the backend once Atlas is reachable.")
@@ -133,8 +160,9 @@ class MongoEventLog(EventLog):
         # Followers are woken by the change stream, not here: the same path serves events
         # inserted by another process.
         async with self._lock:
-            event = _event(await db.next_event_seq(), type, payload)
-            await db.insert_event(event.model_dump(mode="json"))
+            event = _event(await _retrying(db.next_event_seq), type, payload)
+            doc = event.model_dump(mode="json")
+            await _retrying(lambda: _insert_once(db, doc))
         return event
 
     async def _watch(self) -> None:

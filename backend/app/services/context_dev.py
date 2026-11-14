@@ -9,8 +9,10 @@ Every source read goes through here; there is no fallback fetcher. Any failure r
                                               POST /webhooks/context (see app/monitors.py)
     verify_webhook      X-Context-Signature   "t=<unix>,v1=<hex>", HMAC-SHA256 of "t.<raw body>"
 """
+import asyncio
 import hashlib
 import hmac
+import logging
 import re
 import time
 from typing import Any
@@ -18,6 +20,8 @@ from typing import Any
 import httpx
 
 from .. import config
+
+logger = logging.getLogger("inlook.context_dev")
 
 BASE_URL = "https://api.context.dev/v1"
 TIMEOUT_S = 30.0
@@ -40,12 +44,42 @@ def _client() -> httpx.AsyncClient:
 _transport: httpx.AsyncBaseTransport | None = None  # tests swap in an httpx.MockTransport
 
 
-async def _request(method: str, path: str, json: dict | None = None, params: dict | None = None) -> Any:
-    async with _client() as client:
-        response = await client.request(method, path, json=json, params=params)
-    if response.status_code >= 400:
-        raise ContextDevError(f"{method} {path} -> {response.status_code}: {response.text[:300]}")
-    return response.json() if response.content else None
+ATTEMPTS = 2
+RETRY_PAUSE_S = 1.0
+
+
+async def _request(method: str, path: str, json: dict | None = None, params: dict | None = None,
+                   retry: bool = True) -> Any:
+    """One API call. With `retry`, a network error, 408, 429 or 5xx gets one more attempt after a pause
+    (Retry-After honoured up to 5 s). Calls that create something pass retry=False."""
+    attempts = ATTEMPTS if retry else 1
+    for attempt in range(1, attempts + 1):
+        try:
+            async with _client() as client:
+                response = await client.request(method, path, json=json, params=params)
+        except httpx.TransportError as exc:
+            if attempt == attempts:
+                raise ContextDevError(f"{method} {path}: {type(exc).__name__}: {exc}") from exc
+            logger.warning("context.dev %s %s: %s; retrying", method, path, type(exc).__name__)
+            await asyncio.sleep(RETRY_PAUSE_S)
+            continue
+        if response.status_code in (408, 429) or response.status_code >= 500:
+            if attempt < attempts:
+                pause = _retry_after(response) or RETRY_PAUSE_S
+                logger.warning("context.dev %s %s -> %s; retrying in %.1fs", method, path, response.status_code, pause)
+                await asyncio.sleep(pause)
+                continue
+        if response.status_code >= 400:
+            raise ContextDevError(f"{method} {path} -> {response.status_code}: {response.text[:300]}")
+        return response.json() if response.content else None
+    raise AssertionError("unreachable")
+
+
+def _retry_after(response: httpx.Response) -> float | None:
+    try:
+        return min(5.0, max(0.0, float(response.headers.get("retry-after", ""))))
+    except ValueError:
+        return None
 
 
 # --- pages ---------------------------------------------------------------------------------
@@ -84,7 +118,7 @@ async def search(query: str, num_results: int = 3) -> list[dict]:
 async def create_monitor(url: str, webhook_url: str, name: str, every_minutes: int = 10) -> dict:
     """A page monitor (exact change detection) that calls `webhook_url` on change.detected.
     The response carries `webhook.secret`, which verifies the deliveries."""
-    return await _request("POST", "/monitors", json={
+    return await _request("POST", "/monitors", retry=False, json={
         "name": name[:200],
         "target": {"type": "page", "url": url},
         "change_detection": {"type": "exact"},
@@ -110,7 +144,7 @@ async def delete_monitor(monitor_id: str) -> None:
 
 async def run_monitor(monitor_id: str) -> None:
     """Queue a run now, outside the schedule."""
-    await _request("POST", f"/monitors/{monitor_id}/run")
+    await _request("POST", f"/monitors/{monitor_id}/run", retry=False)
 
 
 # --- webhooks ------------------------------------------------------------------------------
