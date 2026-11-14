@@ -22,6 +22,12 @@ uv run python -m app.monitors sync     # one Context.dev page monitor per source
 uv run python -m app.monitors status   # state, last run, last change, last error
 ```
 
+If Atlas does not answer at startup (bad network, IP not on the Atlas access list), the server starts anyway
+on the in-memory event log and logs a warning: `/stream`, `/dev/events` and `/health` work, `/check`, `/reviews`
+and `/recheck` answer 503 "database unreachable". Restart it once Atlas is reachable. `GET /health` shows
+`{"database": "connected" | "unreachable" | "off", "events": "mongo" | "memory"}`. MongoDB calls time out after
+`MONGODB_TIMEOUT_MS` (default 5000).
+
 Without `MONGODB_URI` the server still runs on the in-memory event log (`/dev/events` and `/stream` work);
 `/check` and `/reviews` answer 503 because they need the stored facts. `INLOOK_EVENTS=memory` forces the
 in-memory log even with a database.
@@ -37,7 +43,7 @@ in-memory log even with a database.
 | `POST /reviews/{id}` | working: accept or reject, publishes `review.closed` (+ `fact.updated` on accept, `strategy.healthy`). 404 unknown, 409 already closed |
 | `GET /stream` | working SSE: `<bootId>:<seq>` ids, Last-Event-ID replay, keep-alives. With MongoDB the log is the `events` collection, woken by a change stream, and survives restarts |
 | `POST /dev/events` | only with `INLOOK_DEV=1`: inject an event to drive the overlay; 422 if it breaks the contract. With a database, `review.created` and `strategy.flagged` also change the seeded data, so Accept / Reject on mock cards works |
-| `GET /health` | ok |
+| `GET /health` | `{ok, database, events}`: whether Atlas answers, and where this run's event log lives |
 
 ## Layout
 

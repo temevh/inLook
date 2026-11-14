@@ -91,15 +91,30 @@ class EventLog:
 
 
 class MongoEventLog(EventLog):
+    """Events in MongoDB, followers woken by a change stream.
+
+    If Atlas does not answer at startup, this process runs on the in-memory log instead (`offline`), so the
+    backend still starts and the HUD stream works; restart the backend once Atlas is reachable again.
+    """
+
     def __init__(self) -> None:
         super().__init__()
+        self.offline = False
         self._lock = asyncio.Lock()  # one writer at a time: seq order must equal insert order
         self._version = 0  # bumped by the change stream; followers wait for it to move
         self._task: asyncio.Task | None = None
 
     async def start(self) -> None:
         from .services import db
-        await db.ensure_indexes()
+        if not await db.ping():
+            self.offline = True
+            logger.warning("MongoDB Atlas is unreachable: this run uses the in-memory event log. Endpoints that "
+                           "need the database answer 503. Restart the backend once Atlas is reachable.")
+            return
+        try:
+            await db.ensure_indexes()
+        except Exception as exc:  # reachable a moment ago: keep going, indexes exist from earlier runs
+            logger.warning("could not ensure MongoDB indexes (%s); continuing", exc)
         self._task = asyncio.create_task(self._watch(), name="events-change-stream")
 
     async def stop(self) -> None:
@@ -112,6 +127,8 @@ class MongoEventLog(EventLog):
     async def publish(self, type: str, payload: dict) -> InlookEvent:
         """Raises pydantic.ValidationError if the payload breaks the contract (before any seq is used)."""
         from .services import db
+        if self.offline:
+            return await super().publish(type, payload)
         _event(1, type, payload)  # validate first, so a bad payload does not burn a seq
         # Followers are woken by the change stream, not here: the same path serves events
         # inserted by another process.
@@ -139,13 +156,22 @@ class MongoEventLog(EventLog):
                 await asyncio.sleep(2)
 
     async def follow(self, after: int) -> AsyncIterator[str]:
-        """Yield SSE frames for every event with seq > after, then keep following."""
+        """Yield SSE frames for every event with seq > after, then keep following.
+        A MongoDB error does not end the stream: it waits and retries (keep-alives continue)."""
         from .services import db
+        if self.offline:
+            async for frame in super().follow(after):
+                yield frame
+            return
         cursor = after
         last_sent = time.monotonic()
         while True:
             seen = self._version
-            batch = await db.events_after(cursor)
+            try:
+                batch = await db.events_after(cursor)
+            except Exception as exc:
+                logger.warning("events: reading the log failed (%s); retrying in %s s", exc, POLL_S)
+                batch = []
             for doc in batch:
                 cursor = doc["seq"]
                 try:

@@ -35,6 +35,9 @@ ELEVENLABS_API_KEY = os.getenv("ELEVENLABS_API_KEY", "")
 # /reviews answer 503 (they need the stored facts).
 MONGODB_URI = os.getenv("MONGODB_URI", "")
 MONGODB_DB = os.getenv("MONGODB_DB", "inlook")
+# How long a MongoDB call waits for Atlas before failing (connect + server selection). Short, so an
+# unreachable Atlas fails a request fast instead of hanging it for pymongo's default 30 s.
+MONGODB_TIMEOUT_MS = int(os.getenv("MONGODB_TIMEOUT_MS", "5000"))
 
 # Where the SSE event log lives: "mongo" (events collection + change stream) or "memory".
 # Default: mongo when MONGODB_URI is set. INLOOK_EVENTS=memory forces the in-memory log.

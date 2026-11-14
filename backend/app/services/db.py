@@ -5,6 +5,7 @@ Collections and fields follow the spec's "Data model" (a proposal). Documents us
 
 Tiers are plain strings ("low" / "medium" / "high"), as stored; the contract models accept them.
 """
+import asyncio
 import uuid
 from datetime import datetime, timezone
 from functools import cache
@@ -31,7 +32,18 @@ def client():
     from pymongo import AsyncMongoClient
     if not config.MONGODB_URI:
         raise RuntimeError("MONGODB_URI is not set (backend/.env)")
-    return AsyncMongoClient(config.MONGODB_URI)
+    timeout = config.MONGODB_TIMEOUT_MS
+    return AsyncMongoClient(config.MONGODB_URI, connectTimeoutMS=timeout, serverSelectionTimeoutMS=timeout)
+
+
+async def ping(timeout_s: float | None = None) -> bool:
+    """True if Atlas answers within `timeout_s` (default: the client timeout plus DNS slack). Never raises."""
+    timeout_s = timeout_s if timeout_s is not None else config.MONGODB_TIMEOUT_MS / 1000 + 3
+    try:
+        await asyncio.wait_for(database().command("ping"), timeout_s)
+        return True
+    except Exception:
+        return False
 
 
 def database():

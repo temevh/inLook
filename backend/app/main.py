@@ -8,7 +8,8 @@ import json
 import logging
 
 from fastapi import FastAPI, Header, HTTPException, Request, Response, WebSocket
-from fastapi.responses import StreamingResponse
+from fastapi.responses import JSONResponse, StreamingResponse
+from pymongo.errors import ConnectionFailure
 from pydantic import BaseModel, ValidationError
 
 from . import check, config
@@ -21,7 +22,7 @@ logger = logging.getLogger("inlook.main")
 
 @asynccontextmanager
 async def lifespan(_: FastAPI):
-    await log.start()  # Mongo log: indexes + the events change stream
+    await log.start()  # Mongo log: ping (bounded), indexes, change stream; falls back to memory if Atlas is down
     yield
     await log.stop()
     if config.MONGODB_URI:
@@ -29,6 +30,21 @@ async def lifespan(_: FastAPI):
 
 
 app = FastAPI(title="Inlook backend", lifespan=lifespan)
+
+
+def _need_database(what: str) -> None:
+    """503 at once when there is no database for this run (no MONGODB_URI, or Atlas was down at startup)."""
+    if not config.MONGODB_URI:
+        raise HTTPException(503, f"{what} need the database (MONGODB_URI is not set)")
+    if getattr(log, "offline", False):
+        raise HTTPException(503, "database unreachable (Atlas was down at startup; restart the backend)")
+
+
+@app.exception_handler(ConnectionFailure)
+async def database_unreachable(_: Request, exc: ConnectionFailure) -> JSONResponse:
+    """Atlas did not answer within MONGODB_TIMEOUT_MS: say so, instead of a bare 500."""
+    logger.warning("database unreachable: %s", exc)
+    return JSONResponse({"detail": "database unreachable"}, status_code=503)
 
 
 @app.websocket("/audio/stream")
@@ -53,8 +69,7 @@ async def post_check(body: CheckRequest) -> AcceptedResponse:
 
     503 without a database: matching needs the stored facts.
     """
-    if not config.MONGODB_URI:
-        raise HTTPException(503, "checks need the database (MONGODB_URI is not set)")
+    _need_database("checks")
     return AcceptedResponse(accepted=True, checkId=check.start(body.root))
 
 
@@ -66,8 +81,7 @@ async def post_review(review_id: str, body: ReviewRequest) -> ReviewResponse:
     Publishes review.closed, then fact.updated (accept only), then strategy.healthy per healed strategy.
     404 unknown review, 409 already closed, 503 no database configured.
     """
-    if not config.MONGODB_URI:
-        raise HTTPException(503, "reviews need the database (MONGODB_URI is not set)")
+    _need_database("reviews")
     result = await db.resolve_review(review_id, body.decision.value)
     if result is None:
         exists = await db.get_review(review_id) is not None
@@ -104,8 +118,7 @@ async def post_recheck(body: RecheckRequest) -> dict:
     routed by tier like any claim. Monitors only run every 10 min or more, so the demo uses this.
     Results arrive as events (claim.spotted with source "page", then claim.verdict, ...).
     """
-    if not config.MONGODB_URI:
-        raise HTTPException(503, "re-checks need the database (MONGODB_URI is not set)")
+    _need_database("re-checks")
     if (body.factId is None) == (body.url is None):
         raise HTTPException(422, "give exactly one of factId or url")
     if body.factId:
@@ -172,11 +185,17 @@ if config.DEV:
             event = await log.publish(body.type, body.payload)
         except ValidationError as err:
             raise HTTPException(422, err.errors(include_url=False, include_context=False)) from None
-        if config.MONGODB_URI:
+        if config.MONGODB_URI and not getattr(log, "offline", False):
             await db.mirror_dev_event(body.type, body.payload)
         return event.model_dump(mode="json")
 
 
 @app.get("/health")
 async def health() -> dict:
-    return {"ok": True}
+    """ok is always true while the process serves requests. database: "connected", "unreachable" or "off"
+    (no MONGODB_URI); events: where the SSE log lives for this run."""
+    database = "off"
+    if config.MONGODB_URI:
+        database = "connected" if await db.ping(2) else "unreachable"
+    events = "memory" if config.EVENTS == "memory" or getattr(log, "offline", False) else "mongo"
+    return {"ok": True, "database": database, "events": events}
