@@ -1,0 +1,9 @@
+{
+  "rewrites": [
+    {
+      "source": "/mock/:path*",
+      "destination": "https://inlook-demo.onrender.com/:path*"
+    },
+    { "source": "/((?!assets/).*)", "destination": "/index.html" }
+  ]
+}
