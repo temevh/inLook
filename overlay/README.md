@@ -42,6 +42,9 @@ src/
 mock/
   demo.json            7 events, pitch scenes 06–09
   tiers.json           10 events: low, medium, unverified, review closed, strategy healthy
+test/
+  fixtures.test.ts     every mock/*.json item validates against event.schema.json; bad items are rejected
+  sse.test.ts          built `subscribe` against a local SSE server: order, seq de-dupe, invalid dropped, reconnect with Last-Event-ID
 scripts/
   mock.mjs             validates a scenario, POSTs it to the backend's /dev/events
   audio-sink.mjs       dev stand-in for POST /audio
@@ -73,7 +76,14 @@ npm run gen:contract      # TypeScript → src/shared/contract.gen.ts
 npm run gen:contract:py   # Python (pydantic v2) → ../shared/generated/contract_models.py
 ```
 
-`npm test` runs vitest.
+
+## Tests
+
+```sh
+npm test
+```
+
+Runs vitest after a build (`pretest` runs `npm run build`), because `validate.ts` loads the schemas from `dist/schemas` and the SSE test runs the compiled code in `dist/main`. Covers the fixtures against the event schema and the SSE client. Not covered: HUD DOM and an Electron smoke test; check those by running the demo (`npm run mock`).
 
 ## Security
 
