@@ -21,12 +21,23 @@ export interface OverlayState {
   audio: AudioStatus;
 }
 
+/** Open navball window: its side length and where the ball centre sits inside it. */
+export interface BallLayout { x: number; y: number; size: number }
+
 export interface InlookBridge {
   // widget → main
+  /** Grow the widget window around the ball (returns the layout) or shrink it back (null). */
+  setBubblesOpen(open: boolean): Promise<BallLayout | null>;
+  /** Drag begins: main collapses the bubbles if open and resolves true if it did. */
+  dragStart(): Promise<boolean>;
+  /** Pointer travel since dragStart in screen px; main moves the window, clamped to the work area. */
+  dragMove(dx: number, dy: number): Promise<void>;
   checkSelection(): Promise<{ ok: boolean; error?: string }>;
   checkScreen(): Promise<{ ok: boolean; error?: string }>;
   setHudInteractive(on: boolean): Promise<void>;
   setTranscribing(on: boolean): Promise<void>;
+  /** Quit the whole app. */
+  quit(): Promise<void>;
   /** One ~100 ms frame of 16 kHz mono s16le PCM; main forwards it to WS /audio/stream while transcribing. */
   sendAudioFrame(pcm: ArrayBuffer): Promise<void>;
   // HUD → main
@@ -41,5 +52,6 @@ export interface InlookBridge {
 
 export type IpcInvoke =
   | "check:selection" | "check:screen" | "hud:set-interactive" | "mic:set-transcribing"
-  | "audio:frame" | "review:decide" | "state:get";
+  | "audio:frame" | "review:decide" | "state:get"
+  | "app:quit" | "widget:set-open" | "widget:drag-start" | "widget:drag-move";
 export type IpcPush = "inlook:event" | "inlook:state" | "inlook:check-result";
