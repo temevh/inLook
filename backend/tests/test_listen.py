@@ -246,6 +246,7 @@ class RelayTest(ListenTestCase):
         self.assertTrue(all(c == bytes(listen.FRAME_BYTES) for c in self.chunks[8:]))  # then flush silence
         self.assertEqual([(l["speaker"], l["text"]) for l in self.lines()],
                          [("Mira Mockwell", "Notion Plus costs 8 dollars per member a month.")])
+        await asyncio.sleep(0.1)  # spotting the last line runs in the background after the session closes
         self.spot.assert_awaited_once()  # the session's last line is spotted even though the mic stopped
 
     async def test_a_rejected_key_is_not_retried_and_the_session_still_ends(self):
