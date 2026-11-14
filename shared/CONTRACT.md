@@ -36,6 +36,7 @@ SSE framing: `id: <bootId>:<seq>` (proposed) and `data: <envelope JSON>`. No `ev
 |---|---|---|---|
 | `transcript.line` | proposed | `{ lineId, speaker, text }` (speaker from ElevenLabs label, mapped to a name by a fixed list) | live transcript |
 | `claim.spotted` | decided | `{ claimId, text, source: "audio" \| "selection" \| "screenshot" \| "page", lineId? }` (`page`: a source-page re-check, no spoken claim) | amber "checking…" |
+| `claim.progress` | proposed | `{ claimId, step: "matched" \| "reading", factId?, label?, sourceUrl? }`: a step of a running check. `matched`: the claim is about a stored fact (`label`). `reading`: its source is being read (`sourceUrl`), or the web is searched (no `sourceUrl`). A lost progress event never affects the verdict | steps on the "checking…" card |
 | `claim.unverified` | proposed | `{ claimId, reason: "no_match" \| "unverifiable" }` | claim marked unverified, then dropped |
 | `claim.verdict` | decided (payload proposed) | `{ claimId, factId, verdict: "current" \| "outdated" \| "unverifiable", oldValue, newValue?, evidence, sourceUrl?, card }` | inline note / card |
 | `fact.updated` | proposed | `{ factId, version: { value, source, at, by }, card }` (low tier, auto) | "updated" |

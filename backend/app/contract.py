@@ -71,6 +71,32 @@ class ClaimSpottedEvent(BaseModel):
     at: AwareDatetime
 
 
+class Step(Enum):
+    matched = 'matched'
+    reading = 'reading'
+
+
+class ClaimProgressPayload(BaseModel):
+    model_config = ConfigDict(
+        extra='forbid',
+    )
+    claimId: str
+    step: Step
+    factId: str | None = None
+    label: str | None = None
+    sourceUrl: str | None = None
+
+
+class ClaimProgressEvent(BaseModel):
+    model_config = ConfigDict(
+        extra='forbid',
+    )
+    seq: Annotated[int, Field(ge=1)]
+    type: Literal['claim.progress']
+    payload: ClaimProgressPayload
+    at: AwareDatetime
+
+
 class Reason(Enum):
     no_match = 'no_match'
     unverifiable = 'unverifiable'
@@ -338,6 +364,7 @@ class InlookEvent(
     RootModel[
         TranscriptLineEvent
         | ClaimSpottedEvent
+        | ClaimProgressEvent
         | ClaimUnverifiedEvent
         | ClaimVerdictEvent
         | FactUpdatedEvent
@@ -351,6 +378,7 @@ class InlookEvent(
     root: Annotated[
         TranscriptLineEvent
         | ClaimSpottedEvent
+        | ClaimProgressEvent
         | ClaimUnverifiedEvent
         | ClaimVerdictEvent
         | FactUpdatedEvent

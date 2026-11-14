@@ -1,4 +1,5 @@
-// Navball: one draggable ball; click it to fan out the bubbles (transcribe, checks, HUD toggle, placeholders).
+// Navball: one draggable ball; click it to fan out the bubbles (transcribe, check selection, check screen, close).
+// While the mic is on, a ring around the ball follows the voice level.
 import { fanSlots, isDrag } from "./ball.js";
 import { MicCapture } from "./mic.js";
 import type { AudioStatus } from "../../shared/ipc";
@@ -137,7 +138,17 @@ async function busy(b: HTMLButtonElement, fn: () => Promise<void>) {
   finally { b.disabled = false; b.removeAttribute("aria-busy"); }
 }
 
+/** Loudness of a PCM s16le frame as 0..1 (-50 dBFS and below = 0, -10 dBFS and above = 1). */
+function levelOf(pcm: ArrayBuffer) {
+  const samples = new Int16Array(pcm, 0, pcm.byteLength >> 1);
+  let sum = 0;
+  for (const v of samples) sum += v * v;
+  const db = 20 * Math.log10(Math.sqrt(sum / Math.max(1, samples.length)) / 32768 || 1e-6);
+  return Math.max(0, Math.min(1, (db + 50) / 40));
+}
+
 const mic = new MicCapture((pcm) => {
+  root.style.setProperty("--level", levelOf(pcm).toFixed(2)); // before the buffer is handed to IPC
   window.inlook.sendAudioFrame(pcm).catch((err: Error) => { if (mic.running) say(`Audio not sent: ${plain(err)}`, "error"); });
 });
 
@@ -167,9 +178,6 @@ const check = (b: HTMLButtonElement, progress: string, done: string, call: () =>
 $("selection").onclick = () => check($("selection"), "Checking selection…", "Selection sent", () => window.inlook.checkSelection());
 $("screen").onclick = () => check($("screen"), "Checking screen…", "Screenshot sent", () => window.inlook.checkScreen());
 
-let hudInteractive = false;
-$("hud").onclick = () => void window.inlook.setHudInteractive(!hudInteractive);
-
 // Close: the first click arms it (red, "Confirm close?"); a second click quits. Any other click or ~3 s disarms it.
 function setConfirm(on: boolean) {
   clearTimeout(confirmTimer);
@@ -181,10 +189,6 @@ function setConfirm(on: boolean) {
 quit.onclick = () => { if (quit.dataset.confirm) void window.inlook.quit(); else setConfirm(true); };
 document.addEventListener("pointerdown", (e) => { if (!quit.contains(e.target as Node)) setConfirm(false); }, true);
 
-// Placeholders until the pin and crosshair features exist.
-$("pin").onclick = () => say("Pin: coming soon");
-$("crosshair").onclick = () => say("Crosshair: coming soon");
-
 // The hotkey runs in main; its outcome arrives here and is shown like a button check.
 window.inlook.onCheckResult((r) => {
   if (r.ok) say(r.what === "selection" ? "Selection sent" : "Screenshot sent");
@@ -194,7 +198,7 @@ window.inlook.onCheckResult((r) => {
 window.inlook.onState((s) => {
   audio = s.audio;
   render();
-  hudInteractive = s.hudInteractive;
-  pressed($("hud"), s.hudInteractive);
   pressed($("transcribe"), s.transcribing);
+  root.dataset.listening = String(s.transcribing && s.audio === "live");
+  if (!s.transcribing) root.style.setProperty("--level", "0");
 });

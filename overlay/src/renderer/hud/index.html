@@ -9,9 +9,12 @@
 </head>
 <body>
 <main class="strip">
-  <header class="bar"><span class="mark">inLook</span><span id="status" class="status">connecting</span></header>
+  <header class="bar" id="bar" hidden>
+    <span class="mark">inLook</span>
+    <span class="status" id="status" data-tone="wait"><i class="meter" id="meter" aria-hidden="true"><i></i><i></i><i></i><i></i></i><span id="status-text">Connecting…</span></span>
+  </header>
+  <section class="transcript" id="transcript" aria-label="Live transcript" hidden></section>
   <section class="cards" id="cards" aria-live="polite"></section>
-  <section class="transcript" id="transcript" aria-label="Live transcript"></section>
 </main>
 </body>
 </html>

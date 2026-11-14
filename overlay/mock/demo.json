@@ -2,6 +2,8 @@
   { "delayMs": 500, "type": "transcript.line", "payload": { "lineId": "l1", "speaker": "Mira Mockwell", "text": "Okay, pricing slide. Where do we stand against Notion?" } },
   { "delayMs": 1500, "type": "transcript.line", "payload": { "lineId": "l2", "speaker": "Sam Sample", "text": "Notion Plus is eight dollars a seat, so we are clearly cheaper." } },
   { "delayMs": 800, "type": "claim.spotted", "payload": { "claimId": "c1", "text": "Notion Plus costs $8 per seat per month", "source": "audio", "lineId": "l2" } },
+  { "delayMs": 700, "type": "claim.progress", "payload": { "claimId": "c1", "step": "matched", "factId": "f-compx-price", "label": "Notion Plus price per seat" } },
+  { "delayMs": 300, "type": "claim.progress", "payload": { "claimId": "c1", "step": "reading", "factId": "f-compx-price", "label": "Notion Plus price per seat", "sourceUrl": "https://www.notion.com/pricing" } },
   { "delayMs": 2000, "type": "claim.verdict", "payload": {
       "claimId": "c1", "factId": "f-compx-price", "verdict": "outdated",
       "oldValue": "$8 per seat per month", "newValue": "$10 per seat per month",

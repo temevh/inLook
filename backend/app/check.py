@@ -127,7 +127,7 @@ async def run_claim(claim_id: str, text: str, quote: str, source: str,
 async def _check_claim(claim_id: str, text: str) -> None:
     """Match, then look the fact up at its source, within CHECK_TIMEOUT_S; then publish and route."""
     try:
-        outcome = await asyncio.wait_for(_match_and_lookup(text), config.CHECK_TIMEOUT_S)
+        outcome = await asyncio.wait_for(_match_and_lookup(text, claim_id), config.CHECK_TIMEOUT_S)
     except TimeoutError:
         logger.warning("claim %s: no verdict within %ss", claim_id, config.CHECK_TIMEOUT_S)
         await log.publish("claim.unverified", {"claimId": claim_id, "reason": "unverifiable"})
@@ -141,9 +141,21 @@ async def _check_claim(claim_id: str, text: str) -> None:
         await _publish_and_route(claim_id, fact, found)
 
 
-async def _match_and_lookup(text: str) -> tuple[str, dict | None, Any]:
+async def _progress(claim_id: str | None, step: str, fact: dict, source_url: str | None = None) -> None:
+    """Tell the HUD where a running check is (claim.progress), so "Checking…" shows steps. Never raises:
+    a lost progress event must not cost the verdict."""
+    if not claim_id:
+        return
+    try:
+        await log.publish("claim.progress", {"claimId": claim_id, "step": step, "factId": fact["_id"],
+                                             "label": fact.get("label"), "sourceUrl": source_url})
+    except Exception:
+        logger.warning("claim %s: could not publish progress %r", claim_id, step, exc_info=True)
+
+
+async def _match_and_lookup(text: str, claim_id: str | None = None) -> tuple[str, dict | None, Any]:
     """("no_match", None, None) | ("recent", fact, last verdict payload) | ("found", fact, lookup result).
-    Publishes nothing, so the claim deadline can cancel it at any point."""
+    Publishes only claim.progress steps, so the claim deadline can cancel it at any point."""
     facts = await db.list_facts()
     step("db.facts", f"{len(facts)} stored facts to match against")
     fact_id = await gemini.match(text, facts)
@@ -157,16 +169,18 @@ async def _match_and_lookup(text: str) -> tuple[str, dict | None, Any]:
         ago = round(asyncio.get_running_loop().time() - recent[0])
         step("check", f"checked {ago} s ago: same verdict ({recent[1]['verdict']}), no new lookup")
         return "recent", fact, recent[1]
-    return "found", fact, await _lookup(fact, text)
+    await _progress(claim_id, "matched", fact)
+    return "found", fact, await _lookup(fact, text, claim_id)
 
 
-async def _lookup(fact: dict, query: str | None) -> tuple[dict, str] | None:
+async def _lookup(fact: dict, query: str | None, claim_id: str | None = None) -> tuple[dict, str] | None:
     """(verdict result, source url) from the fact's page, or None when no source page was found.
 
     With a sourceUrl the page is scraped fresh. Without one, Context.dev searches the web for `query`
     (the spoken claim, else the fact's label and value) and the top result with content is the source.
     """
     source_url = fact.get("sourceUrl")
+    await _progress(claim_id, "reading", fact, source_url)  # no sourceUrl: the web is searched
     if source_url:
         step("context.dev", f"scrape {source_url}")
         page = await context_dev.scrape(source_url)
@@ -188,7 +202,7 @@ async def check_fact(claim_id: str, fact: dict, query: str | None = None) -> Non
     """Re-check one stored fact at its source through Context.dev, publish the verdict, route it.
     The lookup has CHECK_TIMEOUT_S; publishing and routing are not cut off half-way."""
     try:
-        found = await asyncio.wait_for(_lookup(fact, query), config.CHECK_TIMEOUT_S)
+        found = await asyncio.wait_for(_lookup(fact, query, claim_id), config.CHECK_TIMEOUT_S)
     except TimeoutError:
         logger.warning("claim %s: no verdict for %s within %ss", claim_id, fact["_id"], config.CHECK_TIMEOUT_S)
         await log.publish("claim.unverified", {"claimId": claim_id, "reason": "unverifiable"})

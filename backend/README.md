@@ -50,8 +50,8 @@ person (there is no login yet), else `reviewer`.
 
 | Endpoint | State |
 |---|---|
-| `WS /audio/stream` | accepts a PCM session and discards the frames; ElevenLabs relay TODO |
-| `POST /check` | working: 202 at once, the flow runs in the background (`app/check.py`): claim → match → Context.dev scrape of the fact's page (or Context.dev search when it has none) → verdict → tier routing. Needs `GEMINI_API_KEY` and `CONTEXT_DEV_API_KEY`; without them every claim ends in `claim.unverified` |
+| `WS /audio/stream` | working: mic PCM → ElevenLabs realtime STT (`scribe_v3_live`, speaker labels) → `transcript.line` → Gemini spot (prefiltered, batched) → the check flow with source `audio` (`app/listen.py`). Needs `ELEVENLABS_API_KEY`; without it the audio is discarded. Rehearse with `uv run python -m app.replay fixtures/mic-demo.wav` |
+| `POST /check` | working (publishes `claim.progress` steps between `claim.spotted` and the verdict): 202 at once, the flow runs in the background (`app/check.py`): claim → match → Context.dev scrape of the fact's page (or Context.dev search when it has none) → verdict → tier routing. Needs `GEMINI_API_KEY` and `CONTEXT_DEV_API_KEY`; without them every claim ends in `claim.unverified` |
 | `POST /recheck` | `{factId}` or `{url}`: re-check now without a spoken claim (Context.dev scrape → verdict → tier routing). Events start with `claim.spotted` source `page`. 202, 404 unknown fact / url |
 | `POST /webhooks/context` | Context.dev monitor deliveries: verifies `X-Context-Signature` against the stored monitor secrets (401), dedupes on event id, re-checks every fact on `data.change.url` in the background, 204 |
 | `POST /reviews/{id}` | working: accept or reject, publishes `review.closed` (+ `fact.updated` on accept, `strategy.healthy`). 404 unknown, 409 already closed |
@@ -67,12 +67,16 @@ app/config.py            env settings (see .env.example); also loads .env for th
 app/contract.py          GENERATED from shared/*.schema.json (npm run gen:contract:py in overlay/); do not edit
 app/events.py            event log + SSE; validates every event against the contract. EventLog (memory), MongoEventLog
 app/check.py             the fact-check flow behind POST /check and the page re-checks, tier routing included
+app/listen.py            the mic path behind WS /audio/stream: relay to ElevenLabs, transcript lines, speakers, spotting
+app/replay.py            plays a 16 kHz mono recording into WS /audio/stream like the mic (rehearsals)
 app/monitors.py          Context.dev monitor CLI: sync / status / run / peek
 app/seed.py              loads seed.json into MongoDB (clears first, applies the tier floor)
 seed.json                the demo records (people with roles, facts, strategies), spec "Data model"
 app/services/db.py       MongoDB Atlas: client, indexes, fact / review / strategy helpers, event storage
 app/services/gemini.py   Gemini calls: spot, match, verdict + card, vision (card schema from shared/)
 app/services/context_dev.py  Context.dev API: scrape, search, monitors, webhook signature check
+app/services/stt.py      ElevenLabs realtime speech-to-text session
+fixtures/mic-demo.wav    two speakers: a question, then the Notion $8 claim (for app.replay)
 tests/                   python -m unittest; check-flow tests run on a separate `inlook_test` database
 ```
 
