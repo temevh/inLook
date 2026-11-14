@@ -1,0 +1,68 @@
+@import "../fonts/fonts.css";
+/* Product dark tokens: root PRODUCT.md, Brand Commitments. Window stays transparent; the bar, transcript and each card are dark surfaces. */
+:root {
+  --card: hsl(233 20% 10.5%); --border: hsl(233 12% 21%);
+  --fg: hsl(220 20% 96%); --muted: hsl(220 10% 66%); --primary: #268bff;
+  --low: #60a5fa; --medium: #f0b44c; --high: #ff6b6b; --checking: #f0b44c;
+  --sans: "Rethink Sans", system-ui, sans-serif;
+  --ease: cubic-bezier(.22, 1, .36, 1);
+}
+* { box-sizing: border-box; margin: 0; }
+html, body { height: 100%; background: transparent; color: var(--fg); font: 400 .875rem/1.3 var(--sans); overflow: hidden; }
+.strip { height: 100%; display: flex; flex-direction: column; gap: 10px; padding: 12px; }
+body.interactive .bar { border-color: var(--primary); }
+
+.bar { order: 0; display: flex; justify-content: space-between; align-items: baseline; padding: 8px 14px; background: var(--card); border: 1px solid var(--border); border-radius: .875rem; }
+.mark { font-weight: 800; font-size: 1rem; }
+.status { font-size: .75rem; color: var(--muted); }
+
+/* Transcript at the top: newest line last, older lines fade. */
+.transcript { order: 1; display: flex; flex-direction: column; gap: 6px; max-height: 32%; overflow: hidden; justify-content: flex-end; padding: 12px 14px; background: var(--card); border: 1px solid var(--border); border-radius: .875rem; }
+.transcript:empty { display: none; }
+.transcript p { color: var(--muted); line-height: 1.3; }
+.transcript p:last-child { color: var(--fg); }
+.transcript b { display: block; font-size: .75rem; font-weight: 600; color: var(--muted); }
+
+.cards { order: 2; flex: 1; min-height: 0; display: flex; flex-direction: column; gap: 10px; overflow: hidden; }
+.card { background: var(--card); border: 1px solid var(--border); border-inline-start: 3px solid var(--border); border-radius: .875rem; padding: 12px 14px; animation: in .35s var(--ease); }
+@keyframes in { from { opacity: 0; transform: translateY(-6px); } }
+.card[data-tier="low"] { border-inline-start-color: var(--low); }
+.card[data-tier="medium"] { border-inline-start-color: var(--medium); }
+.card[data-tier="high"] { border-inline-start-color: var(--high); }
+
+.head { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.card h2 { font-size: 1rem; font-weight: 600; line-height: 1.2; }
+.pill { padding: 1px 9px; border-radius: 999px; border: 1px solid currentColor; font-size: .75rem; font-weight: 600; text-transform: capitalize; }
+.card[data-tier="low"] .pill { color: var(--low); }
+.card[data-tier="medium"] .pill { color: var(--medium); }
+.card[data-tier="high"] .pill { color: var(--high); }
+.card[data-tier="high"] h2 { color: var(--high); }
+
+.fact { margin-top: 6px; font-size: 1rem; font-weight: 450; line-height: 1.3; }
+.meta { margin-top: 8px; font-size: .75rem; color: var(--muted); line-height: 1.3; }
+
+/* Checking: amber, pulsing, no criticality yet. */
+.card.checking { border-style: dashed; border-inline-start-style: dashed; border-color: var(--checking);  }
+.card.checking .head { justify-content: flex-start; }
+.card.checking h2 { color: var(--checking); }
+.dot { width: 8px; height: 8px; border-radius: 50%; background: var(--checking); animation: pulse 1.4s ease-in-out infinite; }
+@keyframes pulse { 50% { opacity: .3; } }
+
+/* Unverified: muted, then fades out (hud.ts removes it after). */
+.card.unverified { border-style: dashed; color: var(--muted); animation: in .35s var(--ease), out 1s var(--ease) 3.4s forwards; }
+.card.unverified h2 { color: var(--muted); font-weight: 450; }
+@keyframes out { to { opacity: 0; } }
+
+.card.message { border-inline-start-color: var(--primary); }
+.card.message h2 { color: var(--primary); }
+
+/* Review buttons: visibly inactive while the HUD is click-through. */
+.actions { display: flex; gap: 8px; margin-top: 12px; }
+.card button { flex: 1; font: inherit; font-weight: 600; padding: 6px 10px; border-radius: .5rem; border: 1px dashed var(--border); background: transparent; color: var(--muted); opacity: .45; pointer-events: none; transition: opacity .2s var(--ease), background .2s var(--ease); }
+body.interactive .card button { opacity: 1; pointer-events: auto; cursor: pointer; border-style: solid; }
+body.interactive .card button.accept { background: var(--primary); border-color: var(--primary); color: #fff; }
+body.interactive .card button.reject { color: var(--fg); }
+body.interactive .card button:hover:not(:disabled) { background: hsl(233 20% 16%); }
+body.interactive .card button.accept:hover:not(:disabled) { background: #4aa0ff; }
+.card button:disabled { opacity: .45; cursor: default; }
+@media (prefers-reduced-motion: reduce) { .card, .dot { animation: none; } }

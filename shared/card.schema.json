@@ -1,0 +1,11 @@
+{
+  "title": "HudCard",
+  "description": "HUD card template, filled by Gemini in the verdict + card call.",
+  "type": "object",
+  "properties": {
+    "title": { "type": "string", "enum": ["Fact outdated", "Fact updated", "Needs review"] },
+    "criticality": { "type": "string", "enum": ["low", "medium", "high"] },
+    "fact": { "type": "string", "description": "One line, e.g. \"Competitor X: €59 → €39 per seat\"." }
+  },
+  "required": ["title", "criticality", "fact"]
+}

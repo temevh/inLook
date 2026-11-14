@@ -1,0 +1,8 @@
+/* Rethink Sans (variable 400–800), latin subset from @fontsource. */
+@font-face {
+  font-family: "Rethink Sans";
+  font-style: normal;
+  font-weight: 400 800;
+  font-display: swap;
+  src: url("rethink-sans-latin-wght-normal.woff2") format("woff2");
+}
