@@ -37,4 +37,5 @@ const list = computed(() =>
 .wrap.highlight { box-shadow: 0 0 0 3px var(--primary); }
 .wrap :deep(.strategy) { border: 0; height: 100%; }
 .empty { padding: 20px; color: var(--muted); }
+@media (max-width: 640px) { .grid { grid-template-columns: minmax(0, 1fr); gap: 14px; } .wrap { scroll-margin-top: 110px; } }
 </style>

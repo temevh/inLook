@@ -137,4 +137,14 @@ const meetingLabel = computed(() =>
 @media (max-width: 700px) {
   .kpis, .loading, .reviews, .strategies { grid-template-columns: minmax(0, 1fr); }
 }
+/* Phones: the four numbers as a 2 × 2 grid, smaller. */
+@media (max-width: 640px) {
+  .kpis, .loading { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 10px; }
+  .kpi { padding: 12px 14px; }
+  .kpi .big { font-size: 1.875rem; }
+  .kpi .muted.small { font-size: 0.75rem; }
+  .desk, .main, .side { gap: 16px; }
+  .panel { padding: 14px; }
+  .panel-head { flex-wrap: wrap; }
+}
 </style>

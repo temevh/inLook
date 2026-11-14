@@ -158,4 +158,16 @@ function sendClaim() {
   .transcript { position: static; max-height: 360px; }
   .kpis { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 }
+/* Phones: the claim box fits the card, smaller numbers, play button full width. */
+@media (max-width: 640px) {
+  .page { gap: 16px; }
+  .top > div { flex-basis: 100%; }
+  .top .btn { flex: 1; }
+  .kpis { gap: 10px; }
+  .kpi { padding: 12px 14px; }
+  .big { font-size: 1.875rem; }
+  .panel { padding: 14px; }
+  .check input { min-width: 0; }
+  .claims { grid-template-columns: minmax(0, 1fr); }
+}
 </style>

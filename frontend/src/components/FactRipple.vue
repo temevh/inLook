@@ -88,6 +88,28 @@ const asked = (id: string) => !!review.value?.reviewers.includes(id);
     </div>
     </div>
 
+    <!-- Phones: the same three columns stacked top to bottom, without the curves. -->
+    <div v-if="strategies.length" class="stack">
+      <p class="kind fact"><i class="dot" />Fact</p>
+      <div class="item fact" :class="{ hot }">
+        <strong>{{ fact.label }}</strong>
+        <span class="muted">{{ hot ? `${review!.oldValue} → ${review!.newValue}` : fact.value }}</span>
+      </div>
+      <p class="kind strategy"><i class="dot" />Strategies relying on it · {{ strategies.length }}</p>
+      <RouterLink
+        v-for="s in strategies" :key="s.id" :to="`/strategies#strategy-${s.id}`"
+        class="item strategy" :class="{ flagged: s.status === 'flagged' }"
+      >
+        <strong>{{ s.name }}</strong>
+        <span class="muted">{{ s.status === "flagged" ? "Flagged" : "Healthy" }}</span>
+      </RouterLink>
+      <p class="kind owner"><i class="dot" />Owners · {{ ownerIds.length }}</p>
+      <div v-for="id in ownerIds" :key="id" class="item owner" :class="{ asked: asked(id), me: id === store.viewer?.id }">
+        <strong>{{ personName(id, store.records) }}{{ id === store.viewer?.id ? " (you)" : "" }}</strong>
+        <span class="muted">{{ asked(id) ? "Asked to decide" : store.records.people[id]?.role }}</span>
+      </div>
+    </div>
+
     <div class="legend muted small">
       <span><i class="sw hot" /> change in review</span>
       <span><i class="sw flagged" /> flagged strategy</span>
@@ -100,7 +122,8 @@ const asked = (id: string) => !!review.value?.reviewers.includes(id);
 .ripple { padding: 16px; display: flex; flex-direction: column; gap: 12px; }
 .head { display: flex; flex-wrap: wrap; align-items: baseline; gap: 6px 10px; }
 .head h2 { font-size: 1rem; }
-.canvas { --k-fact: #a78bfa; --k-strategy: #2dd4bf; --k-owner: #f472b6; min-width: 560px; display: flex; flex-direction: column; gap: 8px; }
+.ripple { --k-fact: #a78bfa; --k-strategy: #2dd4bf; --k-owner: #f472b6; }
+.canvas { min-width: 560px; display: flex; flex-direction: column; gap: 8px; }
 .cols { position: relative; height: 18px; }
 .col { position: absolute; top: 0; display: inline-flex; align-items: center; gap: 6px; font-size: 0.6875rem; font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .col .dot { flex: none; width: 8px; height: 8px; border-radius: 2px; }
@@ -133,4 +156,24 @@ a.node:hover { border-color: var(--accent); }
 .sw.hot { border-color: var(--warning); background: var(--tint-warning); }
 .sw.flagged { border-color: var(--danger); background: var(--tint-danger); }
 .sw.asked { border-color: var(--primary); background: var(--tint-primary); }
+.stack { display: none; }
+@media (max-width: 640px) {
+  .ripple { padding: 14px; }
+  .canvas { display: none; }
+  .stack { display: flex; flex-direction: column; gap: 6px; }
+  .kind { display: flex; align-items: center; gap: 6px; margin-top: 6px; font-size: 0.6875rem; font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase; }
+  .kind:first-child { margin-top: 0; }
+  .kind .dot { width: 8px; height: 8px; border-radius: 2px; }
+  .kind.fact { color: var(--k-fact); } .kind.fact .dot { background: var(--k-fact); }
+  .kind.strategy { color: var(--k-strategy); } .kind.strategy .dot { background: var(--k-strategy); }
+  .kind.owner { color: var(--k-owner); } .kind.owner .dot { background: var(--k-owner); border-radius: 50%; }
+  .item { display: flex; flex-direction: column; gap: 2px; padding: 8px 12px; border: 1px solid var(--border); border-radius: 0.75rem; background: var(--raised); font-size: 0.8125rem; line-height: 1.25; color: var(--fg); text-decoration: none; }
+  .item span { font-size: 0.75rem; }
+  .item.fact { --kind: var(--k-fact); } .item.strategy { --kind: var(--k-strategy); } .item.owner { --kind: var(--k-owner); }
+  .item { border-color: color-mix(in srgb, var(--kind) 35%, var(--border)); }
+  .item.fact.hot { border-color: var(--warning); background: var(--tint-warning); }
+  .item.strategy.flagged { border-color: var(--danger); background: var(--tint-danger); }
+  .item.owner.asked { border-color: var(--primary); background: var(--tint-primary); }
+  .item.owner.me strong { color: var(--accent); }
+}
 </style>

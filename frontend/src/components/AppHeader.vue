@@ -1,10 +1,15 @@
 <script setup lang="ts">
-import { computed } from "vue";
+import { computed, onMounted, onUnmounted, ref } from "vue";
 import { useInlook } from "../stores/inlook";
 import NotificationBell from "./NotificationBell.vue";
 import UserMenu from "./UserMenu.vue";
 
 const store = useInlook();
+/** Phones only: Live / Demo, Play and Reset sit behind a menu button so the bar stays one line. */
+const menuOpen = ref(false);
+function onDoc() { menuOpen.value = false; }
+onMounted(() => document.addEventListener("click", onDoc));
+onUnmounted(() => document.removeEventListener("click", onDoc));
 
 
 const conn = computed(() => {
@@ -27,15 +32,24 @@ const playLabel = computed(() => (store.playing ? "Pause" : store.meetingDone ? 
     <span class="mock">Mock data</span>
 
     <div class="right">
-      <div class="seg" role="group" aria-label="Data source">
-        <button type="button" :aria-pressed="store.mode === 'live'" @click="store.setMode('live')">Live</button>
-        <button type="button" :aria-pressed="store.mode === 'demo'" @click="store.setMode('demo')">Demo</button>
+      <div id="bar-controls" class="controls" :class="{ open: menuOpen }">
+        <p class="state muted small">{{ conn.label }}</p>
+        <div class="seg" role="group" aria-label="Data source">
+          <button type="button" :aria-pressed="store.mode === 'live'" @click="store.setMode('live')">Live</button>
+          <button type="button" :aria-pressed="store.mode === 'demo'" @click="store.setMode('demo')">Demo</button>
+        </div>
+        <button class="btn" type="button" :disabled="store.meetingDone && !store.playing" @click="store.playMeeting()">{{ playLabel }}</button>
+        <button v-if="store.mode === 'demo'" class="btn ghost" type="button" @click="store.resetDemo()">Reset</button>
       </div>
-      <button class="btn" type="button" :disabled="store.meetingDone && !store.playing" @click="store.playMeeting()">{{ playLabel }}</button>
-      <button v-if="store.mode === 'demo'" class="btn ghost" type="button" @click="store.resetDemo()">Reset</button>
-      <span class="conn" :class="conn.cls" role="status"><span class="dot" aria-hidden="true" />{{ conn.label }}</span>
+      <span class="conn" :class="conn.cls" role="status" :title="conn.label"><span class="dot" aria-hidden="true" /><span class="lbl">{{ conn.label }}</span></span>
       <NotificationBell v-if="store.viewer" />
       <UserMenu />
+      <button
+        class="more" type="button" aria-controls="bar-controls" :aria-expanded="menuOpen" aria-label="Data source and meeting controls"
+        @click.stop="menuOpen = !menuOpen"
+      >
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><path d="M4 7h16M4 12h16M4 17h16" /></svg>
+      </button>
     </div>
   </header>
 </template>
@@ -53,4 +67,26 @@ const playLabel = computed(() => (store.playing ? "Pause" : store.meetingDone ? 
 .dot { width: 8px; height: 8px; border-radius: 50%; background: #fff; }
 .ok { background: var(--success); } .warn { background: var(--warning); } .bad { background: var(--danger); }
 .navy { background: var(--navy-700); } .primary { background: var(--brand); }
+/* Wider screens: the controls sit inline as before, and the menu button is not shown. */
+.controls { display: contents; }
+.state, .more { display: none; }
+
+/* Phones: one line (brand, status dot, bell, person, menu); the controls open from the menu button. */
+@media (max-width: 640px) {
+  .bar { position: relative; flex-wrap: nowrap; gap: 8px; padding: 8px 16px; }
+  .brand { font-size: 1.2rem; }
+  .mock { padding: 2px 8px; font-size: 0.6875rem; white-space: nowrap; }
+  .right { flex-wrap: nowrap; gap: 6px; }
+  .conn { padding: 0; width: 26px; height: 26px; justify-content: center; flex: none; }
+  .conn .lbl { display: none; }
+  .more { display: inline-flex; flex: none; width: 40px; height: 40px; align-items: center; justify-content: center; border-radius: var(--r-btn); border: 1px solid var(--border); background: var(--raised); color: var(--fg); cursor: pointer; }
+  .more[aria-expanded="true"] { border-color: var(--primary); }
+  .controls { display: none; }
+  .controls.open {
+    display: flex; flex-wrap: wrap; align-items: center; gap: 8px; position: absolute; z-index: 25; top: calc(100% + 6px); left: 16px; right: 16px;
+    padding: 12px; background: var(--card); border: 1px solid var(--border); border-radius: var(--r-card); box-shadow: 0 16px 40px rgb(0 0 0 / 0.5);
+  }
+  .controls.open .state { display: block; flex-basis: 100%; }
+  .controls.open .btn { flex: 1 1 auto; }
+}
 </style>

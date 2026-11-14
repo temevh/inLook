@@ -48,4 +48,10 @@ h3 { font-size: 0.9375rem; font-weight: 600; }
 ul { list-style: none; margin: 6px 0 0; padding: 0; display: flex; flex-direction: column; gap: 6px; }
 li { display: flex; align-items: center; gap: 8px; font-size: 0.8125rem; }
 li a { color: var(--fg); }
+/* Phones: with values shown, the fact name gets its own line and the value and pills go under it. */
+@media (max-width: 640px) {
+  li { flex-wrap: wrap; row-gap: 2px; }
+  li:has(.tier) { padding-bottom: 4px; }
+  li:has(.tier) a { flex-basis: 100%; }
+}
 </style>

@@ -56,4 +56,12 @@ ol { list-style: none; margin: 0; padding: 0; min-width: 640px; }
 li { display: grid; grid-template-columns: 56px 90px 150px minmax(0, 1fr); gap: 12px; align-items: center; padding: 10px 16px; border-top: 1px solid var(--rule); font-size: 0.8125rem; }
 .sum { overflow-wrap: anywhere; }
 .empty { padding: 0 16px 20px; color: var(--muted); }
+/* Phones: each event as two lines (number, time, type; then the summary) instead of a wide table. */
+@media (max-width: 640px) {
+  ol { min-width: 0; }
+  li { grid-template-columns: auto auto minmax(0, 1fr); gap: 6px 10px; padding: 10px 16px; }
+  li .num { min-width: 1.5em; }
+  li .sum { grid-column: 1 / -1; }
+  li > span:nth-child(3) { justify-self: end; }
+}
 </style>

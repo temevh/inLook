@@ -153,4 +153,16 @@ tbody tr.sel { background: var(--tint-primary); }
 .rel { margin: 0; padding-left: 18px; font-size: 0.875rem; display: flex; flex-direction: column; gap: 6px; }
 .rel a { color: var(--fg); }
 .routing { margin: 0; padding-left: 18px; font-size: 0.8125rem; line-height: 1.5; color: var(--muted); display: flex; flex-direction: column; gap: 4px; }
+/* Phones: each fact as a small card (name, value, pills) instead of a wide table; the detail panel full width. */
+@media (max-width: 640px) {
+  .facts, .left { gap: 16px; }
+  table { min-width: 0; }
+  thead { display: none; }
+  tbody tr { display: grid; grid-template-columns: auto auto minmax(0, 1fr); align-items: center; column-gap: 8px; padding: 10px 16px; border-top: 1px solid var(--rule); }
+  tbody th, tbody td { padding: 0; border: 0; }
+  tbody th { grid-column: 1 / -1; }
+  tbody td:nth-child(2) { grid-column: 1 / -1; margin: 2px 0 8px; }
+  tbody td:nth-child(5) { justify-self: end; font-size: 0.8125rem; text-align: right; }
+  .panel { max-width: none; flex-basis: 100%; padding: 16px; }
+}
 </style>

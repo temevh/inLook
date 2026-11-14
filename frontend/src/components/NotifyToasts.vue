@@ -79,4 +79,5 @@ watch(
 .slide-enter-active, .slide-leave-active { transition: opacity 0.25s var(--ease), transform 0.25s var(--ease); }
 .slide-enter-from, .slide-leave-to { opacity: 0; transform: translateX(24px); }
 @media (prefers-reduced-motion: reduce) { .slide-enter-active, .slide-leave-active { transition: none; } }
+@media (max-width: 640px) { .stack { right: 16px; left: 16px; bottom: 16px; width: auto; } }
 </style>

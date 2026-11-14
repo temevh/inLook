@@ -1,11 +1,20 @@
 <script setup lang="ts">
-import { computed, onMounted, onUnmounted } from "vue";
-import { RouterLink, RouterView } from "vue-router";
+import { computed, nextTick, onMounted, onUnmounted, ref, watch } from "vue";
+import { RouterLink, RouterView, useRoute } from "vue-router";
 import AppHeader from "./components/AppHeader.vue";
 import NotifyToasts from "./components/NotifyToasts.vue";
 import { useInlook } from "./stores/inlook";
 
 const store = useInlook();
+const route = useRoute();
+const tabs = ref<HTMLElement | null>(null);
+// On a narrow phone the tabs scroll sideways: keep the current one in view.
+watch(() => route.path, () => nextTick(() => {
+  const active = tabs.value?.querySelector<HTMLElement>(".router-link-active:not([href='/']), .router-link-exact-active");
+  if (active && tabs.value && tabs.value.scrollWidth > tabs.value.clientWidth) {
+    tabs.value.scrollLeft = active.offsetLeft - (tabs.value.clientWidth - active.offsetWidth) / 2;
+  }
+}), { immediate: true });
 onMounted(() => store.start());
 onUnmounted(() => store.stop());
 
@@ -28,7 +37,7 @@ const banner = computed(() => {
   <div class="shell">
     <div class="top">
     <AppHeader />
-    <nav class="tabs" aria-label="Views">
+    <nav ref="tabs" class="tabs" aria-label="Views">
       <RouterLink to="/" class="tab">My desk <span v-if="waiting" class="count warn">{{ waiting }}</span></RouterLink>
       <RouterLink to="/facts" class="tab">Facts</RouterLink>
       <RouterLink to="/strategies" class="tab">Strategies <span v-if="flagged" class="count bad">{{ flagged }}</span></RouterLink>
@@ -79,4 +88,14 @@ const banner = computed(() => {
 .toast.info { background: var(--tint-primary); border: 1px solid var(--navy); }
 .toast.error { background: var(--tint-danger); border: 1px solid var(--danger); }
 .main { width: 100%; max-width: 1440px; margin: 0 auto; padding: 20px 24px 40px; }
+/* Phones: tabs stay on one line (swipe for the rest), tighter gutters. */
+@media (max-width: 640px) {
+  .tabs { flex-wrap: nowrap; gap: 18px; padding: 0 16px; overflow-x: auto; scrollbar-width: none; }
+  .tabs::-webkit-scrollbar { display: none; }
+  .tab { flex: none; min-height: 40px; padding: 10px 2px; white-space: nowrap; }
+  .main { padding: 16px 16px 32px; }
+  .banner { margin: 12px 16px 0; }
+  .banner .actions { margin-left: 0; }
+  .toast { left: 16px; right: 16px; bottom: 16px; max-width: none; }
+}
 </style>

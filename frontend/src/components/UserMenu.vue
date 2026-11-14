@@ -73,4 +73,12 @@ li[aria-selected="true"] button { background: var(--tint-primary); }
 .pop-enter-active, .pop-leave-active { transition: opacity 0.18s var(--ease), transform 0.18s var(--ease); }
 .pop-enter-from, .pop-leave-to { opacity: 0; transform: translateY(-6px); }
 @media (prefers-reduced-motion: reduce) { .pop-enter-active, .pop-leave-active { transition: none; } }
+/* Phones: initials only, and the list opens across the screen under the top bar. */
+@media (max-width: 640px) {
+  .user-wrap { position: static; padding-left: 0; margin-left: 0; border-left: 0; }
+  .user { padding: 2px; gap: 0; }
+  .user .who, .chev { display: none; }
+  .av { width: 34px; height: 34px; }
+  .menu { position: fixed; top: 60px; left: 16px; right: 16px; width: auto; max-height: calc(100vh - 80px); }
+}
 </style>

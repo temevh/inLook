@@ -109,4 +109,9 @@ footer { padding: 10px 16px; border-top: 1px solid var(--rule); }
 .pop-enter-active, .pop-leave-active { transition: opacity 0.18s var(--ease), transform 0.18s var(--ease); }
 .pop-enter-from, .pop-leave-to { opacity: 0; transform: translateY(-6px); }
 @media (prefers-reduced-motion: reduce) { .pop-enter-active, .pop-leave-active { transition: none; } }
+/* Phones: a smaller button, and the panel opens across the screen under the top bar. */
+@media (max-width: 640px) {
+  .bell { width: 40px; height: 40px; }
+  .panel { position: fixed; top: 60px; left: 16px; right: 16px; width: auto; max-height: calc(100vh - 80px); }
+}
 </style>
