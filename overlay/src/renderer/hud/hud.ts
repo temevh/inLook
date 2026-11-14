@@ -1,4 +1,4 @@
-// HUD: renders SSE events into cards and transcript lines. Skeleton rendering only.
+// HUD: renders SSE events into cards and transcript lines.
 import type { HudCard, InlookEvent } from "../../shared/contract";
 
 const cards = document.getElementById("cards")!;
@@ -13,8 +13,11 @@ const el = <K extends keyof HTMLElementTagNameMap>(tag: K, cls?: string, text?: 
   return n;
 };
 
+const keySel = (key: string) => `[data-key="${CSS.escape(key)}"]`;
+const claimText = new Map<string, string>();
+
 function upsertCard(key: string, build: (card: HTMLElement) => void) {
-  let card = cards.querySelector<HTMLElement>(`[data-key="${CSS.escape(key)}"]`);
+  let card = cards.querySelector<HTMLElement>(keySel(key));
   if (!card) {
     card = el("article", "card");
     card.dataset.key = key;
@@ -23,42 +26,67 @@ function upsertCard(key: string, build: (card: HTMLElement) => void) {
   }
   card.replaceChildren();
   card.className = "card";
+  delete card.dataset.tier;
   build(card);
 }
 
-const fillCard = (card: HTMLElement, c: HudCard, meta?: string) => {
-  card.dataset.tier = c.criticality;
-  card.append(el("h2", undefined, c.title), el("p", undefined, c.fact));
-  if (meta) card.append(el("p", "meta", meta));
+const pill = (tier: string) => el("span", "pill", tier);
+
+const head = (card: HTMLElement, title: string, tier?: string) => {
+  const h = el("header", "head");
+  h.append(el("h2", undefined, title));
+  if (tier) { card.dataset.tier = tier; h.append(pill(tier)); }
+  card.append(h);
 };
+
+/** Verdict first (title, criticality, fact line), then evidence. */
+const fillCard = (card: HTMLElement, c: HudCard, evidence?: string) => {
+  head(card, c.title, c.criticality);
+  card.append(el("p", "fact", c.fact));
+  if (evidence) card.append(el("p", "meta", evidence));
+};
+
+function unverified(claimId: string, reason: string) {
+  upsertCard(claimId, (c) => {
+    c.classList.add("unverified");
+    head(c, "Unverified");
+    const text = claimText.get(claimId);
+    if (text) c.append(el("p", "fact", text));
+    c.append(el("p", "meta", reason === "no_match" ? "No matching fact" : "Could not be checked"));
+  });
+  setTimeout(() => cards.querySelector(keySel(claimId))?.remove(), 4500);
+}
 
 function render(e: InlookEvent) {
   switch (e.type) {
     case "transcript.line": {
       const line = el("p");
-      line.append(el("b", undefined, `${e.payload.speaker}: `), e.payload.text);
+      line.append(el("b", undefined, e.payload.speaker), e.payload.text);
       transcript.append(line);
       while (transcript.children.length > MAX_LINES) transcript.firstElementChild!.remove();
       break;
     }
     case "claim.spotted":
+      claimText.set(e.payload.claimId, e.payload.text);
       upsertCard(e.payload.claimId, (c) => {
         c.classList.add("checking");
-        c.append(el("h2", undefined, "checking…"), el("p", undefined, e.payload.text));
+        c.append(el("header", "head"), el("p", "fact", e.payload.text));
+        c.firstElementChild!.append(el("i", "dot"), el("h2", undefined, "Checking…"));
+        c.append(el("p", "meta", `From ${e.payload.source}`));
       });
       break;
     case "claim.unverified":
-      upsertCard(e.payload.claimId, (c) => {
-        c.classList.add("checking");
-        c.append(el("h2", undefined, "Unverified"));
-      });
-      setTimeout(() => cards.querySelector(`[data-key="${CSS.escape(e.payload.claimId)}"]`)?.remove(), 4000);
+      unverified(e.payload.claimId, e.payload.reason);
       break;
-    case "claim.verdict":
-      upsertCard(e.payload.claimId, (c) => fillCard(c, e.payload.card, e.payload.evidence));
+    case "claim.verdict": {
+      const v = e.payload;
+      if (v.verdict === "unverifiable") unverified(v.claimId, "unverifiable");
+      else upsertCard(v.claimId, (c) => fillCard(c, v.card, v.evidence));
       break;
+    }
     case "fact.updated":
-      upsertCard(`fact:${e.payload.factId}`, (c) => fillCard(c, e.payload.card));
+      upsertCard(`fact:${e.payload.factId}`, (c) =>
+        fillCard(c, e.payload.card, `Source: ${e.payload.version.source}`));
       break;
     case "review.created":
       upsertCard(`review:${e.payload.reviewId}`, (c) => {
@@ -66,27 +94,34 @@ function render(e: InlookEvent) {
         const actions = el("div", "actions");
         for (const decision of ["accept", "reject"] as const) {
           const b = el("button", undefined, decision === "accept" ? "Accept" : "Reject");
-          b.onclick = () => void window.inlook.decideReview(e.payload.reviewId, decision);
+          b.className = decision;
+          b.onclick = () => {
+            actions.querySelectorAll("button").forEach((x) => (x.disabled = true));
+            void window.inlook.decideReview(e.payload.reviewId, decision);
+          };
           actions.append(b);
         }
         c.append(actions);
       });
       break;
     case "review.closed":
-      cards.querySelector(`[data-key="${CSS.escape(`review:${e.payload.reviewId}`)}"]`)?.remove();
+      cards.querySelector(keySel(`review:${e.payload.reviewId}`))?.remove();
       break;
     case "strategy.flagged":
       upsertCard(`strategy:${e.payload.strategyId}`, (c) => {
-        c.dataset.tier = "high";
-        c.append(el("h2", undefined, "Strategy flagged"), el("p", undefined, e.payload.name));
+        head(c, "Strategy flagged", "high");
+        c.append(el("p", "fact", e.payload.name));
       });
       break;
     case "strategy.healthy":
-      cards.querySelector(`[data-key="${CSS.escape(`strategy:${e.payload.strategyId}`)}"]`)?.remove();
+      cards.querySelector(keySel(`strategy:${e.payload.strategyId}`))?.remove();
       break;
     case "message.created":
-      upsertCard(`message:${e.payload.messageId}`, (c) =>
-        c.append(el("h2", undefined, "Inlook message"), el("p", undefined, e.payload.text)));
+      upsertCard(`message:${e.payload.messageId}`, (c) => {
+        c.classList.add("message");
+        head(c, "Inlook");
+        c.append(el("p", "fact", e.payload.text));
+      });
       break;
   }
 }

@@ -36,7 +36,8 @@ src/
   main/selection.ts    X11 PRIMARY selection read
   main/screenshot.ts   desktopCapturer capture of the display under the cursor, downscaled before upload
   preload/preload.ts   contextBridge → window.inlook
-  renderer/hud/        HUD strip: transcript, checking/verdict/review/strategy/message cards
+  renderer/hud/        HUD strip: transcript, checking/verdict/review/strategy/message cards (hud.ts, hud.css)
+  renderer/fonts/      Rethink Sans variable (latin woff2) + fonts.css, imported by hud.css and widget.css
   renderer/widget/     buttons + mic.ts (10 s Opus chunks, 1 s overlap)
 mock/
   demo.json            7 events, pitch scenes 06–09
@@ -86,5 +87,5 @@ npm run gen:contract:py   # Python (pydantic v2) → ../shared/generated/contrac
 - Each audio chunk is a separate `MediaRecorder` session, so every chunk is a standalone webm/Opus file. A new recorder starts every 9 s, giving the 1 s overlap.
 - Screenshots hide the HUD and widget for ~150 ms so they are not in the shot. The full display under the cursor is captured (no active-window capture), then downscaled with `nativeImage.resize` (quality "good") to long side ≤ 1280 px and area ≤ ~1.15 MP. Smaller images are unchanged.
 - Dev without a backend: `node scripts/audio-sink.mjs [port]` stands in for `POST /audio`, saves chunks to a temp dir (path printed) and answers 202. Run the overlay with `INLOOK_BACKEND_URL=http://127.0.0.1:<port>`.
-- Fonts (Rethink Sans, Doto) are not bundled yet; styles fall back to system fonts. The styles are a skeleton, not the designed HUD.
+- Fonts: Rethink Sans (variable, latin) is vendored in `src/renderer/fonts/` and loads under the CSP. Doto is not used. The HUD uses the brand's product dark tokens. The window stays transparent: only the header, transcript block and each card are opaque.
 - Restart limitation: the backend skeleton's event log is in memory, so after a backend restart `seq` starts again at 1 and the backend skips everything ≤ the overlay's `Last-Event-ID`; the overlay then shows nothing new. Restart the overlay after restarting the backend (also with `uvicorn --reload`). A persistent `seq` (planned MongoDB `events` collection, unconfirmed) or a boot id from the backend would remove this; the overlay cannot fix it alone.

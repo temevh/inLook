@@ -44,7 +44,7 @@ Name: inLook. Colours and fonts: [root PRODUCT.md](../PRODUCT.md#brand-commitmen
 
 ## Evidence on Hand
 
-The HUD and widget exist as a skeleton with placeholder styles. Pitch scenes 06–09 in `visualizations/visuals/scenes/` show the live check, update, strategy flag and notify moments; their look is the visuals' own, not the HUD's. Strategies and people are mock data and must not be presented as real.
+The HUD cards and the widget use the brand's product dark tokens and Rethink Sans. Pitch scenes 06–09 in `visualizations/visuals/scenes/` show the live check, update, strategy flag and notify moments; their look is the visuals' own, not the HUD's. Strategies and people are mock data and must not be presented as real.
 
 ## Product Principles
 
