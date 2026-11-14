@@ -1,0 +1,95 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>11 · From silos to sync</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Schibsted+Grotesk:wght@400;600;800&family=JetBrains+Mono:wght@500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="kit.css">
+</head>
+<body>
+<svg id="s" viewBox="0 0 1920 1080" preserveAspectRatio="xMidYMid meet" aria-label="Left: an organisation split into departments, like microservices, each holding its own copy of a fact; an update crawls between them, gets lost, and they end up with three different answers. Right: with Inlook, one update reaches the shared memory and every department that uses the fact gets it at once, in sync; a department that doesn't use it is left alone."></svg>
+<script src="kit.js"></script>
+<script>
+TEMPO = 1.6;
+mk("path", { class: "detail", d: "M960,170 V900" }, L.links);
+txt(L.nodes, 110, 190, "t-col", "Split into silos · like microservices");
+txt(L.nodes, 1000, 190, "t-col", "With Inlook");
+
+function dept(x, y, name, w = 300) {
+  const g = grp(x, y);
+  const box = mk("rect", { width: w, height: 150, rx: 16, class: "box" }, g);
+  txt(g, 24, 44, "t-l", name, { style: "font-size:23px" });
+  const st = txt(g, w - 22, 44, "t-m", "", { "text-anchor": "end", style: "font-size:16px; font-weight:600" });
+  txt(g, 24, 84, "t-col", "Competitor price", { style: "font-size:13px" });
+  const v = txt(g, 24, 126, "t-val", "", { style: "font-size:30px" });
+  return { g, box, set(val, col = COL.text, s = "", sc = COL.muted) { v.textContent = val; v.style.fill = col; st.textContent = s; st.style.fill = sc; } };
+}
+
+// ---- Left: departments pass facts to each other point to point ----
+const A = { s: dept(110, 240, "Sales"), p: dept(560, 240, "Product"), f: dept(110, 640, "Finance"), u: dept(560, 640, "Support") };
+link("sp", line(410, 315, 560, 315)); link("sf", line(260, 390, 260, 640));
+link("pu", line(710, 390, 710, 640)); link("fu", line(410, 715, 560, 715));
+link("su", line(410, 390, 560, 640)); link("pf", line(560, 390, 410, 640));
+link("lost", line(260, 390, 260, 512), "link ghost");
+const lostMark = faded(grp(260, 524));
+mk("path", { d: "M-12,-12 L12,12 M12,-12 L-12,12", stroke: COL.bad, "stroke-width": 4, "stroke-linecap": "round" }, lostMark);
+txt(lostMark, 26, 7, "t-m", "lost in a thread", { style: `fill:${COL.bad}; font-size:17px` });
+const leftSt = faded(txt(L.nodes, 110, 906, "t-l", "3 answers to one question · days late", { style: `fill:${COL.bad}; font-size:24px` }));
+
+// ---- Right: one shared memory, synced in real time ----
+const web = icon("web", 1370, 236);
+txt(L.nodes, 1430, 224, "t-m", "source changes", { "text-anchor": "middle", style: "font-size:16px" });
+const C = core(1290, 400, 280, 240);
+const B = { s: dept(1000, 230, "Sales", 280), p: dept(1580, 230, "Product", 280), f: dept(1000, 700, "Finance", 280), u: dept(1580, 700, "Support", 280) };
+link("in", line(1430, 336, 1430, 400));
+const q = (x1, y1, x2, y2) => `M${x1},${y1} Q${x2},${y1} ${x2},${y2}`;
+link("rs", q(1290, 470, 1140, 384)); link("rp", q(1570, 470, 1720, 384));
+link("rf", q(1290, 570, 1140, 696)); link("ru", q(1570, 570, 1720, 696));
+const rightSt = faded(txt(L.nodes, 1000, 906, "t-l", "1 answer, everywhere it's used · seconds", { style: `fill:${COL.ok}; font-size:24px` }));
+
+const USES = ["s", "p", "f"]; // Support doesn't use this fact
+
+async function left() {
+  A.s.set("€59"); A.p.set("€59"); A.f.set("€49", COL.text); A.u.set("€59");
+  Object.values(A).forEach(d => d.box.classList.remove("warn", "bad"));
+  show(lostMark, false); show(leftSt, false); P.lost.setAttribute("class", "link ghost");
+  await wait(1200);
+  A.s.set("€39", COL.warn, "heard on a call", COL.warn); A.s.box.classList.add("warn");
+  await wait(1400);
+  await travel(["sp"], COL.warn, 1.6);
+  A.p.set("€39", COL.warn, "2 days later", COL.warn); A.p.box.classList.add("warn");
+  await wait(600);
+  P.lost.setAttribute("class", "link bad");
+  await travel(["lost"], COL.warn, 1.4);
+  show(lostMark);
+  A.f.set("€49", COL.bad, "stale", COL.bad); A.f.box.classList.add("bad");
+  A.u.set("€59", COL.bad, "never told", COL.bad); A.u.box.classList.add("bad");
+  await wait(500);
+  show(leftSt);
+}
+
+async function right() {
+  Object.values(B).forEach(d => { d.set("€59"); d.box.classList.remove("ok"); ghost(d.g, false); });
+  ["rs", "rp", "rf", "ru"].forEach(k => P[k].setAttribute("class", "link"));
+  C.status("listening"); C.box.classList.remove("ok"); web.box.classList.remove("ok"); show(rightSt, false);
+  await wait(1200);
+  web.box.classList.add("ok");
+  await travel(["in"], COL.web, 6);
+  C.box.classList.add("ok"); C.status("fact updated · €39");
+  ghost(B.u.g); P.ru.setAttribute("class", "link ghost");
+  USES.forEach(k => act("r" + k, "live"));
+  await Promise.all(USES.map(k => travel(["r" + k], COL.ok, 12).then(() => { B[k].set("€39", COL.ok, "synced · now", COL.ok); B[k].box.classList.add("ok"); })));
+  show(rightSt);
+}
+
+say("Departments drift apart. Inlook keeps every one in sync, live.");
+loop(async () => {
+  await Promise.all([left(), right()]);
+  await wait(5000);
+});
+</script>
+</body>
+</html>

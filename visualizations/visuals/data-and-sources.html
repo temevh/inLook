@@ -1,0 +1,86 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Inlook · Data and sources</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Schibsted+Grotesk:wght@400;600;800&family=JetBrains+Mono:wght@500&display=swap" rel="stylesheet">
+<style>
+  * { box-sizing: border-box; margin: 0; }
+  html, body { height: 100%; background: #0f1216; color: #eceef1; overflow: hidden; }
+  body { display: grid; place-items: center; }
+  svg { width: 100vw; height: 100vh; display: block; }
+</style>
+</head>
+<body>
+<svg viewBox="0 0 1920 1080" preserveAspectRatio="xMidYMid meet" role="img" aria-label="The unconfirmed data side of Inlook: MongoDB Atlas with facts, strategies, people, reviews, messages and events collections and a change stream that feeds the SSE stream, and three Context.dev options: re-fetch or search on each claim, page watching through the POST /webhooks/context webhook, and a polling fallback.">
+<defs><marker id="h" viewBox="0 0 12 12" refX="10" refY="6" markerWidth="12" markerHeight="12" markerUnits="userSpaceOnUse" orient="auto-start-reverse"><path d="M1 1 L10 6 L1 11" fill="none" stroke="#dfe3e8" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></marker><marker id="hm" viewBox="0 0 12 12" refX="10" refY="6" markerWidth="12" markerHeight="12" markerUnits="userSpaceOnUse" orient="auto-start-reverse"><path d="M1 1 L10 6 L1 11" fill="none" stroke="#a3abb7" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></marker><marker id="hw" viewBox="0 0 12 12" refX="10" refY="6" markerWidth="12" markerHeight="12" markerUnits="userSpaceOnUse" orient="auto-start-reverse"><path d="M1 1 L10 6 L1 11" fill="none" stroke="#f0b44c" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></marker></defs>
+<rect x="80" y="110" width="440" height="440" rx="18" fill="#0f1216" stroke="#dfe3e8" stroke-width="2.5" stroke-dasharray="9 9"/>
+<rect x="334" y="128" width="168" height="30" rx="15" fill="#0f1216" stroke="#f0b44c" stroke-width="1.6" stroke-dasharray="5 5"/>
+<text x="418.0" y="148" fill="#f0b44c" font-family='"Schibsted Grotesk", system-ui, sans-serif' font-size="13" font-weight="600" letter-spacing="0.12em" text-anchor="middle">? UNCONFIRMED</text>
+<text x="108" y="182" fill="#eceef1" font-family='"Schibsted Grotesk", system-ui, sans-serif' font-size="26" font-weight="600" letter-spacing="0.06em" text-anchor="start">MONGODB</text>
+<text x="108" y="214" fill="#a3abb7" font-family='"Schibsted Grotesk", system-ui, sans-serif' font-size="15" font-weight="400" letter-spacing="0.08em" text-anchor="start">ATLAS FREE TIER · SEEDED MOCK DATA</text>
+<text x="108" y="270" fill="#eceef1" font-family='"JetBrains Mono", monospace' font-size="18" font-weight="400" letter-spacing="0em" text-anchor="start">facts</text>
+<text x="250" y="270" fill="#a3abb7" font-family='"Schibsted Grotesk", system-ui, sans-serif' font-size="16" font-weight="400" letter-spacing="0em" text-anchor="start">value, tier, sourceUrl, versions</text>
+<text x="108" y="314" fill="#eceef1" font-family='"JetBrains Mono", monospace' font-size="18" font-weight="400" letter-spacing="0em" text-anchor="start">strategies</text>
+<text x="250" y="314" fill="#a3abb7" font-family='"Schibsted Grotesk", system-ui, sans-serif' font-size="16" font-weight="400" letter-spacing="0em" text-anchor="start">owners, factIds, status</text>
+<text x="108" y="358" fill="#eceef1" font-family='"JetBrains Mono", monospace' font-size="18" font-weight="400" letter-spacing="0em" text-anchor="start">people</text>
+<text x="250" y="358" fill="#a3abb7" font-family='"Schibsted Grotesk", system-ui, sans-serif' font-size="16" font-weight="400" letter-spacing="0em" text-anchor="start">name, team</text>
+<text x="108" y="402" fill="#eceef1" font-family='"JetBrains Mono", monospace' font-size="18" font-weight="400" letter-spacing="0em" text-anchor="start">reviews</text>
+<text x="250" y="402" fill="#a3abb7" font-family='"Schibsted Grotesk", system-ui, sans-serif' font-size="16" font-weight="400" letter-spacing="0em" text-anchor="start">old → new, reviewers, status</text>
+<text x="108" y="446" fill="#eceef1" font-family='"JetBrains Mono", monospace' font-size="18" font-weight="400" letter-spacing="0em" text-anchor="start">messages</text>
+<text x="250" y="446" fill="#a3abb7" font-family='"Schibsted Grotesk", system-ui, sans-serif' font-size="16" font-weight="400" letter-spacing="0em" text-anchor="start">to, strategyId, text</text>
+<text x="108" y="490" fill="#eceef1" font-family='"JetBrains Mono", monospace' font-size="18" font-weight="400" letter-spacing="0em" text-anchor="start">events</text>
+<text x="250" y="490" fill="#a3abb7" font-family='"Schibsted Grotesk", system-ui, sans-serif' font-size="16" font-weight="400" letter-spacing="0em" text-anchor="start">seq, type · SSE source</text>
+<rect x="780" y="200" width="360" height="240" rx="18" fill="#0f1216" stroke="#dfe3e8" stroke-width="2.5"/>
+<text x="960.0" y="310" fill="#eceef1" font-family='"Schibsted Grotesk", system-ui, sans-serif' font-size="26" font-weight="600" letter-spacing="0.06em" text-anchor="middle">INLOOK BACKEND</text>
+<text x="960.0" y="344" fill="#a3abb7" font-family='"Schibsted Grotesk", system-ui, sans-serif' font-size="16" font-weight="400" letter-spacing="0.08em" text-anchor="middle">PYTHON · FASTAPI</text>
+<rect x="1440" y="200" width="400" height="240" rx="18" fill="#0f1216" stroke="#dfe3e8" stroke-width="2.5" stroke-dasharray="9 9"/>
+<text x="1640.0" y="320" fill="#eceef1" font-family='"Schibsted Grotesk", system-ui, sans-serif' font-size="26" font-weight="600" letter-spacing="0.06em" text-anchor="middle">CONTEXT.DEV</text>
+<text x="1640.0" y="354" fill="#a3abb7" font-family='"Schibsted Grotesk", system-ui, sans-serif' font-size="16" font-weight="400" letter-spacing="0.08em" text-anchor="middle">FETCH · SEARCH · WATCH</text>
+<rect x="1654" y="218" width="168" height="30" rx="15" fill="#0f1216" stroke="#f0b44c" stroke-width="1.6" stroke-dasharray="5 5"/>
+<text x="1738.0" y="238" fill="#f0b44c" font-family='"Schibsted Grotesk", system-ui, sans-serif' font-size="13" font-weight="600" letter-spacing="0.12em" text-anchor="middle">? UNCONFIRMED</text>
+<path d="M524 270 H776" fill="none" stroke="#dfe3e8" stroke-width="2.5" stroke-dasharray="9 9" marker-start="url(#h)" marker-end="url(#h)"/>
+<text x="650" y="214" fill="#eceef1" font-family='"Schibsted Grotesk", system-ui, sans-serif' font-size="15" font-weight="600" letter-spacing="0.12em" text-anchor="middle">READ / WRITE ↔</text>
+<text x="650" y="240" fill="#a3abb7" font-family='"Schibsted Grotesk", system-ui, sans-serif' font-size="17" font-weight="400" letter-spacing="0em" text-anchor="middle">facts, reviews, messages</text>
+<path d="M520 390 H776" fill="none" stroke="#dfe3e8" stroke-width="2.5" stroke-dasharray="9 9" marker-end="url(#h)"/>
+<text x="650" y="334" fill="#eceef1" font-family='"Schibsted Grotesk", system-ui, sans-serif' font-size="15" font-weight="600" letter-spacing="0.12em" text-anchor="middle">CHANGE STREAM →</text>
+<text x="650" y="360" fill="#a3abb7" font-family='"Schibsted Grotesk", system-ui, sans-serif' font-size="17" font-weight="400" letter-spacing="0em" text-anchor="middle">on events, feeds SSE</text>
+<path d="M1140 260 H1436" fill="none" stroke="#dfe3e8" stroke-width="2.5" stroke-dasharray="9 9" marker-end="url(#h)"/>
+<text x="1290" y="226" fill="#eceef1" font-family='"Schibsted Grotesk", system-ui, sans-serif' font-size="15" font-weight="600" letter-spacing="0.12em" text-anchor="middle">A · FETCH OR SEARCH →</text>
+<path d="M1440 320 H1144" fill="none" stroke="#dfe3e8" stroke-width="2.5" stroke-dasharray="9 9" marker-end="url(#h)"/>
+<text x="1290" y="348" fill="#a3abb7" font-family='"Schibsted Grotesk", system-ui, sans-serif' font-size="17" font-weight="400" letter-spacing="0em" text-anchor="middle">page content</text>
+<path d="M1440 410 H1144" fill="none" stroke="#f0b44c" stroke-width="2.5" stroke-dasharray="9 9" marker-end="url(#hw)"/>
+<text x="1290" y="386" fill="#f0b44c" font-family='"Schibsted Grotesk", system-ui, sans-serif' font-size="15" font-weight="600" letter-spacing="0.12em" text-anchor="middle">← B · WEBHOOK ON CHANGE</text>
+<path d="M870 200 V150 H1050 V196" fill="none" stroke="#dfe3e8" stroke-width="2.5" stroke-dasharray="9 9" marker-end="url(#h)"/>
+<text x="960" y="104" fill="#eceef1" font-family='"Schibsted Grotesk", system-ui, sans-serif' font-size="15" font-weight="600" letter-spacing="0.12em" text-anchor="middle">C · POLLING, EVERY N MIN ↻</text>
+<rect x="80" y="614" width="540" height="290" rx="18" fill="#0f1216" stroke="#dfe3e8" stroke-width="2.5" stroke-dasharray="9 9"/>
+<text x="108" y="670" fill="#eceef1" font-family='"Schibsted Grotesk", system-ui, sans-serif' font-size="22" font-weight="600" letter-spacing="0em" text-anchor="start">A · Re-fetch or search</text>
+<text x="108" y="706" fill="#f0b44c" font-family='"Schibsted Grotesk", system-ui, sans-serif' font-size="14" font-weight="600" letter-spacing="0.12em" text-anchor="start">ON EVERY MATCHED CLAIM</text>
+<text x="108" y="760" fill="#a3abb7" font-family='"Schibsted Grotesk", system-ui, sans-serif' font-size="17" font-weight="400" letter-spacing="0em" text-anchor="start">Fetch the fact&#x27;s stored sourceUrl.</text>
+<text x="108" y="790" fill="#a3abb7" font-family='"Schibsted Grotesk", system-ui, sans-serif' font-size="17" font-weight="400" letter-spacing="0em" text-anchor="start">No URL stored: search the web for the claim.</text>
+<text x="108" y="820" fill="#a3abb7" font-family='"Schibsted Grotesk", system-ui, sans-serif' font-size="17" font-weight="400" letter-spacing="0em" text-anchor="start">Page content goes into the verdict call.</text>
+<rect x="660" y="614" width="540" height="290" rx="18" fill="#0f1216" stroke="#dfe3e8" stroke-width="2.5" stroke-dasharray="9 9"/>
+<text x="688" y="670" fill="#eceef1" font-family='"Schibsted Grotesk", system-ui, sans-serif' font-size="22" font-weight="600" letter-spacing="0em" text-anchor="start">B · Page watching</text>
+<text x="688" y="706" fill="#f0b44c" font-family='"Schibsted Grotesk", system-ui, sans-serif' font-size="14" font-weight="600" letter-spacing="0.12em" text-anchor="start">WHEN THE SOURCE PAGE CHANGES</text>
+<text x="688" y="760" fill="#a3abb7" font-family='"Schibsted Grotesk", system-ui, sans-serif' font-size="17" font-weight="400" letter-spacing="0em" text-anchor="start">One watch per sourceUrl, set when a fact is saved.</text>
+<text x="688" y="790" fill="#a3abb7" font-family='"Schibsted Grotesk", system-ui, sans-serif' font-size="17" font-weight="400" letter-spacing="0em" text-anchor="start">Change → POST /webhooks/context → re-check</text>
+<text x="688" y="820" fill="#a3abb7" font-family='"Schibsted Grotesk", system-ui, sans-serif' font-size="17" font-weight="400" letter-spacing="0em" text-anchor="start">every fact using that page. Needs a public URL.</text>
+<rect x="1240" y="614" width="540" height="290" rx="18" fill="#0f1216" stroke="#dfe3e8" stroke-width="2.5" stroke-dasharray="9 9"/>
+<text x="1268" y="670" fill="#eceef1" font-family='"Schibsted Grotesk", system-ui, sans-serif' font-size="22" font-weight="600" letter-spacing="0em" text-anchor="start">C · Polling fallback</text>
+<text x="1268" y="706" fill="#f0b44c" font-family='"Schibsted Grotesk", system-ui, sans-serif' font-size="14" font-weight="600" letter-spacing="0.12em" text-anchor="start">IF B IS MISSING OR TOO SLOW</text>
+<text x="1268" y="760" fill="#a3abb7" font-family='"Schibsted Grotesk", system-ui, sans-serif' font-size="17" font-weight="400" letter-spacing="0em" text-anchor="start">The backend re-fetches every sourceUrl</text>
+<text x="1268" y="790" fill="#a3abb7" font-family='"Schibsted Grotesk", system-ui, sans-serif' font-size="17" font-weight="400" letter-spacing="0em" text-anchor="start">itself every N minutes, then runs</text>
+<text x="1268" y="820" fill="#a3abb7" font-family='"Schibsted Grotesk", system-ui, sans-serif' font-size="17" font-weight="400" letter-spacing="0em" text-anchor="start">the same verdict + HUD card flow.</text>
+<text x="80" y="590" fill="#a3abb7" font-family='"Schibsted Grotesk", system-ui, sans-serif' font-size="15" font-weight="600" letter-spacing="0.12em" text-anchor="start">CONTEXT.DEV OPTIONS · API, LIMITS AND WATCHING NOT YET CHECKED</text>
+<text x="80" y="1010" fill="#eceef1" font-family='"Schibsted Grotesk", system-ui, sans-serif' font-size="30" font-weight="800" letter-spacing="-0.02em" text-anchor="start">Inlook</text>
+<text x="200" y="1008" fill="#a3abb7" font-family='"Schibsted Grotesk", system-ui, sans-serif' font-size="17" font-weight="600" letter-spacing="0.12em" text-anchor="start">DATA AND SOURCES</text>
+<rect x="1500" y="990" width="44" height="28" rx="7" fill="none" stroke="#dfe3e8" stroke-width="2"/>
+<text x="1558" y="1010" fill="#a3abb7" font-family='"Schibsted Grotesk", system-ui, sans-serif' font-size="16" font-weight="400" letter-spacing="0em" text-anchor="start">Decided</text>
+<rect x="1670" y="990" width="44" height="28" rx="7" fill="none" stroke="#dfe3e8" stroke-width="2" stroke-dasharray="6 6"/>
+<text x="1728" y="1010" fill="#a3abb7" font-family='"Schibsted Grotesk", system-ui, sans-serif' font-size="16" font-weight="400" letter-spacing="0em" text-anchor="start">Unconfirmed</text>
+</svg>
+</body>
+</html>

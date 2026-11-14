@@ -1,0 +1,110 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Inlook · Fact-check flow</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Schibsted+Grotesk:wght@400;600;800&family=JetBrains+Mono:wght@500&display=swap" rel="stylesheet">
+<style>
+  * { box-sizing: border-box; margin: 0; }
+  html, body { height: 100%; background: #0f1216; color: #eceef1; overflow: hidden; }
+  body { display: grid; place-items: center; }
+  svg { width: 100vw; height: 100vh; display: block; }
+</style>
+</head>
+<body>
+<svg viewBox="0 0 1920 1080" preserveAspectRatio="xMidYMid meet" role="img" aria-label="Inlook fact-check flow: input from the overlay, Gemini spots the claim and matches it to a stored fact, Context.dev re-checks the source (unconfirmed), Gemini returns a verdict and a HUD card, and an outdated fact is routed by tier: low updates automatically, medium goes to the person who stated it, high goes to the strategy owners, flags their strategies and messages them. How claims are noticed, Gemini first or embedding first, is unconfirmed.">
+<defs><marker id="h" viewBox="0 0 12 12" refX="10" refY="6" markerWidth="12" markerHeight="12" markerUnits="userSpaceOnUse" orient="auto-start-reverse"><path d="M1 1 L10 6 L1 11" fill="none" stroke="#dfe3e8" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></marker><marker id="hm" viewBox="0 0 12 12" refX="10" refY="6" markerWidth="12" markerHeight="12" markerUnits="userSpaceOnUse" orient="auto-start-reverse"><path d="M1 1 L10 6 L1 11" fill="none" stroke="#a3abb7" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></marker><marker id="hw" viewBox="0 0 12 12" refX="10" refY="6" markerWidth="12" markerHeight="12" markerUnits="userSpaceOnUse" orient="auto-start-reverse"><path d="M1 1 L10 6 L1 11" fill="none" stroke="#f0b44c" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></marker></defs>
+<rect x="140" y="130" width="320" height="210" rx="18" fill="#0f1216" stroke="#dfe3e8" stroke-width="2.5"/>
+<text x="300.0" y="206" fill="#eceef1" font-family='"Schibsted Grotesk", system-ui, sans-serif' font-size="22" font-weight="600" letter-spacing="0.06em" text-anchor="middle">1 · INPUT</text>
+<text x="300.0" y="240" fill="#a3abb7" font-family='"Schibsted Grotesk", system-ui, sans-serif' font-size="16" font-weight="400" letter-spacing="0.08em" text-anchor="middle">OVERLAY APP</text>
+<text x="300.0" y="272" fill="#a3abb7" font-family='"Schibsted Grotesk", system-ui, sans-serif' font-size="16" font-weight="400" letter-spacing="0em" text-anchor="middle">mic → ElevenLabs STT</text>
+<text x="300.0" y="294" fill="#a3abb7" font-family='"Schibsted Grotesk", system-ui, sans-serif' font-size="16" font-weight="400" letter-spacing="0em" text-anchor="middle">highlighted text</text>
+<text x="300.0" y="316" fill="#a3abb7" font-family='"Schibsted Grotesk", system-ui, sans-serif' font-size="16" font-weight="400" letter-spacing="0em" text-anchor="middle">screenshot (widget)</text>
+<rect x="580" y="130" width="320" height="210" rx="18" fill="#0f1216" stroke="#dfe3e8" stroke-width="2.5"/>
+<text x="740.0" y="206" fill="#eceef1" font-family='"Schibsted Grotesk", system-ui, sans-serif' font-size="22" font-weight="600" letter-spacing="0.06em" text-anchor="middle">2 · SPOT CLAIM</text>
+<text x="740.0" y="240" fill="#a3abb7" font-family='"Schibsted Grotesk", system-ui, sans-serif' font-size="16" font-weight="400" letter-spacing="0.08em" text-anchor="middle">GEMINI</text>
+<text x="740.0" y="272" fill="#a3abb7" font-family='"Schibsted Grotesk", system-ui, sans-serif' font-size="16" font-weight="400" letter-spacing="0em" text-anchor="middle">transcript lines in,</text>
+<text x="740.0" y="294" fill="#a3abb7" font-family='"Schibsted Grotesk", system-ui, sans-serif' font-size="16" font-weight="400" letter-spacing="0em" text-anchor="middle">fact-checkable claims out</text>
+<text x="740.0" y="316" fill="#a3abb7" font-family='"Schibsted Grotesk", system-ui, sans-serif' font-size="16" font-weight="400" letter-spacing="0em" text-anchor="middle">vision call for screenshots</text>
+<rect x="1020" y="130" width="320" height="210" rx="18" fill="#0f1216" stroke="#dfe3e8" stroke-width="2.5"/>
+<text x="1180.0" y="206" fill="#eceef1" font-family='"Schibsted Grotesk", system-ui, sans-serif' font-size="22" font-weight="600" letter-spacing="0.06em" text-anchor="middle">3 · MATCH FACT</text>
+<text x="1180.0" y="240" fill="#a3abb7" font-family='"Schibsted Grotesk", system-ui, sans-serif' font-size="16" font-weight="400" letter-spacing="0.08em" text-anchor="middle">GEMINI</text>
+<text x="1180.0" y="272" fill="#a3abb7" font-family='"Schibsted Grotesk", system-ui, sans-serif' font-size="16" font-weight="400" letter-spacing="0em" text-anchor="middle">claim + all stored facts</text>
+<text x="1180.0" y="294" fill="#a3abb7" font-family='"Schibsted Grotesk", system-ui, sans-serif' font-size="16" font-weight="400" letter-spacing="0em" text-anchor="middle">→ factId or none</text>
+<text x="1180.0" y="316" fill="#a3abb7" font-family='"Schibsted Grotesk", system-ui, sans-serif' font-size="16" font-weight="400" letter-spacing="0em" text-anchor="middle">embedding-2 for large sets</text>
+<rect x="1460" y="130" width="320" height="210" rx="18" fill="#0f1216" stroke="#dfe3e8" stroke-width="2.5" stroke-dasharray="9 9"/>
+<text x="1620.0" y="206" fill="#eceef1" font-family='"Schibsted Grotesk", system-ui, sans-serif' font-size="22" font-weight="600" letter-spacing="0.06em" text-anchor="middle">4 · RE-CHECK SOURCE</text>
+<text x="1620.0" y="240" fill="#a3abb7" font-family='"Schibsted Grotesk", system-ui, sans-serif' font-size="16" font-weight="400" letter-spacing="0.08em" text-anchor="middle">CONTEXT.DEV</text>
+<rect x="1594" y="148" width="168" height="30" rx="15" fill="#0f1216" stroke="#f0b44c" stroke-width="1.6" stroke-dasharray="5 5"/>
+<text x="1678.0" y="168" fill="#f0b44c" font-family='"Schibsted Grotesk", system-ui, sans-serif' font-size="13" font-weight="600" letter-spacing="0.12em" text-anchor="middle">? UNCONFIRMED</text>
+<text x="1620.0" y="272" fill="#a3abb7" font-family='"Schibsted Grotesk", system-ui, sans-serif' font-size="16" font-weight="400" letter-spacing="0em" text-anchor="middle">re-fetch the fact&#x27;s sourceUrl</text>
+<text x="1620.0" y="294" fill="#a3abb7" font-family='"Schibsted Grotesk", system-ui, sans-serif' font-size="16" font-weight="400" letter-spacing="0em" text-anchor="middle">or search the web</text>
+<text x="1620.0" y="316" fill="#a3abb7" font-family='"Schibsted Grotesk", system-ui, sans-serif' font-size="16" font-weight="400" letter-spacing="0em" text-anchor="middle">→ page content</text>
+<path d="M460 235 H576" fill="none" stroke="#dfe3e8" stroke-width="2.5" marker-end="url(#h)"/>
+<text x="518" y="220" fill="#a3abb7" font-family='"Schibsted Grotesk", system-ui, sans-serif' font-size="15" font-weight="400" letter-spacing="0em" text-anchor="middle">lines</text>
+<path d="M900 235 H1016" fill="none" stroke="#dfe3e8" stroke-width="2.5" marker-end="url(#h)"/>
+<text x="958" y="220" fill="#a3abb7" font-family='"Schibsted Grotesk", system-ui, sans-serif' font-size="15" font-weight="400" letter-spacing="0em" text-anchor="middle">claim</text>
+<path d="M1340 235 H1456" fill="none" stroke="#dfe3e8" stroke-width="2.5" stroke-dasharray="9 9" marker-end="url(#h)"/>
+<text x="1398" y="220" fill="#a3abb7" font-family='"Schibsted Grotesk", system-ui, sans-serif' font-size="15" font-weight="400" letter-spacing="0em" text-anchor="middle">fact · URL</text>
+<text x="740.0" y="374" fill="#f0b44c" font-family='"JetBrains Mono", monospace' font-size="15" font-weight="400" letter-spacing="0em" text-anchor="middle">event claim.spotted · HUD “checking…”</text>
+<text x="1180.0" y="374" fill="#a3abb7" font-family='"JetBrains Mono", monospace' font-size="15" font-weight="400" letter-spacing="0em" text-anchor="middle">no match → unverified, dropped</text>
+<rect x="140" y="430" width="1160" height="250" rx="18" fill="#0f1216" stroke="#dfe3e8" stroke-width="2.5" stroke-dasharray="9 9"/>
+<rect x="1114" y="448" width="168" height="30" rx="15" fill="#0f1216" stroke="#f0b44c" stroke-width="1.6" stroke-dasharray="5 5"/>
+<text x="1198.0" y="468" fill="#f0b44c" font-family='"Schibsted Grotesk", system-ui, sans-serif' font-size="13" font-weight="600" letter-spacing="0.12em" text-anchor="middle">? UNCONFIRMED</text>
+<text x="170" y="474" fill="#eceef1" font-family='"Schibsted Grotesk", system-ui, sans-serif' font-size="20" font-weight="600" letter-spacing="0.08em" text-anchor="start">CLAIM NOTICING</text>
+<text x="390" y="474" fill="#a3abb7" font-family='"Schibsted Grotesk", system-ui, sans-serif' font-size="17" font-weight="400" letter-spacing="0em" text-anchor="start">how steps 2–3 run</text>
+<rect x="170" y="500" width="530" height="150" rx="14" fill="#171b21" stroke="#a3abb7" stroke-width="2"/>
+<text x="196" y="540" fill="#eceef1" font-family='"Schibsted Grotesk", system-ui, sans-serif' font-size="19" font-weight="600" letter-spacing="0em" text-anchor="start">A · Gemini spots first</text>
+<text x="196" y="578" fill="#a3abb7" font-family='"Schibsted Grotesk", system-ui, sans-serif' font-size="16" font-weight="400" letter-spacing="0em" text-anchor="start">Each transcript batch goes to the spot call;</text>
+<text x="196" y="602" fill="#a3abb7" font-family='"Schibsted Grotesk", system-ui, sans-serif' font-size="16" font-weight="400" letter-spacing="0em" text-anchor="start">claims are matched to facts afterwards.</text>
+<rect x="740" y="500" width="530" height="150" rx="14" fill="#171b21" stroke="#a3abb7" stroke-width="2"/>
+<text x="766" y="540" fill="#eceef1" font-family='"Schibsted Grotesk", system-ui, sans-serif' font-size="19" font-weight="600" letter-spacing="0em" text-anchor="start">B · Embedding first</text>
+<text x="766" y="578" fill="#a3abb7" font-family='"Schibsted Grotesk", system-ui, sans-serif' font-size="16" font-weight="400" letter-spacing="0em" text-anchor="start">Embed every transcript sentence, vector-search</text>
+<text x="766" y="602" fill="#a3abb7" font-family='"Schibsted Grotesk", system-ui, sans-serif' font-size="16" font-weight="400" letter-spacing="0em" text-anchor="start">the facts, ask Gemini only about the hits.</text>
+<path d="M1620 340 V426" fill="none" stroke="#dfe3e8" stroke-width="2.5" stroke-dasharray="9 9" marker-end="url(#h)"/>
+<text x="1640" y="390" fill="#a3abb7" font-family='"Schibsted Grotesk", system-ui, sans-serif' font-size="15" font-weight="400" letter-spacing="0em" text-anchor="start">page content</text>
+<rect x="1400" y="430" width="440" height="280" rx="18" fill="#0f1216" stroke="#dfe3e8" stroke-width="2.5"/>
+<text x="1620.0" y="474" fill="#eceef1" font-family='"Schibsted Grotesk", system-ui, sans-serif' font-size="22" font-weight="600" letter-spacing="0.06em" text-anchor="middle">5 · VERDICT + HUD CARD</text>
+<text x="1620.0" y="508" fill="#a3abb7" font-family='"Schibsted Grotesk", system-ui, sans-serif' font-size="16" font-weight="400" letter-spacing="0.08em" text-anchor="middle">GEMINI · ONE CALL</text>
+<rect x="1430" y="528" width="380" height="96" rx="12" fill="#2a1618" stroke="#ff6b6b" stroke-width="2"/>
+<text x="1450" y="560" fill="#ff6b6b" font-family='"Schibsted Grotesk", system-ui, sans-serif' font-size="19" font-weight="600" letter-spacing="0em" text-anchor="start">Fact outdated</text>
+<rect x="1710" y="540" width="80" height="26" rx="13" fill="#ff6b6b"/>
+<text x="1750" y="558" fill="#0f1216" font-family='"Schibsted Grotesk", system-ui, sans-serif' font-size="13" font-weight="600" letter-spacing="0.12em" text-anchor="middle">HIGH</text>
+<text x="1450" y="602" fill="#eceef1" font-family='"JetBrains Mono", monospace' font-size="16" font-weight="400" letter-spacing="0em" text-anchor="start">Competitor X: €59 → €39 per seat</text>
+<text x="1620.0" y="656" fill="#a3abb7" font-family='"Schibsted Grotesk", system-ui, sans-serif' font-size="16" font-weight="400" letter-spacing="0em" text-anchor="middle">current · outdated · unverifiable</text>
+<text x="1620.0" y="682" fill="#a3abb7" font-family='"Schibsted Grotesk", system-ui, sans-serif' font-size="16" font-weight="400" letter-spacing="0em" text-anchor="middle">criticality checked against the stored tier</text>
+<path d="M1620 710 V752 H390.0" fill="none" stroke="#dfe3e8" stroke-width="2.5"/>
+<path d="M390.0 752 V796" fill="none" stroke="#dfe3e8" stroke-width="2.5" marker-end="url(#h)"/>
+<path d="M960.0 752 V796" fill="none" stroke="#dfe3e8" stroke-width="2.5" marker-end="url(#h)"/>
+<path d="M1530.0 752 V796" fill="none" stroke="#dfe3e8" stroke-width="2.5" marker-end="url(#h)"/>
+<text x="1060" y="738" fill="#eceef1" font-family='"Schibsted Grotesk", system-ui, sans-serif' font-size="15" font-weight="600" letter-spacing="0.12em" text-anchor="middle">IF OUTDATED · ROUTE BY TIER</text>
+<rect x="140" y="800" width="500" height="190" rx="18" fill="#0f1216" stroke="#dfe3e8" stroke-width="2.5"/>
+<circle cx="176" cy="840" r="8" fill="#5fd4b4"/>
+<text x="196" y="848" fill="#5fd4b4" font-family='"Schibsted Grotesk", system-ui, sans-serif' font-size="22" font-weight="600" letter-spacing="0.06em" text-anchor="start">LOW</text>
+<text x="168" y="892" fill="#a3abb7" font-family='"Schibsted Grotesk", system-ui, sans-serif' font-size="17" font-weight="400" letter-spacing="0em" text-anchor="start">New version saved right away</text>
+<text x="168" y="920" fill="#a3abb7" font-family='"Schibsted Grotesk", system-ui, sans-serif' font-size="17" font-weight="400" letter-spacing="0em" text-anchor="start">HUD: “Fact updated”</text>
+<text x="168" y="948" fill="#a3abb7" font-family='"Schibsted Grotesk", system-ui, sans-serif' font-size="17" font-weight="400" letter-spacing="0em" text-anchor="start">Reviewer: none · facts no strategy uses</text>
+<rect x="710" y="800" width="500" height="190" rx="18" fill="#0f1216" stroke="#dfe3e8" stroke-width="2.5"/>
+<circle cx="746" cy="840" r="8" fill="#f0b44c"/>
+<text x="766" y="848" fill="#f0b44c" font-family='"Schibsted Grotesk", system-ui, sans-serif' font-size="22" font-weight="600" letter-spacing="0.06em" text-anchor="start">MEDIUM</text>
+<text x="738" y="892" fill="#a3abb7" font-family='"Schibsted Grotesk", system-ui, sans-serif' font-size="17" font-weight="400" letter-spacing="0em" text-anchor="start">Review created · fact pending_review</text>
+<text x="738" y="920" fill="#a3abb7" font-family='"Schibsted Grotesk", system-ui, sans-serif' font-size="17" font-weight="400" letter-spacing="0em" text-anchor="start">HUD: “Needs review”</text>
+<text x="738" y="948" fill="#a3abb7" font-family='"Schibsted Grotesk", system-ui, sans-serif' font-size="17" font-weight="400" letter-spacing="0em" text-anchor="start">Reviewer: the person who stated it</text>
+<rect x="1280" y="800" width="500" height="190" rx="18" fill="#0f1216" stroke="#dfe3e8" stroke-width="2.5"/>
+<circle cx="1316" cy="840" r="8" fill="#ff6b6b"/>
+<text x="1336" y="848" fill="#ff6b6b" font-family='"Schibsted Grotesk", system-ui, sans-serif' font-size="22" font-weight="600" letter-spacing="0.06em" text-anchor="start">HIGH</text>
+<text x="1308" y="892" fill="#a3abb7" font-family='"Schibsted Grotesk", system-ui, sans-serif' font-size="17" font-weight="400" letter-spacing="0em" text-anchor="start">Review created · strategies flagged</text>
+<text x="1308" y="920" fill="#a3abb7" font-family='"Schibsted Grotesk", system-ui, sans-serif' font-size="17" font-weight="400" letter-spacing="0em" text-anchor="start">Inlook message to the strategy owners</text>
+<text x="1308" y="948" fill="#a3abb7" font-family='"Schibsted Grotesk", system-ui, sans-serif' font-size="17" font-weight="400" letter-spacing="0em" text-anchor="start">Reviewer: the strategy owners</text>
+<text x="140" y="1050" fill="#eceef1" font-family='"Schibsted Grotesk", system-ui, sans-serif' font-size="30" font-weight="800" letter-spacing="-0.02em" text-anchor="start">Inlook</text>
+<text x="260" y="1048" fill="#a3abb7" font-family='"Schibsted Grotesk", system-ui, sans-serif' font-size="17" font-weight="600" letter-spacing="0.12em" text-anchor="start">FACT-CHECK FLOW</text>
+<rect x="1340" y="1030" width="44" height="28" rx="7" fill="none" stroke="#dfe3e8" stroke-width="2"/>
+<text x="1398" y="1050" fill="#a3abb7" font-family='"Schibsted Grotesk", system-ui, sans-serif' font-size="16" font-weight="400" letter-spacing="0em" text-anchor="start">Decided</text>
+<rect x="1510" y="1030" width="44" height="28" rx="7" fill="none" stroke="#dfe3e8" stroke-width="2" stroke-dasharray="6 6"/>
+<text x="1568" y="1050" fill="#a3abb7" font-family='"Schibsted Grotesk", system-ui, sans-serif' font-size="16" font-weight="400" letter-spacing="0em" text-anchor="start">Unconfirmed</text>
+</svg>
+</body>
+</html>

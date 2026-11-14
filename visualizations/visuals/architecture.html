@@ -7,120 +7,104 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Schibsted+Grotesk:wght@400;600;800&family=JetBrains+Mono:wght@500&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="scenes/kit.css">
 <style>
-  .ab { fill: var(--bg); stroke: var(--text); stroke-width: 2.5; }
-  .ab.inner { fill: var(--card); stroke: var(--muted); stroke-width: 2; }
-  .bl { font-weight: 600; font-size: 26px; letter-spacing: .06em; fill: var(--text); text-anchor: middle; }
-  .bl.s { font-size: 20px; }
-  .bs { font-weight: 400; font-size: 17px; letter-spacing: .08em; fill: var(--muted); text-anchor: middle; }
-  .ar { fill: none; stroke: var(--text); stroke-width: 2.5; }
-  .ar.thin { stroke: var(--muted); stroke-width: 2; }
-  .lh { font-weight: 600; font-size: 15px; letter-spacing: .12em; fill: var(--text); }
-  .ld { font-weight: 400; font-size: 17px; fill: var(--muted); }
-  .mid { text-anchor: middle; } .end { text-anchor: end; }
+  * { box-sizing: border-box; margin: 0; }
+  html, body { height: 100%; background: #0f1216; color: #eceef1; overflow: hidden; }
+  body { display: grid; place-items: center; }
+  svg { width: 100vw; height: 100vh; display: block; }
 </style>
 </head>
 <body>
-<svg viewBox="0 0 1920 1080" preserveAspectRatio="xMidYMid meet" role="img" aria-label="Inlook architecture: the desktop feeds the overlay app, which talks to the Inlook backend; the backend uses MongoDB, Gemini and Context.dev.">
-  <defs>
-    <marker id="h" viewBox="0 0 12 12" refX="10" refY="6" markerWidth="12" markerHeight="12" markerUnits="userSpaceOnUse" orient="auto-start-reverse">
-      <path d="M1 1 L10 6 L1 11" fill="none" stroke="#eceef1" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-    </marker>
-    <marker id="hm" viewBox="0 0 12 12" refX="10" refY="6" markerWidth="11" markerHeight="11" markerUnits="userSpaceOnUse" orient="auto-start-reverse">
-      <path d="M1 1 L10 6 L1 11" fill="none" stroke="#8f97a3" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-    </marker>
-  </defs>
-
-  <!-- Boxes -->
-  <rect class="ab" x="80" y="70" width="480" height="150" rx="18"/>
-  <text class="bl" x="320" y="138">DESKTOP</text>
-  <text class="bs" x="320" y="172">MIC · HIGHLIGHTED TEXT · SCREENSHOTS</text>
-
-  <rect class="ab" x="80" y="380" width="480" height="480" rx="18"/>
-  <text class="bl" x="320" y="428">OVERLAY APP</text>
-  <text class="bs" x="320" y="460">ELECTRON · DEBIAN X11</text>
-
-  <rect class="ab inner" x="110" y="500" width="160" height="330" rx="14"/>
-  <text class="bl s" x="190" y="640">HUD</text>
-  <text class="bs" x="190" y="672">SIDE STRIP</text>
-  <text class="bs" x="190" y="700">CLICK-</text>
-  <text class="bs" x="190" y="722">THROUGH</text>
-
-  <rect class="ab inner" x="370" y="500" width="160" height="140" rx="14"/>
-  <text class="bl s" x="450" y="562">WIDGET</text>
-  <text class="bs" x="450" y="594">INTERACTIVE</text>
-
-  <rect class="ab" x="900" y="450" width="320" height="300" rx="18"/>
-  <text class="bl" x="1060" y="592">INLOOK BACKEND</text>
-  <text class="bs" x="1060" y="626">NODE / TS</text>
-
-  <rect class="ab" x="900" y="70" width="320" height="160" rx="18"/>
-  <text class="bl" x="1060" y="160">CONTEXT.DEV</text>
-
-  <rect class="ab" x="900" y="880" width="320" height="140" rx="18"/>
-  <text class="bl" x="1060" y="960">GEMINI</text>
-
-  <rect class="ab" x="1560" y="450" width="300" height="300" rx="18"/>
-  <text class="bl" x="1710" y="592">MONGODB</text>
-  <text class="bs" x="1710" y="626">ATLAS</text>
-
-  <!-- Desktop → Overlay app -->
-  <path class="ar" d="M320 220 V376" marker-end="url(#h)"/>
-  <text class="lh" x="344" y="276">READS ↓</text>
-  <text class="ld" x="344" y="302">mic audio, highlighted text (X11 selection)</text>
-  <text class="ld" x="344" y="326">and screenshots on demand</text>
-
-  <!-- Widget → HUD -->
-  <path class="ar thin" d="M450 640 V770 H274" marker-end="url(#hm)"/>
-  <text class="ld mid" x="356" y="724" style="font-size:15px">toggles whether</text>
-  <text class="ld mid" x="356" y="746" style="font-size:15px">HUD takes clicks</text>
-
-  <!-- Overlay app → Backend -->
-  <path class="ar" d="M560 540 H896" marker-end="url(#h)"/>
-  <text class="lh mid" x="730" y="466">HTTP POST →</text>
-  <text class="ld mid" x="730" y="492">~10 s audio chunks, selected text,</text>
-  <text class="ld mid" x="730" y="516">screenshots, accept / reject of reviews</text>
-
-  <!-- Backend → Overlay app -->
-  <path class="ar" d="M900 680 H564" marker-end="url(#h)"/>
-  <text class="lh mid" x="730" y="606">← SSE LIVE STREAM</text>
-  <text class="ld mid" x="730" y="632">transcript, claims, verdicts,</text>
-  <text class="ld mid" x="730" y="656">flags and messages</text>
-
-  <!-- Backend ↔ MongoDB -->
-  <path class="ar" d="M1224 540 H1556" marker-start="url(#h)" marker-end="url(#h)"/>
-  <text class="lh mid" x="1390" y="466">READ / WRITE ↔</text>
-  <text class="ld mid" x="1390" y="492">facts, strategies, reviews,</text>
-  <text class="ld mid" x="1390" y="516">messages and events</text>
-
-  <path class="ar" d="M1560 680 H1224" marker-end="url(#h)"/>
-  <text class="lh mid" x="1390" y="606">← CHANGE STREAM</text>
-  <text class="ld mid" x="1390" y="632">new events feed</text>
-  <text class="ld mid" x="1390" y="656">the SSE stream</text>
-
-  <!-- Backend ↔ Context.dev -->
-  <path class="ar" d="M1020 450 V234" marker-end="url(#h)"/>
-  <text class="lh end" x="996" y="312">REQUEST ↑</text>
-  <text class="ld end" x="996" y="338">fetch the fact's source URL</text>
-  <text class="ld end" x="996" y="362">or a web search</text>
-
-  <path class="ar" d="M1100 230 V446" marker-end="url(#h)"/>
-  <text class="lh" x="1124" y="312">RESPONSE ↓</text>
-  <text class="ld" x="1124" y="338">page content</text>
-
-  <!-- Backend ↔ Gemini -->
-  <path class="ar" d="M1020 750 V876" marker-end="url(#h)"/>
-  <text class="lh end" x="996" y="784">SENDS ↓</text>
-  <text class="ld end" x="996" y="810">audio, text and images for transcription,</text>
-  <text class="ld end" x="996" y="834">claim spotting, fact matching and verdicts</text>
-
-  <path class="ar" d="M1100 880 V754" marker-end="url(#h)"/>
-  <text class="lh" x="1124" y="810">RETURNS ↑</text>
-  <text class="ld" x="1124" y="836">structured JSON</text>
-
-  <text class="wordmark" x="80" y="1000">Inlook</text>
-  <text class="t-col" x="200" y="998">Architecture</text>
+<svg viewBox="0 0 1920 1080" preserveAspectRatio="xMidYMid meet" role="img" aria-label="Inlook architecture. The desktop feeds the Electron overlay app on Debian X11, which posts to the Python FastAPI backend over HTTP and receives an SSE stream. The backend uses ElevenLabs for transcription and Gemini for claims, matching, verdicts and HUD cards. MongoDB and Context.dev are unconfirmed.">
+<defs><marker id="h" viewBox="0 0 12 12" refX="10" refY="6" markerWidth="12" markerHeight="12" markerUnits="userSpaceOnUse" orient="auto-start-reverse"><path d="M1 1 L10 6 L1 11" fill="none" stroke="#dfe3e8" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></marker><marker id="hm" viewBox="0 0 12 12" refX="10" refY="6" markerWidth="12" markerHeight="12" markerUnits="userSpaceOnUse" orient="auto-start-reverse"><path d="M1 1 L10 6 L1 11" fill="none" stroke="#a3abb7" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></marker><marker id="hw" viewBox="0 0 12 12" refX="10" refY="6" markerWidth="12" markerHeight="12" markerUnits="userSpaceOnUse" orient="auto-start-reverse"><path d="M1 1 L10 6 L1 11" fill="none" stroke="#f0b44c" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></marker></defs>
+<rect x="80" y="70" width="480" height="150" rx="18" fill="#0f1216" stroke="#dfe3e8" stroke-width="2.5"/>
+<text x="320.0" y="138" fill="#eceef1" font-family='"Schibsted Grotesk", system-ui, sans-serif' font-size="26" font-weight="600" letter-spacing="0.06em" text-anchor="middle">DESKTOP</text>
+<text x="320.0" y="172" fill="#a3abb7" font-family='"Schibsted Grotesk", system-ui, sans-serif' font-size="16" font-weight="400" letter-spacing="0.08em" text-anchor="middle">MIC · HIGHLIGHTED TEXT · SCREENSHOTS</text>
+<rect x="80" y="380" width="480" height="480" rx="18" fill="#0f1216" stroke="#dfe3e8" stroke-width="2.5"/>
+<text x="320.0" y="428" fill="#eceef1" font-family='"Schibsted Grotesk", system-ui, sans-serif' font-size="26" font-weight="600" letter-spacing="0.06em" text-anchor="middle">OVERLAY APP</text>
+<text x="320.0" y="462" fill="#a3abb7" font-family='"Schibsted Grotesk", system-ui, sans-serif' font-size="16" font-weight="400" letter-spacing="0.08em" text-anchor="middle">ELECTRON · DEBIAN X11</text>
+<rect x="110" y="500" width="160" height="330" rx="14" fill="#171b21" stroke="#a3abb7" stroke-width="2"/>
+<text x="190.0" y="640" fill="#eceef1" font-family='"Schibsted Grotesk", system-ui, sans-serif' font-size="20" font-weight="600" letter-spacing="0.06em" text-anchor="middle">HUD</text>
+<text x="190" y="672" fill="#a3abb7" font-family='"Schibsted Grotesk", system-ui, sans-serif' font-size="16" font-weight="400" letter-spacing="0.08em" text-anchor="middle">SIDE STRIP</text>
+<text x="190" y="698" fill="#a3abb7" font-family='"Schibsted Grotesk", system-ui, sans-serif' font-size="16" font-weight="400" letter-spacing="0.08em" text-anchor="middle">CLICK-</text>
+<text x="190" y="724" fill="#a3abb7" font-family='"Schibsted Grotesk", system-ui, sans-serif' font-size="16" font-weight="400" letter-spacing="0.08em" text-anchor="middle">THROUGH</text>
+<rect x="370" y="500" width="160" height="140" rx="14" fill="#171b21" stroke="#a3abb7" stroke-width="2"/>
+<text x="450.0" y="562" fill="#eceef1" font-family='"Schibsted Grotesk", system-ui, sans-serif' font-size="20" font-weight="600" letter-spacing="0.06em" text-anchor="middle">WIDGET</text>
+<text x="450.0" y="596" fill="#a3abb7" font-family='"Schibsted Grotesk", system-ui, sans-serif' font-size="16" font-weight="400" letter-spacing="0.08em" text-anchor="middle">INTERACTIVE</text>
+<rect x="880" y="450" width="360" height="300" rx="18" fill="#0f1216" stroke="#dfe3e8" stroke-width="2.5"/>
+<text x="1060.0" y="510" fill="#eceef1" font-family='"Schibsted Grotesk", system-ui, sans-serif' font-size="26" font-weight="600" letter-spacing="0.06em" text-anchor="middle">INLOOK BACKEND</text>
+<text x="1060.0" y="544" fill="#a3abb7" font-family='"Schibsted Grotesk", system-ui, sans-serif' font-size="16" font-weight="400" letter-spacing="0.08em" text-anchor="middle">PYTHON · FASTAPI</text>
+<text x="1060" y="590" fill="#a3abb7" font-family='"Schibsted Grotesk", system-ui, sans-serif' font-size="14" font-weight="600" letter-spacing="0.12em" text-anchor="middle">TIER ROUTING</text>
+<text x="1060" y="620" fill="#5fd4b4" font-family='"Schibsted Grotesk", system-ui, sans-serif' font-size="17" font-weight="400" letter-spacing="0em" text-anchor="middle">Low · updates automatically</text>
+<text x="1060" y="648" fill="#f0b44c" font-family='"Schibsted Grotesk", system-ui, sans-serif' font-size="17" font-weight="400" letter-spacing="0em" text-anchor="middle">Medium · reviewed by who stated it</text>
+<text x="1060" y="676" fill="#ff6b6b" font-family='"Schibsted Grotesk", system-ui, sans-serif' font-size="17" font-weight="400" letter-spacing="0em" text-anchor="middle">High · strategy owners review,</text>
+<text x="1060" y="700" fill="#ff6b6b" font-family='"Schibsted Grotesk", system-ui, sans-serif' font-size="17" font-weight="400" letter-spacing="0em" text-anchor="middle">strategies flagged, owners messaged</text>
+<rect x="600" y="70" width="380" height="160" rx="18" fill="#0f1216" stroke="#dfe3e8" stroke-width="2.5"/>
+<text x="790.0" y="146" fill="#eceef1" font-family='"Schibsted Grotesk", system-ui, sans-serif' font-size="26" font-weight="600" letter-spacing="0.06em" text-anchor="middle">ELEVENLABS STT</text>
+<text x="790.0" y="180" fill="#a3abb7" font-family='"Schibsted Grotesk", system-ui, sans-serif' font-size="16" font-weight="400" letter-spacing="0.08em" text-anchor="middle">REALTIME · SPEAKER LABELS</text>
+<rect x="1120" y="70" width="440" height="160" rx="18" fill="#0f1216" stroke="#dfe3e8" stroke-width="2.5"/>
+<text x="1340.0" y="128" fill="#eceef1" font-family='"Schibsted Grotesk", system-ui, sans-serif' font-size="26" font-weight="600" letter-spacing="0.06em" text-anchor="middle">GEMINI</text>
+<text x="1340.0" y="162" fill="#a3abb7" font-family='"Schibsted Grotesk", system-ui, sans-serif' font-size="16" font-weight="400" letter-spacing="0.08em" text-anchor="middle">GEMINI-3.8-FLASH</text>
+<text x="1340.0" y="188" fill="#a3abb7" font-family='"Schibsted Grotesk", system-ui, sans-serif' font-size="16" font-weight="400" letter-spacing="0.08em" text-anchor="middle">GEMINI-EMBEDDING-2 · LARGE FACT SETS</text>
+<rect x="1580" y="450" width="280" height="300" rx="18" fill="#0f1216" stroke="#dfe3e8" stroke-width="2.5" stroke-dasharray="9 9"/>
+<text x="1720.0" y="592" fill="#eceef1" font-family='"Schibsted Grotesk", system-ui, sans-serif' font-size="26" font-weight="600" letter-spacing="0.06em" text-anchor="middle">MONGODB</text>
+<text x="1720.0" y="626" fill="#a3abb7" font-family='"Schibsted Grotesk", system-ui, sans-serif' font-size="16" font-weight="400" letter-spacing="0.08em" text-anchor="middle">ATLAS</text>
+<rect x="1674" y="468" width="168" height="30" rx="15" fill="#0f1216" stroke="#f0b44c" stroke-width="1.6" stroke-dasharray="5 5"/>
+<text x="1758.0" y="488" fill="#f0b44c" font-family='"Schibsted Grotesk", system-ui, sans-serif' font-size="13" font-weight="600" letter-spacing="0.12em" text-anchor="middle">? UNCONFIRMED</text>
+<rect x="880" y="880" width="360" height="140" rx="18" fill="#0f1216" stroke="#dfe3e8" stroke-width="2.5" stroke-dasharray="9 9"/>
+<text x="1060.0" y="962" fill="#eceef1" font-family='"Schibsted Grotesk", system-ui, sans-serif' font-size="26" font-weight="600" letter-spacing="0.06em" text-anchor="middle">CONTEXT.DEV</text>
+<rect x="1054" y="898" width="168" height="30" rx="15" fill="#0f1216" stroke="#f0b44c" stroke-width="1.6" stroke-dasharray="5 5"/>
+<text x="1138.0" y="918" fill="#f0b44c" font-family='"Schibsted Grotesk", system-ui, sans-serif' font-size="13" font-weight="600" letter-spacing="0.12em" text-anchor="middle">? UNCONFIRMED</text>
+<path d="M320 220 V376" fill="none" stroke="#dfe3e8" stroke-width="2.5" marker-end="url(#h)"/>
+<text x="344" y="276" fill="#eceef1" font-family='"Schibsted Grotesk", system-ui, sans-serif' font-size="15" font-weight="600" letter-spacing="0.12em" text-anchor="start">READS ↓</text>
+<text x="344" y="302" fill="#a3abb7" font-family='"Schibsted Grotesk", system-ui, sans-serif' font-size="17" font-weight="400" letter-spacing="0em" text-anchor="start">mic audio, highlighted text (X11 selection)</text>
+<text x="344" y="326" fill="#a3abb7" font-family='"Schibsted Grotesk", system-ui, sans-serif' font-size="17" font-weight="400" letter-spacing="0em" text-anchor="start">and screenshots on demand</text>
+<path d="M450 640 V770 H274" fill="none" stroke="#a3abb7" stroke-width="2" marker-end="url(#hm)"/>
+<text x="356" y="724" fill="#a3abb7" font-family='"Schibsted Grotesk", system-ui, sans-serif' font-size="15" font-weight="400" letter-spacing="0em" text-anchor="middle">toggles whether</text>
+<text x="356" y="746" fill="#a3abb7" font-family='"Schibsted Grotesk", system-ui, sans-serif' font-size="15" font-weight="400" letter-spacing="0em" text-anchor="middle">HUD takes clicks</text>
+<path d="M560 540 H876" fill="none" stroke="#dfe3e8" stroke-width="2.5" marker-end="url(#h)"/>
+<text x="718" y="466" fill="#eceef1" font-family='"Schibsted Grotesk", system-ui, sans-serif' font-size="15" font-weight="600" letter-spacing="0.12em" text-anchor="middle">HTTP POST →</text>
+<text x="718" y="492" fill="#a3abb7" font-family='"Schibsted Grotesk", system-ui, sans-serif' font-size="17" font-weight="400" letter-spacing="0em" text-anchor="middle">audio chunks, selected text,</text>
+<text x="718" y="516" fill="#a3abb7" font-family='"Schibsted Grotesk", system-ui, sans-serif' font-size="17" font-weight="400" letter-spacing="0em" text-anchor="middle">screenshots, review accept / reject</text>
+<path d="M880 680 H564" fill="none" stroke="#dfe3e8" stroke-width="2.5" marker-end="url(#h)"/>
+<text x="718" y="606" fill="#eceef1" font-family='"Schibsted Grotesk", system-ui, sans-serif' font-size="15" font-weight="600" letter-spacing="0.12em" text-anchor="middle">← SSE STREAM</text>
+<text x="718" y="632" fill="#a3abb7" font-family='"Schibsted Grotesk", system-ui, sans-serif' font-size="17" font-weight="400" letter-spacing="0em" text-anchor="middle">transcript, claims, verdicts,</text>
+<text x="718" y="656" fill="#a3abb7" font-family='"Schibsted Grotesk", system-ui, sans-serif' font-size="17" font-weight="400" letter-spacing="0em" text-anchor="middle">HUD cards, reviews, messages</text>
+<path d="M905 450 V234" fill="none" stroke="#dfe3e8" stroke-width="2.5" marker-end="url(#h)"/>
+<path d="M955 230 V446" fill="none" stroke="#dfe3e8" stroke-width="2.5" marker-end="url(#h)"/>
+<text x="885" y="300" fill="#eceef1" font-family='"Schibsted Grotesk", system-ui, sans-serif' font-size="15" font-weight="600" letter-spacing="0.12em" text-anchor="end">SENDS ↑</text>
+<text x="885" y="326" fill="#a3abb7" font-family='"Schibsted Grotesk", system-ui, sans-serif' font-size="17" font-weight="400" letter-spacing="0em" text-anchor="end">audio chunks</text>
+<text x="885" y="372" fill="#eceef1" font-family='"Schibsted Grotesk", system-ui, sans-serif' font-size="15" font-weight="600" letter-spacing="0.12em" text-anchor="end">RETURNS ↓</text>
+<text x="885" y="398" fill="#a3abb7" font-family='"Schibsted Grotesk", system-ui, sans-serif' font-size="17" font-weight="400" letter-spacing="0em" text-anchor="end">transcript lines with speakers</text>
+<path d="M1165 450 V234" fill="none" stroke="#dfe3e8" stroke-width="2.5" marker-end="url(#h)"/>
+<path d="M1215 230 V446" fill="none" stroke="#dfe3e8" stroke-width="2.5" marker-end="url(#h)"/>
+<text x="1240" y="290" fill="#eceef1" font-family='"Schibsted Grotesk", system-ui, sans-serif' font-size="15" font-weight="600" letter-spacing="0.12em" text-anchor="start">SENDS ↑</text>
+<text x="1240" y="316" fill="#a3abb7" font-family='"Schibsted Grotesk", system-ui, sans-serif' font-size="17" font-weight="400" letter-spacing="0em" text-anchor="start">transcript lines, claim + facts,</text>
+<text x="1240" y="340" fill="#a3abb7" font-family='"Schibsted Grotesk", system-ui, sans-serif' font-size="17" font-weight="400" letter-spacing="0em" text-anchor="start">fact + page + card template, screenshots</text>
+<text x="1240" y="384" fill="#eceef1" font-family='"Schibsted Grotesk", system-ui, sans-serif' font-size="15" font-weight="600" letter-spacing="0.12em" text-anchor="start">RETURNS ↓</text>
+<text x="1240" y="410" fill="#a3abb7" font-family='"Schibsted Grotesk", system-ui, sans-serif' font-size="17" font-weight="400" letter-spacing="0em" text-anchor="start">JSON: claims, match, verdict, HUD card</text>
+<path d="M1244 540 H1576" fill="none" stroke="#dfe3e8" stroke-width="2.5" stroke-dasharray="9 9" marker-start="url(#h)" marker-end="url(#h)"/>
+<text x="1410" y="466" fill="#eceef1" font-family='"Schibsted Grotesk", system-ui, sans-serif' font-size="15" font-weight="600" letter-spacing="0.12em" text-anchor="middle">READ / WRITE ↔</text>
+<text x="1410" y="492" fill="#a3abb7" font-family='"Schibsted Grotesk", system-ui, sans-serif' font-size="17" font-weight="400" letter-spacing="0em" text-anchor="middle">facts, strategies, people,</text>
+<text x="1410" y="516" fill="#a3abb7" font-family='"Schibsted Grotesk", system-ui, sans-serif' font-size="17" font-weight="400" letter-spacing="0em" text-anchor="middle">reviews, messages, events</text>
+<path d="M1580 680 H1244" fill="none" stroke="#dfe3e8" stroke-width="2.5" stroke-dasharray="9 9" marker-end="url(#h)"/>
+<text x="1410" y="606" fill="#eceef1" font-family='"Schibsted Grotesk", system-ui, sans-serif' font-size="15" font-weight="600" letter-spacing="0.12em" text-anchor="middle">← CHANGE STREAM</text>
+<text x="1410" y="632" fill="#a3abb7" font-family='"Schibsted Grotesk", system-ui, sans-serif' font-size="17" font-weight="400" letter-spacing="0em" text-anchor="middle">new events feed</text>
+<text x="1410" y="656" fill="#a3abb7" font-family='"Schibsted Grotesk", system-ui, sans-serif' font-size="17" font-weight="400" letter-spacing="0em" text-anchor="middle">the SSE stream</text>
+<path d="M1000 750 V876" fill="none" stroke="#dfe3e8" stroke-width="2.5" stroke-dasharray="9 9" marker-end="url(#h)"/>
+<path d="M1120 880 V754" fill="none" stroke="#dfe3e8" stroke-width="2.5" stroke-dasharray="9 9" marker-end="url(#h)"/>
+<text x="976" y="790" fill="#eceef1" font-family='"Schibsted Grotesk", system-ui, sans-serif' font-size="15" font-weight="600" letter-spacing="0.12em" text-anchor="end">FETCH OR SEARCH ↓</text>
+<text x="976" y="816" fill="#a3abb7" font-family='"Schibsted Grotesk", system-ui, sans-serif' font-size="17" font-weight="400" letter-spacing="0em" text-anchor="end">re-fetch the fact&#x27;s sourceUrl,</text>
+<text x="976" y="840" fill="#a3abb7" font-family='"Schibsted Grotesk", system-ui, sans-serif' font-size="17" font-weight="400" letter-spacing="0em" text-anchor="end">or search the web for the claim</text>
+<text x="1144" y="790" fill="#eceef1" font-family='"Schibsted Grotesk", system-ui, sans-serif' font-size="15" font-weight="600" letter-spacing="0.12em" text-anchor="start">RETURNS ↑</text>
+<text x="1144" y="816" fill="#a3abb7" font-family='"Schibsted Grotesk", system-ui, sans-serif' font-size="17" font-weight="400" letter-spacing="0em" text-anchor="start">page content · webhook on</text>
+<text x="1144" y="840" fill="#a3abb7" font-family='"Schibsted Grotesk", system-ui, sans-serif' font-size="17" font-weight="400" letter-spacing="0em" text-anchor="start">page change (or polling)</text>
+<text x="80" y="960" fill="#eceef1" font-family='"Schibsted Grotesk", system-ui, sans-serif' font-size="30" font-weight="800" letter-spacing="-0.02em" text-anchor="start">Inlook</text>
+<text x="200" y="958" fill="#a3abb7" font-family='"Schibsted Grotesk", system-ui, sans-serif' font-size="17" font-weight="600" letter-spacing="0.12em" text-anchor="start">ARCHITECTURE</text>
+<rect x="80" y="992" width="44" height="28" rx="7" fill="none" stroke="#dfe3e8" stroke-width="2"/>
+<text x="138" y="1012" fill="#a3abb7" font-family='"Schibsted Grotesk", system-ui, sans-serif' font-size="16" font-weight="400" letter-spacing="0em" text-anchor="start">Decided</text>
+<rect x="250" y="992" width="44" height="28" rx="7" fill="none" stroke="#dfe3e8" stroke-width="2" stroke-dasharray="6 6"/>
+<text x="308" y="1012" fill="#a3abb7" font-family='"Schibsted Grotesk", system-ui, sans-serif' font-size="16" font-weight="400" letter-spacing="0em" text-anchor="start">Unconfirmed</text>
 </svg>
 </body>
 </html>

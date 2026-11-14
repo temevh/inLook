@@ -3,14 +3,14 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>07 · Self-update</title>
+<title>07 · Reviewed update</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Schibsted+Grotesk:wght@400;600;800&family=JetBrains+Mono:wght@500&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="kit.css">
 </head>
 <body>
-<svg id="s" viewBox="0 0 1920 1080" preserveAspectRatio="xMidYMid meet" aria-label="A newer value arrives from the live source. The fact card for 59 euros is superseded by a new version at 39 euros, the old version stays in the history, and the change is saved to company memory."></svg>
+<svg id="s" viewBox="0 0 1920 1080" preserveAspectRatio="xMidYMid meet" aria-label="A newer value arrives from the live source. Because the fact is high criticality, the new 39 euro version waits for review by the strategy owner; once accepted it supersedes the 59 euro version, which stays in the history, and the change is saved to company memory."></svg>
 <script src="kit.js"></script>
 <script>
 TEMPO = 1.3;
@@ -38,21 +38,33 @@ function version(val, src) {
 }
 const v1 = version("€59 / seat", "Tuesday's meeting · said by Mikko");
 const v2 = version("€39 / seat", "Live web · checked today");
+// Review gate: a high-criticality fact waits for its strategy owners before the new version counts
+const rv = faded(grp(680, 680));
+const rvBox = mk("rect", { width: 560, height: 76, rx: 38, class: "box warn" }, rv);
+const rvDot = mk("circle", { cx: 38, cy: 38, r: 8, fill: COL.warn }, rv);
+const rvT = txt(rv, 62, 46, "t-m", "", { style: `fill:${COL.text}; font-size:21px; font-weight:600` });
+const review = (s, c, cls) => { rvT.textContent = s; rvDot.setAttribute("fill", c); rvBox.setAttribute("class", "box " + cls); };
 
-say("The fact updates itself, and keeps its history.");
+say("Reviewed by its owner, the fact updates and keeps its history.");
 loop(async () => {
   v1.at(300, 1, 0); v1.tag("v1 · current", COL.ok);
-  v2.at(110, 0, 0); v2.tag("v2 · current", COL.ok);
-  db.box.classList.remove("ok"); show(saved, false); web.box.classList.remove("ok");
+  v2.at(110, 0, 0); v2.tag("v2 · in review", COL.warn); v2.box.classList.remove("ok", "warn");
+  db.box.classList.remove("ok"); show(saved, false); web.box.classList.remove("ok"); show(rv, false);
   await wait(1200);
   flash(web.box, "ok", 900);
   await travel(["in"], COL.web);
+  v1.at(480, .7);
+  v2.at(300, 1); v2.box.classList.add("warn");
+  review("High criticality · strategy owners review", COL.warn, "warn"); show(rv);
+  await wait(1800);
+  review("Accepted by Mikko · Q1 pricing owner", COL.ok, "ok");
+  await wait(700);
   v1.at(480, .45); v1.tag("v1 · superseded", COL.muted);
-  v2.at(300, 1); v2.box.classList.add("ok");
-  await wait(900);
+  v2.tag("v2 · current", COL.ok); v2.box.classList.remove("warn"); v2.box.classList.add("ok");
+  await wait(700);
   await travel(["out"]);
   db.box.classList.add("ok"); show(saved);
-  await wait(4000);
+  await wait(3600);
   v2.box.classList.remove("ok");
 });
 </script>

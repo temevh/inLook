@@ -37,11 +37,15 @@ b.append(", so we lead with that.");
 const claim = col => { c1.style.fill = col || ""; c2.style.fill = col || ""; c1.style.transition = c2.style.transition = "fill .4s"; };
 
 const note = faded(grp(40, 450, T));
-mk("rect", { width: 840, height: 130, rx: 14, fill: "#2a1618", stroke: COL.bad, "stroke-width": 2.5 }, note);
-txt(note, 28, 52, "t-l", "Outdated: Competitor X now charges €39.", { style: `fill:${COL.bad}` });
-txt(note, 28, 92, "t-m", "Changed today · source: competitor's pricing page");
+// HUD card: title, criticality, one-line fact (filled by Gemini from the card template)
+mk("rect", { width: 840, height: 170, rx: 14, fill: "#2a1618", stroke: COL.bad, "stroke-width": 2.5 }, note);
+txt(note, 28, 50, "t-l", "Fact outdated", { style: `fill:${COL.bad}` });
+mk("rect", { x: 690, y: 22, width: 122, height: 36, rx: 18, fill: COL.bad }, note);
+txt(note, 751, 47, "t-col", "High", { "text-anchor": "middle", style: `fill:${COL.bg}; font-size:15px` });
+txt(note, 28, 100, "t-val", "Competitor X: €59 → €39 per seat", { style: "font-size:26px" });
+txt(note, 28, 140, "t-m", "Source: competitor's pricing page · checked now", { style: "font-size:18px" });
 
-const STEPS = [["bubble", "Claim spotted", "“€10 cheaper than X”"], ["db", "Found in memory", "Competitor price · €59"], ["web", "Source checked", "pricing page · €39"], ["tag", "Verdict", "outdated"]];
+const STEPS = [["bubble", "Claim spotted", "“€10 cheaper than X”"], ["db", "Found in memory", "Competitor price · €59"], ["web", "Source checked", "pricing page · €39"], ["tag", "Verdict", "outdated · high tier"]];
 const steps = STEPS.map(([k, t, d], i) => {
   const y = 190 + i * 170;
   const ic = icon(k, 1200, y);

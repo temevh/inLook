@@ -10,26 +10,33 @@
 <link rel="stylesheet" href="kit.css">
 </head>
 <body>
-<svg id="s" viewBox="0 0 1920 1080" preserveAspectRatio="xMidYMid meet" aria-label="One fact turns outdated and the warning travels only to the two strategies built on it; the third strategy stays healthy."></svg>
+<svg id="s" viewBox="0 0 1920 1080" preserveAspectRatio="xMidYMid meet" aria-label="A high-criticality fact turns outdated and goes to review; the warning travels only to the two strategies built on it, and the third strategy stays healthy."></svg>
 <script src="kit.js"></script>
 <script>
 TEMPO = 2.6;
 const F = [["Competitor price", "€59 / seat", "Tuesday's meeting"], ["Churn target", "3% / month", "Planning doc"], ["Launch date", "14 March", "Product sync"], ["Top customer ask", "Single sign-on", "Support chat"]];
 txt(L.nodes, 200, 180, "t-col", "Facts"); txt(L.nodes, 1260, 180, "t-col", "Strategies");
 const facts = F.map((f, i) => tag(200, 212 + i * 170, ...f, 320));
+// Criticality per fact; any fact a strategy relies on is at least medium
+const TIER = ["High", "High", "Medium", "Medium"];
+facts.forEach((f, i) => {
+  mk("rect", { x: 214, y: 8, width: 92, height: 22, rx: 11, fill: "none", stroke: TIER[i] === "High" ? COL.bad : COL.warn, "stroke-width": 1.5 }, f.g);
+  txt(f.g, 260, 24, "t-col", TIER[i], { "text-anchor": "middle", style: `font-size:12px; fill:${TIER[i] === "High" ? COL.bad : COL.warn}` });
+});
 const S = [["Q1 pricing", [0, 1]], ["Enterprise push", [0, 3]], ["Spring launch", [2, 3]]];
 const strats = S.map(([name, uses], si) => {
   const y = 212 + si * 230;
   uses.forEach((fi, j) => link(`f${fi}s${si}`, curve(520, 270 + fi * 170, 1260, y + 50 + j * 50)));
   return strategy(1260, y, name, 320, 190, 2, uses.map(fi => F[fi][0]));
 });
-say("Every strategy built on the stale fact is flagged. Nothing else.");
+say("A high-criticality fact goes stale. Only its strategies are flagged.");
 loop(async () => {
-  facts[0].box.classList.remove("bad"); facts[0].v.style.fill = "";
+  facts[0].box.classList.remove("bad"); facts[0].v.style.fill = ""; facts[0].s.textContent = F[0][2]; facts[0].s.style.fill = "";
   strats.forEach(s => { s.box.classList.remove("bad", "ok"); s.blocks[0].classList.remove("bad"); s.set("healthy"); });
   Object.values(P).forEach(p => p.classList.remove("bad"));
   await wait(1500);
   facts[0].box.classList.add("bad"); facts[0].v.style.fill = COL.bad;
+  facts[0].s.textContent = "Outdated · in review"; facts[0].s.style.fill = COL.bad;
   await wait(800);
   P.f0s0.classList.add("bad"); P.f0s1.classList.add("bad");
   await Promise.all([travel(["f0s0"], COL.bad, 10, 8), travel(["f0s1"], COL.bad, 10, 8)]);
