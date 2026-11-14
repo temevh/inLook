@@ -1,0 +1,29 @@
+[
+  { "delayMs": 500, "type": "claim.spotted", "payload": { "claimId": "c2", "text": "Our office wifi network is called MockNet", "source": "selection" } },
+  { "delayMs": 1200, "type": "claim.verdict", "payload": {
+      "claimId": "c2", "factId": "f-wifi-name", "verdict": "outdated",
+      "oldValue": "MockNet", "newValue": "MockNet-5G",
+      "evidence": "Office handbook lists MockNet-5G.",
+      "card": { "title": "Fact updated", "criticality": "low", "fact": "Office wifi: MockNet → MockNet-5G" } } },
+  { "delayMs": 600, "type": "fact.updated", "payload": {
+      "factId": "f-wifi-name",
+      "version": { "value": "MockNet-5G", "source": "https://handbook.example/office", "at": "2026-11-14T10:00:00Z", "by": "inlook" },
+      "card": { "title": "Fact updated", "criticality": "low", "fact": "Office wifi: MockNet → MockNet-5G" } } },
+  { "delayMs": 2000, "type": "claim.spotted", "payload": { "claimId": "c3", "text": "Our refund window is 30 days", "source": "screenshot" } },
+  { "delayMs": 1200, "type": "claim.verdict", "payload": {
+      "claimId": "c3", "factId": "f-refund-window", "verdict": "outdated",
+      "oldValue": "30 days", "newValue": "14 days",
+      "evidence": "Terms page now states a 14-day refund window.",
+      "sourceUrl": "https://terms.example/refunds",
+      "card": { "title": "Fact outdated", "criticality": "medium", "fact": "Refund window: 30 → 14 days" } } },
+  { "delayMs": 600, "type": "review.created", "payload": {
+      "reviewId": "r-refund-window", "factId": "f-refund-window",
+      "oldValue": "30 days", "newValue": "14 days",
+      "evidence": "Terms page now states a 14-day refund window.",
+      "tier": "medium", "reviewers": ["p-sam"],
+      "card": { "title": "Needs review", "criticality": "medium", "fact": "Refund window: 30 → 14 days" } } },
+  { "delayMs": 2000, "type": "claim.spotted", "payload": { "claimId": "c4", "text": "The mock mascot is a purple llama", "source": "audio" } },
+  { "delayMs": 1200, "type": "claim.unverified", "payload": { "claimId": "c4", "reason": "no_match" } },
+  { "delayMs": 2000, "type": "review.closed", "payload": { "reviewId": "r-compx-price", "factId": "f-compx-price", "status": "accepted" } },
+  { "delayMs": 600, "type": "strategy.healthy", "payload": { "strategyId": "s-pricing", "name": "Mock Pricing Plan" } }
+]
