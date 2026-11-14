@@ -1,16 +1,602 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$comment": "SSE event envelope. Payload shapes per type are in CONTRACT.md (most are proposed).",
-  "type": "object",
-  "properties": {
-    "seq": { "type": "integer", "minimum": 1 },
-    "type": {
-      "type": "string",
-      "enum": ["transcript.line", "claim.spotted", "claim.unverified", "claim.verdict", "fact.updated",
-               "review.created", "review.closed", "strategy.flagged", "strategy.healthy", "message.created"]
+  "$id": "event.schema.json",
+  "title": "InlookEvent",
+  "description": "SSE event: envelope {seq, type, payload, at}, discriminated by the type const. Payload shapes: CONTRACT.md.",
+  "oneOf": [
+    {
+      "$ref": "#/$defs/TranscriptLineEvent"
     },
-    "payload": { "type": "object" },
-    "at": { "type": "string", "format": "date-time" }
-  },
-  "required": ["seq", "type", "payload", "at"]
+    {
+      "$ref": "#/$defs/ClaimSpottedEvent"
+    },
+    {
+      "$ref": "#/$defs/ClaimUnverifiedEvent"
+    },
+    {
+      "$ref": "#/$defs/ClaimVerdictEvent"
+    },
+    {
+      "$ref": "#/$defs/FactUpdatedEvent"
+    },
+    {
+      "$ref": "#/$defs/ReviewCreatedEvent"
+    },
+    {
+      "$ref": "#/$defs/ReviewClosedEvent"
+    },
+    {
+      "$ref": "#/$defs/StrategyFlaggedEvent"
+    },
+    {
+      "$ref": "#/$defs/StrategyHealthyEvent"
+    },
+    {
+      "$ref": "#/$defs/MessageCreatedEvent"
+    }
+  ],
+  "$defs": {
+    "Tier": {
+      "enum": [
+        "low",
+        "medium",
+        "high"
+      ]
+    },
+    "FactVersion": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "value": {
+          "type": "string"
+        },
+        "source": {
+          "type": "string"
+        },
+        "at": {
+          "type": "string"
+        },
+        "by": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "value",
+        "source",
+        "at",
+        "by"
+      ]
+    },
+    "TranscriptLinePayload": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "lineId": {
+          "type": "string"
+        },
+        "speaker": {
+          "type": "string"
+        },
+        "text": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "lineId",
+        "speaker",
+        "text"
+      ]
+    },
+    "TranscriptLineEvent": {
+      "title": "TranscriptLineEvent",
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "seq": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "type": {
+          "const": "transcript.line"
+        },
+        "payload": {
+          "$ref": "#/$defs/TranscriptLinePayload"
+        },
+        "at": {
+          "type": "string",
+          "format": "date-time"
+        }
+      },
+      "required": [
+        "seq",
+        "type",
+        "payload",
+        "at"
+      ]
+    },
+    "ClaimSpottedPayload": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "claimId": {
+          "type": "string"
+        },
+        "text": {
+          "type": "string"
+        },
+        "source": {
+          "enum": [
+            "audio",
+            "selection",
+            "screenshot"
+          ]
+        },
+        "lineId": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "claimId",
+        "text",
+        "source"
+      ]
+    },
+    "ClaimSpottedEvent": {
+      "title": "ClaimSpottedEvent",
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "seq": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "type": {
+          "const": "claim.spotted"
+        },
+        "payload": {
+          "$ref": "#/$defs/ClaimSpottedPayload"
+        },
+        "at": {
+          "type": "string",
+          "format": "date-time"
+        }
+      },
+      "required": [
+        "seq",
+        "type",
+        "payload",
+        "at"
+      ]
+    },
+    "ClaimUnverifiedPayload": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "claimId": {
+          "type": "string"
+        },
+        "reason": {
+          "enum": [
+            "no_match",
+            "unverifiable"
+          ]
+        }
+      },
+      "required": [
+        "claimId",
+        "reason"
+      ]
+    },
+    "ClaimUnverifiedEvent": {
+      "title": "ClaimUnverifiedEvent",
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "seq": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "type": {
+          "const": "claim.unverified"
+        },
+        "payload": {
+          "$ref": "#/$defs/ClaimUnverifiedPayload"
+        },
+        "at": {
+          "type": "string",
+          "format": "date-time"
+        }
+      },
+      "required": [
+        "seq",
+        "type",
+        "payload",
+        "at"
+      ]
+    },
+    "ClaimVerdictPayload": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "claimId": {
+          "type": "string"
+        },
+        "factId": {
+          "type": "string"
+        },
+        "verdict": {
+          "enum": [
+            "current",
+            "outdated",
+            "unverifiable"
+          ]
+        },
+        "oldValue": {
+          "type": "string"
+        },
+        "newValue": {
+          "type": "string"
+        },
+        "evidence": {
+          "type": "string"
+        },
+        "sourceUrl": {
+          "type": "string"
+        },
+        "card": {
+          "$ref": "card.schema.json"
+        }
+      },
+      "required": [
+        "claimId",
+        "factId",
+        "verdict",
+        "oldValue",
+        "evidence",
+        "card"
+      ]
+    },
+    "ClaimVerdictEvent": {
+      "title": "ClaimVerdictEvent",
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "seq": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "type": {
+          "const": "claim.verdict"
+        },
+        "payload": {
+          "$ref": "#/$defs/ClaimVerdictPayload"
+        },
+        "at": {
+          "type": "string",
+          "format": "date-time"
+        }
+      },
+      "required": [
+        "seq",
+        "type",
+        "payload",
+        "at"
+      ]
+    },
+    "FactUpdatedPayload": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "factId": {
+          "type": "string"
+        },
+        "version": {
+          "$ref": "#/$defs/FactVersion"
+        },
+        "card": {
+          "$ref": "card.schema.json"
+        }
+      },
+      "required": [
+        "factId",
+        "version",
+        "card"
+      ]
+    },
+    "FactUpdatedEvent": {
+      "title": "FactUpdatedEvent",
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "seq": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "type": {
+          "const": "fact.updated"
+        },
+        "payload": {
+          "$ref": "#/$defs/FactUpdatedPayload"
+        },
+        "at": {
+          "type": "string",
+          "format": "date-time"
+        }
+      },
+      "required": [
+        "seq",
+        "type",
+        "payload",
+        "at"
+      ]
+    },
+    "ReviewCreatedPayload": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "reviewId": {
+          "type": "string"
+        },
+        "factId": {
+          "type": "string"
+        },
+        "oldValue": {
+          "type": "string"
+        },
+        "newValue": {
+          "type": "string"
+        },
+        "evidence": {
+          "type": "string"
+        },
+        "tier": {
+          "$ref": "#/$defs/Tier"
+        },
+        "reviewers": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "card": {
+          "$ref": "card.schema.json"
+        }
+      },
+      "required": [
+        "reviewId",
+        "factId",
+        "oldValue",
+        "newValue",
+        "evidence",
+        "tier",
+        "reviewers",
+        "card"
+      ]
+    },
+    "ReviewCreatedEvent": {
+      "title": "ReviewCreatedEvent",
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "seq": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "type": {
+          "const": "review.created"
+        },
+        "payload": {
+          "$ref": "#/$defs/ReviewCreatedPayload"
+        },
+        "at": {
+          "type": "string",
+          "format": "date-time"
+        }
+      },
+      "required": [
+        "seq",
+        "type",
+        "payload",
+        "at"
+      ]
+    },
+    "ReviewClosedPayload": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "reviewId": {
+          "type": "string"
+        },
+        "factId": {
+          "type": "string"
+        },
+        "status": {
+          "enum": [
+            "accepted",
+            "rejected"
+          ]
+        }
+      },
+      "required": [
+        "reviewId",
+        "factId",
+        "status"
+      ]
+    },
+    "ReviewClosedEvent": {
+      "title": "ReviewClosedEvent",
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "seq": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "type": {
+          "const": "review.closed"
+        },
+        "payload": {
+          "$ref": "#/$defs/ReviewClosedPayload"
+        },
+        "at": {
+          "type": "string",
+          "format": "date-time"
+        }
+      },
+      "required": [
+        "seq",
+        "type",
+        "payload",
+        "at"
+      ]
+    },
+    "StrategyFlaggedPayload": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "strategyId": {
+          "type": "string"
+        },
+        "name": {
+          "type": "string"
+        },
+        "factId": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "strategyId",
+        "name",
+        "factId"
+      ]
+    },
+    "StrategyFlaggedEvent": {
+      "title": "StrategyFlaggedEvent",
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "seq": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "type": {
+          "const": "strategy.flagged"
+        },
+        "payload": {
+          "$ref": "#/$defs/StrategyFlaggedPayload"
+        },
+        "at": {
+          "type": "string",
+          "format": "date-time"
+        }
+      },
+      "required": [
+        "seq",
+        "type",
+        "payload",
+        "at"
+      ]
+    },
+    "StrategyHealthyPayload": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "strategyId": {
+          "type": "string"
+        },
+        "name": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "strategyId",
+        "name"
+      ]
+    },
+    "StrategyHealthyEvent": {
+      "title": "StrategyHealthyEvent",
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "seq": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "type": {
+          "const": "strategy.healthy"
+        },
+        "payload": {
+          "$ref": "#/$defs/StrategyHealthyPayload"
+        },
+        "at": {
+          "type": "string",
+          "format": "date-time"
+        }
+      },
+      "required": [
+        "seq",
+        "type",
+        "payload",
+        "at"
+      ]
+    },
+    "MessageCreatedPayload": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "messageId": {
+          "type": "string"
+        },
+        "to": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "strategyId": {
+          "type": "string"
+        },
+        "factId": {
+          "type": "string"
+        },
+        "text": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "messageId",
+        "to",
+        "strategyId",
+        "factId",
+        "text"
+      ]
+    },
+    "MessageCreatedEvent": {
+      "title": "MessageCreatedEvent",
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "seq": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "type": {
+          "const": "message.created"
+        },
+        "payload": {
+          "$ref": "#/$defs/MessageCreatedPayload"
+        },
+        "at": {
+          "type": "string",
+          "format": "date-time"
+        }
+      },
+      "required": [
+        "seq",
+        "type",
+        "payload",
+        "at"
+      ]
+    }
+  }
 }

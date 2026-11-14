@@ -1,6 +1,6 @@
 # Overlay ↔ backend contract
 
-Source: `.plans/overlay-architecture-spec.md`. Mirrors: `overlay/src/shared/contract.ts`, `backend/app/contract.py`.
+Source: `.plans/overlay-architecture-spec.md`. Schemas: `event.schema.json`, `card.schema.json`, `api.schema.json` (source). Generated from them: `overlay/src/shared/contract.gen.ts`, `shared/generated/contract_models.py`. This file describes them; if they differ, the schemas win.
 
 Status key:
 - **decided**: stated in the spec or the task brief.

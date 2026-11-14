@@ -1,60 +1,24 @@
-// Mirror of shared/CONTRACT.md. Change the contract there first.
-// "proposed" shapes are skeleton guesses to agree with the backend owners.
+// Types come from shared/*.schema.json via `npm run gen:contract` (contract.gen.ts).
+// Only what the schemas cannot express lives here. Change the contract in shared/ first.
+import type { ClaimSpottedPayload, ClaimVerdictPayload, InlookEvent, ReviewRequest } from "./contract.gen";
 
-export type Tier = "low" | "medium" | "high";
+export type {
+  AcceptedResponse, CheckRequest, FactVersion, HudCard, InlookEvent, ReviewResponse, Tier,
+} from "./contract.gen";
 
-/** HUD card, filled by Gemini (shared/card.schema.json). decided */
-export interface HudCard {
-  title: "Fact outdated" | "Fact updated" | "Needs review";
-  /** Copied from the fact's stored tier; the backend checks it before sending. */
-  criticality: Tier;
-  /** One line, e.g. "Competitor X: €59 → €39 per seat". */
-  fact: string;
-}
-
-export type ClaimSource = "audio" | "selection" | "screenshot";
-export type Verdict = "current" | "outdated" | "unverifiable";
-
-export interface FactVersion { value: string; source: string; at: string; by: string }
-
-/** Payload per event type. Only claim.spotted and claim.verdict are named in the spec; the rest are proposed. */
-export interface EventPayloads {
-  "transcript.line": { lineId: string; speaker: string; text: string };
-  "claim.spotted": { claimId: string; text: string; source: ClaimSource; lineId?: string };
-  "claim.unverified": { claimId: string; reason: "no_match" | "unverifiable" };
-  "claim.verdict": {
-    claimId: string; factId: string; verdict: Verdict;
-    oldValue: string; newValue?: string; evidence: string; sourceUrl?: string; card: HudCard;
-  };
-  "fact.updated": { factId: string; version: FactVersion; card: HudCard };
-  "review.created": {
-    reviewId: string; factId: string; oldValue: string; newValue: string;
-    evidence: string; tier: Tier; reviewers: string[]; card: HudCard;
-  };
-  "review.closed": { reviewId: string; factId: string; status: "accepted" | "rejected" };
-  "strategy.flagged": { strategyId: string; name: string; factId: string };
-  "strategy.healthy": { strategyId: string; name: string };
-  "message.created": { messageId: string; to: string[]; strategyId: string; factId: string; text: string };
-}
-
-export type EventType = keyof EventPayloads;
-
-/** SSE envelope: { seq, type, payload, at }. decided */
-export type InlookEvent = {
-  [K in EventType]: { seq: number; type: K; payload: EventPayloads[K]; at: string };
-}[EventType];
+export type EventType = InlookEvent["type"];
+/** Payload per event type, derived from the event union. */
+export type EventPayloads = { [K in EventType]: Extract<InlookEvent, { type: K }>["payload"] };
+export type ClaimSource = ClaimSpottedPayload["source"];
+export type Verdict = ClaimVerdictPayload["verdict"];
+export type ReviewDecision = ReviewRequest["decision"];
 
 export const EVENT_TYPES = [
   "transcript.line", "claim.spotted", "claim.unverified", "claim.verdict", "fact.updated",
   "review.created", "review.closed", "strategy.flagged", "strategy.healthy", "message.created",
 ] as const satisfies readonly EventType[];
 
-// ---- Requests (bodies proposed) ----
-
-export type CheckRequest =
-  | { kind: "text"; text: string; source: "selection" | "claim" }
-  | { kind: "image"; mime: "image/png"; dataBase64: string; source: "screenshot" };
-
+/** IPC only (widget → main); the wire body is multipart. */
 export interface AudioChunk {
   /** audio/webm;codecs=opus, standalone file (own header). */
   data: ArrayBuffer;
@@ -62,8 +26,3 @@ export interface AudioChunk {
   startedAt: string;
   seqNo: number;
 }
-
-export type ReviewDecision = "accept" | "reject";
-
-export interface AcceptedResponse { accepted: true; checkId?: string }
-export interface ReviewResponse { id: string; status: "accepted" | "rejected" }

@@ -1,5 +1,6 @@
 {
-  "$comment": "HUD card template. Sent to Gemini as responseSchema (OpenAPI-subset shape accepted by google-genai). Mirror: overlay HudCard, backend HudCard.",
+  "title": "HudCard",
+  "description": "HUD card template, filled by Gemini in the verdict + card call.",
   "type": "object",
   "properties": {
     "title": { "type": "string", "enum": ["Fact outdated", "Fact updated", "Needs review"] },

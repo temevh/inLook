@@ -1,0 +1,109 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Api",
+  "description": "Request and response bodies of POST /check and POST /reviews/{id}, plus the 202 accepted response (POST /audio is multipart, not JSON).",
+  "$defs": {
+    "CheckRequest": {
+      "oneOf": [
+        {
+          "title": "CheckTextRequest",
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "kind": {
+              "const": "text"
+            },
+            "text": {
+              "type": "string"
+            },
+            "source": {
+              "enum": [
+                "selection",
+                "claim"
+              ]
+            }
+          },
+          "required": [
+            "kind",
+            "text",
+            "source"
+          ]
+        },
+        {
+          "title": "CheckImageRequest",
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "kind": {
+              "const": "image"
+            },
+            "mime": {
+              "const": "image/png"
+            },
+            "dataBase64": {
+              "type": "string"
+            },
+            "source": {
+              "const": "screenshot"
+            }
+          },
+          "required": [
+            "kind",
+            "mime",
+            "dataBase64",
+            "source"
+          ]
+        }
+      ]
+    },
+    "AcceptedResponse": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "accepted": {
+          "const": true
+        },
+        "checkId": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "accepted"
+      ]
+    },
+    "ReviewRequest": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "decision": {
+          "enum": [
+            "accept",
+            "reject"
+          ]
+        }
+      },
+      "required": [
+        "decision"
+      ]
+    },
+    "ReviewResponse": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "status": {
+          "enum": [
+            "accepted",
+            "rejected"
+          ]
+        }
+      },
+      "required": [
+        "id",
+        "status"
+      ]
+    }
+  }
+}
