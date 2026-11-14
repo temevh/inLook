@@ -34,6 +34,9 @@ export function summarize(e: InlookEvent, r: Records): string {
   switch (e.type) {
     case "transcript.line": return `${e.payload.speaker}: ${e.payload.text}`;
     case "claim.spotted": return `“${e.payload.text}” · ${SOURCE_LABEL[e.payload.source] ?? e.payload.source}`;
+    case "claim.progress": return e.payload.step === "matched"
+      ? `Matched ${e.payload.label ?? fact(e.payload.factId ?? "")}`
+      : e.payload.sourceUrl ? `Reading ${e.payload.sourceUrl}` : "Searching the web";
     case "claim.unverified": return e.payload.reason === "no_match" ? "No matching fact" : "Could not verify";
     case "claim.verdict": return `${e.payload.verdict} · ${e.payload.card.fact}`;
     case "fact.updated": return e.payload.card.fact;

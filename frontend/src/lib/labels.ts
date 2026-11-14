@@ -28,7 +28,7 @@ export const CLAIM: Record<ClaimState, { label: string; tone: Tone }> = {
 };
 
 export const EVENT_TONE: Record<string, Tone> = {
-  "claim.spotted": "quiet", "claim.verdict": "bad", "claim.unverified": "quiet", "transcript.line": "quiet",
+  "claim.spotted": "quiet", "claim.progress": "quiet", "claim.verdict": "bad", "claim.unverified": "quiet", "transcript.line": "quiet",
   "review.created": "warn", "review.closed": "ok", "fact.updated": "ok",
   "strategy.flagged": "bad", "strategy.healthy": "ok", "message.created": "low",
 };
