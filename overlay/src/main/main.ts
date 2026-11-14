@@ -6,7 +6,7 @@ import { config } from "./config";
 import { captureScreen } from "./screenshot";
 import { readSelection } from "./selection";
 import { subscribe } from "./sse";
-import { createHud, createWidget, setHudInteractive } from "./windows";
+import { createHud, createWidget, isOwnPage, setHudInteractive } from "./windows";
 import type { AudioChunk, InlookEvent, ReviewDecision } from "../shared/contract";
 import type { IpcInvoke, IpcPush, OverlayState } from "../shared/ipc";
 
@@ -26,8 +26,27 @@ const windows = () => [hud, widget].filter((w): w is BrowserWindow => !!w && !w.
 const push = (channel: IpcPush, payload: unknown) => windows().forEach((w) => w.webContents.send(channel, payload));
 const pushState = () => push("inlook:state", state);
 
+// Only our two local pages may call; arguments are validated by each handler's guard.
 const handle = (channel: IpcInvoke, fn: (...args: any[]) => unknown) =>
-  ipcMain.handle(channel, (_e, ...args) => fn(...args));
+  ipcMain.handle(channel, (e, ...args) => {
+    if (!isOwnPage(e.senderFrame?.url)) throw new Error(`IPC ${channel} rejected: unknown sender`);
+    return fn(...args);
+  });
+
+const AUDIO_CHUNK_MAX_BYTES = 4 * 1024 * 1024; // ~10 s Opus is well under 1 MB
+const bad = (what: string): never => { throw new Error(`invalid ${what}`); };
+const asBool = (v: unknown) => (typeof v === "boolean" ? v : bad("boolean"));
+const asReviewId = (v: unknown) => (typeof v === "string" && v.length > 0 && v.length <= 200 ? v : bad("review id"));
+const asDecision = (v: unknown): ReviewDecision => (v === "accept" || v === "reject" ? v : bad("decision"));
+function asAudioChunk(v: unknown): AudioChunk {
+  const c = v as Partial<AudioChunk> | null;
+  if (!c || typeof c !== "object") return bad("audio chunk");
+  if (!(c.data instanceof ArrayBuffer) || c.data.byteLength === 0 || c.data.byteLength > AUDIO_CHUNK_MAX_BYTES) bad("audio data");
+  if (typeof c.mime !== "string" || !c.mime.startsWith("audio/") || c.mime.length > 100) bad("audio mime");
+  if (typeof c.startedAt !== "string" || c.startedAt.length > 100) bad("audio startedAt");
+  if (!Number.isInteger(c.seqNo) || (c.seqNo as number) < 0) bad("audio seqNo");
+  return c as AudioChunk;
+}
 
 const attempt = async (fn: () => Promise<unknown>) => {
   try { await fn(); return { ok: true }; }
@@ -51,21 +70,26 @@ function registerIpc() {
   handle("state:get", () => state);
   handle("check:selection", checkSelection);
   handle("check:screen", checkScreen);
-  handle("hud:set-interactive", (on: boolean) => {
+  handle("hud:set-interactive", (v: unknown) => {
+    const on = asBool(v);
     state.hudInteractive = on;
     if (hud) setHudInteractive(hud, on);
     pushState();
   });
-  handle("mic:set-transcribing", (on: boolean) => { state.transcribing = on; pushState(); });
-  handle("audio:chunk", (chunk: AudioChunk) => attempt(() => backend.postAudio(chunk)));
-  handle("review:decide", (id: string, decision: ReviewDecision) =>
-    attempt(() => backend.postReview(id, decision)));
+  handle("mic:set-transcribing", (v: unknown) => { state.transcribing = asBool(v); pushState(); });
+  handle("audio:chunk", (v: unknown) => { const chunk = asAudioChunk(v); return attempt(() => backend.postAudio(chunk)); });
+  handle("review:decide", (id: unknown, decision: unknown) => {
+    const reviewId = asReviewId(id), d = asDecision(decision);
+    return attempt(() => backend.postReview(reviewId, d));
+  });
 }
 
 app.whenReady().then(() => {
-  // Mic permission for our own file:// pages only.
-  session.defaultSession.setPermissionRequestHandler((wc, permission, cb) =>
-    cb(permission === "media" && wc.getURL().startsWith("file://")));
+  // Mic permission for our own pages only.
+  session.defaultSession.setPermissionRequestHandler((wc, permission, cb, details) =>
+    cb(permission === "media" && isOwnPage(details.requestingUrl ?? wc.getURL())));
+  session.defaultSession.setPermissionCheckHandler((wc, permission, _origin, details) =>
+    permission === "media" && isOwnPage(details.requestingUrl ?? wc?.getURL()));
 
   registerIpc();
   hud = createHud();

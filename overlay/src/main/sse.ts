@@ -1,6 +1,10 @@
-// SSE subscriber for GET /stream. Tracks the last seq and sends it as
-// Last-Event-ID on reconnect, so the backend replays what was missed.
+// SSE subscriber for GET /stream, on the `eventsource` package. It reconnects by
+// itself and sends Last-Event-ID, so the backend replays what was missed. It gives
+// up on some errors (non-200, wrong content type); those get a fresh instance after
+// a delay, and we send the Last-Event-ID ourselves since a new instance forgets it.
+import { EventSource } from "eventsource";
 import { config } from "./config";
+import { validateEvent } from "./validate";
 import { EVENT_TYPES, type InlookEvent } from "../shared/contract";
 
 export type StreamStatus = "connecting" | "open" | "closed";
@@ -10,81 +14,47 @@ export interface StreamOptions {
   onStatus(s: StreamStatus): void;
 }
 
-const KNOWN = new Set<string>(EVENT_TYPES);
+const RECREATE_MS = 3000;
 
 export function subscribe({ onEvent, onStatus }: StreamOptions): () => void {
   let lastEventId: string | undefined;
   let lastSeq = 0;
-  let retryMs = 1000;
+  let es: EventSource | undefined;
+  let timer: NodeJS.Timeout | undefined;
   let stopped = false;
-  let controller: AbortController | undefined;
 
-  const connect = async () => {
-    while (!stopped) {
-      controller = new AbortController();
-      onStatus("connecting");
-      try {
-        const headers: Record<string, string> = { accept: "text/event-stream" };
-        if (lastEventId) headers["last-event-id"] = lastEventId;
-        const res = await fetch(`${config.backendUrl}/stream`, { headers, signal: controller.signal });
-        if (!res.ok || !res.body) throw new Error(`stream ${res.status}`);
-        onStatus("open");
-        retryMs = 1000;
-        await readFrames(res.body, (frame) => {
-          if (frame.retry) retryMs = frame.retry;
-          if (frame.id) lastEventId = frame.id;
-          if (!frame.data) return; // keep-alive comment or empty frame
-          try {
-            const e = JSON.parse(frame.data) as InlookEvent;
-            if (e.seq <= lastSeq) return; // already seen (replay overlap)
-            lastSeq = e.seq;
-            if (KNOWN.has(e.type)) onEvent(e);
-            else console.warn("[sse] unknown event type", e.type);
-          } catch (err) {
-            console.warn("[sse] bad frame", err);
-          }
-        });
-      } catch (err) {
-        if (stopped) break;
-        console.warn("[sse]", (err as Error).message);
-      }
+  const connect = () => {
+    onStatus("connecting");
+    es = new EventSource(`${config.backendUrl}/stream`, {
+      fetch: (input, init) => {
+        const headers = new Headers(init?.headers);
+        if (lastEventId) headers.set("last-event-id", lastEventId);
+        return fetch(input, { ...init, headers });
+      },
+    });
+    const source = es;
+    source.onopen = () => onStatus("open");
+    source.onerror = (ev) => {
+      if (stopped) return;
+      console.warn("[sse]", ev.message ?? "stream error");
       onStatus("closed");
-      if (!stopped) await new Promise((r) => setTimeout(r, retryMs));
-      retryMs = Math.min(retryMs * 2, 15000);
-    }
+      if (source.readyState === EventSource.CLOSED) timer = setTimeout(connect, RECREATE_MS);
+    };
+    // Frames carry `event: <type>`, so onmessage never fires; listen per type.
+    const onFrame = (m: MessageEvent) => {
+      if (m.lastEventId) lastEventId = m.lastEventId;
+      let e: unknown;
+      try { e = JSON.parse(m.data); } catch (err) { console.warn("[sse] bad json", err); return; }
+      const bad = validateEvent(e);
+      if (bad) { console.warn("[sse] dropped invalid event:", bad.slice(0, 300)); return; }
+      const ev = e as InlookEvent;
+      if (ev.seq <= lastSeq) return; // already seen (replay overlap)
+      lastSeq = ev.seq;
+      onEvent(ev);
+    };
+    for (const t of EVENT_TYPES) source.addEventListener(t, onFrame);
   };
-  void connect();
+  connect();
 
-  return () => { stopped = true; controller?.abort(); };
-}
-
-interface Frame { id?: string; event?: string; data?: string; retry?: number }
-
-async function readFrames(body: ReadableStream<Uint8Array>, onFrame: (f: Frame) => void) {
-  const decoder = new TextDecoder();
-  let buf = "";
-  let frame: Frame = {};
-  let data: string[] = [];
-  for await (const bytes of body as unknown as AsyncIterable<Uint8Array>) {
-    buf += decoder.decode(bytes, { stream: true });
-    let nl: number;
-    while ((nl = buf.search(/\r\n|\r|\n/)) >= 0) {
-      const line = buf.slice(0, nl);
-      buf = buf.slice(nl + (buf.startsWith("\r\n", nl) ? 2 : 1));
-      if (line === "") {
-        if (data.length) frame.data = data.join("\n");
-        onFrame(frame);
-        frame = {}; data = [];
-        continue;
-      }
-      if (line.startsWith(":")) continue;
-      const i = line.indexOf(":");
-      const field = i < 0 ? line : line.slice(0, i);
-      const value = i < 0 ? "" : line.slice(i + 1).replace(/^ /, "");
-      if (field === "data") data.push(value);
-      else if (field === "id") frame.id = value;
-      else if (field === "event") frame.event = value;
-      else if (field === "retry" && /^\d+$/.test(value)) frame.retry = Number(value);
-    }
-  }
+  return () => { stopped = true; clearTimeout(timer); es?.close(); };
 }
