@@ -30,9 +30,12 @@ function signedInUser(): string {
   return import.meta.env.VITE_INLOOK_USER || DEFAULT_USER;
 }
 
+/**
+ * The dashboard runs in demo mode only for now (the Live / Demo switch is gone). Live mode's code stays:
+ * to bring it back, return "live" here when wanted and restore the switch in AppHeader.vue.
+ */
 function initialMode(): DataMode {
-  if (import.meta.env.MODE === "demo") return "demo";
-  try { return new URLSearchParams(location.search).has("demo") ? "demo" : "live"; } catch { return "live"; }
+  return "demo";
 }
 
 export const useInlook = defineStore("inlook", () => {
