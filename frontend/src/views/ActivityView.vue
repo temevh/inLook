@@ -27,7 +27,6 @@ const shown = computed(() => {
   <section class="card" aria-labelledby="act-h">
     <div class="head">
       <h1 id="act-h">Activity</h1>
-      <span class="muted small">events in your scope, newest first</span>
       <label for="type" class="muted small filter-label">Type</label>
       <select id="type" v-model="filter">
         <option v-for="(label, key) in groups" :key="key" :value="key">{{ label }}</option>

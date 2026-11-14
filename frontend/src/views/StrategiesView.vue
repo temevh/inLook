@@ -14,14 +14,12 @@ const list = computed(() =>
       a.name.localeCompare(b.name),
   ),
 );
-const hidden = computed(() => Object.keys(store.records.strategies).length - list.value.length);
 </script>
 
 <template>
   <div class="page">
     <div class="head">
       <h1>Strategies</h1>
-      <span class="muted small">{{ hidden ? `your scope · ${hidden} outside it hidden` : "every strategy in the company" }} · a strategy is flagged when a high-tier fact it relies on changes</span>
     </div>
     <p v-if="!list.length" class="card empty">No strategy is owned by you or anyone below you.</p>
     <div class="grid">

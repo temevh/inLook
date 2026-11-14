@@ -18,7 +18,7 @@ const initials = (name: string) => name.split(/\s+/).map((w) => w[0]).join("").s
 
 <template>
   <section class="card scope" aria-labelledby="scope-h">
-    <div class="head"><h2 id="scope-h">Your scope</h2><span class="muted small">you and everyone below you</span></div>
+    <div class="head"><h2 id="scope-h">Your scope</h2></div>
     <ul>
       <li
         v-for="{ person, depth } in rows" :key="person.id"

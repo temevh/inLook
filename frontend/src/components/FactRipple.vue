@@ -52,12 +52,17 @@ const asked = (id: string) => !!review.value?.reviewers.includes(id);
       <h2 id="rip-h">How a change ripples</h2>
       <span class="muted small">
         <template v-if="!strategies.length">No strategy relies on {{ fact.label }}, so a change only reaches {{ personName(fact.statedBy, store.records) }}, who stated it.</template>
-        <template v-else-if="tier === 'high'">High tier: a change flags every strategy below and asks every owner.</template>
-        <template v-else>{{ TIER[tier].label }} tier: a change goes to {{ personName(fact.statedBy, store.records) }} only; these strategies wait for that decision.</template>
+        <template v-else-if="tier !== 'high'">{{ TIER[tier].label }} tier: a change goes to {{ personName(fact.statedBy, store.records) }} only; these strategies wait for that decision.</template>
       </span>
     </div>
 
-    <div v-if="strategies.length" class="graph" :style="{ height: `${height}px` }">
+    <div v-if="strategies.length" class="canvas">
+    <div class="cols" aria-hidden="true">
+      <span class="col fact" :style="{ left: `${COL.fact[0]}%`, width: `${COL.fact[1] - COL.fact[0]}%` }"><i class="dot" />Fact</span>
+      <span class="col strategy" :style="{ left: `${COL.strategy[0]}%`, width: `${COL.strategy[1] - COL.strategy[0]}%` }"><i class="dot" />Strategies relying on it · {{ strategies.length }}</span>
+      <span class="col owner" :style="{ left: `${COL.owner[0]}%`, width: `${COL.owner[1] - COL.owner[0]}%` }"><i class="dot" />Owners · {{ ownerIds.length }}</span>
+    </div>
+    <div class="graph" :style="{ height: `${height}px` }">
       <svg class="edges" :viewBox="`0 0 100 ${height}`" preserveAspectRatio="none" aria-hidden="true">
         <path v-for="e in factEdges" :key="e.key" :d="e.d" :class="[edgeClass, { flagged: e.flagged }]" />
         <path v-for="e in ownerEdges" :key="e.key" :d="e.d" :class="[edgeClass && e.asked ? edgeClass : '', { asked: e.asked }]" />
@@ -81,6 +86,7 @@ const asked = (id: string) => !!review.value?.reviewers.includes(id);
         <span class="muted">{{ asked(id) ? "Asked to decide" : store.records.people[id]?.role }}</span>
       </div>
     </div>
+    </div>
 
     <div class="legend muted small">
       <span><i class="sw hot" /> change in review</span>
@@ -94,7 +100,14 @@ const asked = (id: string) => !!review.value?.reviewers.includes(id);
 .ripple { padding: 16px; display: flex; flex-direction: column; gap: 12px; }
 .head { display: flex; flex-wrap: wrap; align-items: baseline; gap: 6px 10px; }
 .head h2 { font-size: 1rem; }
-.graph { position: relative; min-width: 560px; }
+.canvas { --k-fact: #a78bfa; --k-strategy: #2dd4bf; --k-owner: #f472b6; min-width: 560px; display: flex; flex-direction: column; gap: 8px; }
+.cols { position: relative; height: 18px; }
+.col { position: absolute; top: 0; display: inline-flex; align-items: center; gap: 6px; font-size: 0.6875rem; font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.col .dot { flex: none; width: 8px; height: 8px; border-radius: 2px; }
+.col.fact { color: var(--k-fact); } .col.fact .dot { background: var(--k-fact); }
+.col.strategy { color: var(--k-strategy); } .col.strategy .dot { background: var(--k-strategy); }
+.col.owner { color: var(--k-owner); } .col.owner .dot { background: var(--k-owner); border-radius: 50%; }
+.graph { position: relative; }
 .edges { position: absolute; inset: 0; width: 100%; height: 100%; overflow: visible; }
 .edges path { fill: none; stroke: var(--border); stroke-width: 1.5; vector-effect: non-scaling-stroke; transition: stroke 0.3s var(--ease); }
 .edges path.medium { stroke: #f0b44c; stroke-dasharray: 6 5; animation: flow 1s linear infinite; }
@@ -102,6 +115,10 @@ const asked = (id: string) => !!review.value?.reviewers.includes(id);
 @keyframes flow { to { stroke-dashoffset: -11; } }
 @media (prefers-reduced-motion: reduce) { .edges path { animation: none !important; } }
 .node { position: absolute; box-sizing: border-box; display: flex; flex-direction: column; justify-content: center; gap: 2px; padding: 6px 12px; border: 1px solid var(--border); border-radius: 0.75rem; background: var(--raised); font-size: 0.8125rem; line-height: 1.25; overflow: hidden; }
+.node { border-color: color-mix(in srgb, var(--kind) 35%, var(--border)); }
+.node.fact { --kind: var(--k-fact); }
+.node.strategy { --kind: var(--k-strategy); }
+.node.owner { --kind: var(--k-owner); }
 .node strong, .node span { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .node span { font-size: 0.75rem; }
 .node.fact.hot { border-color: var(--warning); background: var(--tint-warning); }

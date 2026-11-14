@@ -19,7 +19,6 @@ const facts = computed(() =>
     .filter((f) => store.scope.facts.has(f.id))
     .sort((a, b) => Number(b.statedBy === me.value) - Number(a.statedBy === me.value) || Number(store.scope.ownFacts.has(b.id)) - Number(store.scope.ownFacts.has(a.id)) || a.label.localeCompare(b.label)),
 );
-const hidden = computed(() => Object.keys(store.records.facts).length - facts.value.length);
 const tierOf = (id: string) => {
   const f = store.records.facts[id];
   return TIER[effectiveTier(id, f.tier, store.records.strategies)];
@@ -60,7 +59,6 @@ function select(id: string) {
     <section class="card table-card" aria-labelledby="facts-h">
       <div class="head">
         <h1 id="facts-h">Company memory</h1>
-        <span class="muted small">{{ hidden ? `your scope · ${hidden} fact${hidden > 1 ? "s" : ""} outside it hidden` : "everything in company memory" }}</span>
       </div>
       <p v-if="!facts.length" class="empty">No facts in your scope yet.</p>
       <div v-else class="scroll">
