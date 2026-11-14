@@ -1,0 +1,267 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Transit — the organisation as a line map</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@62..125,400;62..125,600;62..125,800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #17181b;
+    --bg-2: #1f2125;
+    --rule: #2e3137;
+    --text: #ecebe6;
+    --muted: #a3a29b;
+    --l0: #e8483b; --l1: #f3a712; --l2: #3fb27f; --l3: #3f8fe0; --l4: #b56ad8;
+  }
+  * { box-sizing: border-box; margin: 0; }
+  html, body { background: var(--bg); color: var(--text); }
+  body { font-family: "Archivo", system-ui, sans-serif; min-height: 100vh; display: grid; grid-template-columns: minmax(0, 1fr) 380px; }
+  ::selection { background: var(--l1); color: var(--bg); }
+  ::-webkit-scrollbar { width: 8px; } ::-webkit-scrollbar-thumb { background: var(--rule); border-radius: 4px; }
+
+  main { padding: clamp(20px, 3vw, 40px); display: flex; flex-direction: column; min-width: 0; }
+  h1 { font-weight: 800; font-stretch: 125%; font-size: clamp(2.2rem, 4.6vw, 4rem); letter-spacing: -0.035em; line-height: .9; text-transform: uppercase; }
+  main > p { color: var(--muted); max-width: 58ch; margin-top: 12px; line-height: 1.45; }
+  svg { width: 100%; height: auto; margin-top: 18px; flex: 1; }
+
+  .st-label { font: 600 13px "Archivo", sans-serif; font-stretch: 85%; fill: var(--text); }
+  .st-sub { font: 400 11px "JetBrains Mono", monospace; fill: var(--muted); }
+  .hub-label { font: 800 15px "Archivo", sans-serif; font-stretch: 110%; fill: var(--text); text-transform: uppercase; letter-spacing: .02em; }
+  .line { fill: none; stroke-width: 7; stroke-linejoin: round; stroke-linecap: round; transition: opacity .25s; }
+  .stop { cursor: pointer; transition: opacity .25s; }
+  .stop:focus-visible circle { stroke: #fff; stroke-width: 3; }
+  .stop:focus { outline: none; }
+  .dim { opacity: .15; }
+
+  aside { border-left: 1px solid var(--rule); background: var(--bg-2); display: flex; flex-direction: column; height: 100vh; position: sticky; top: 0; }
+  .board-head { padding: 24px 22px 14px; border-bottom: 1px solid var(--rule); display: flex; justify-content: space-between; align-items: baseline; }
+  .board-head h2 { font-weight: 800; font-stretch: 110%; font-size: 1.05rem; text-transform: uppercase; letter-spacing: .03em; }
+  .clock { font: 500 1rem "JetBrains Mono", monospace; color: var(--l1); font-variant-numeric: tabular-nums; }
+  .lines { display: flex; gap: 6px; padding: 12px 22px; border-bottom: 1px solid var(--rule); flex-wrap: wrap; }
+  .lines button {
+    font: 600 0.8rem "Archivo", sans-serif; color: var(--text); background: transparent;
+    border: 1px solid var(--rule); border-radius: 999px; padding: 5px 11px 5px 7px; cursor: pointer;
+    display: inline-flex; align-items: center; gap: 7px; transition: border-color .15s, background .15s;
+  }
+  .lines button:hover { border-color: #4a4e57; }
+  .lines button[aria-pressed="true"] { background: var(--text); color: var(--bg); border-color: var(--text); }
+  .lines button:focus-visible { outline: 2px solid var(--l1); outline-offset: 2px; }
+  .lines i { width: 12px; height: 12px; border-radius: 50%; display: inline-block; }
+
+  ol { list-style: none; padding: 0; overflow-y: auto; flex: 1; }
+  li { display: grid; grid-template-columns: 62px 1fr; gap: 2px 12px; padding: 11px 22px; border-bottom: 1px solid var(--rule); animation: arrive .7s cubic-bezier(.16,1,.3,1); }
+  li time { font: 500 0.8rem "JetBrains Mono", monospace; color: var(--muted); font-variant-numeric: tabular-nums; grid-row: span 2; padding-top: 2px; }
+  li strong { font-weight: 600; font-size: 0.95rem; display: flex; align-items: center; gap: 8px; }
+  li strong i { width: 8px; height: 8px; border-radius: 50%; flex: none; }
+  li span { color: var(--muted); font-size: 0.85rem; }
+  li.empty { display: block; color: var(--muted); font-size: 0.9rem; animation: none; }
+  @keyframes arrive { from { background: #2a2c31; transform: translateX(-6px); } to { background: transparent; transform: none; } }
+
+  .board-foot { padding: 14px 22px; border-top: 1px solid var(--rule); display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+  .board-foot div { font-size: 0.75rem; color: var(--muted); }
+  .board-foot b { display: block; font: 500 1.2rem "JetBrains Mono", monospace; color: var(--text); font-variant-numeric: tabular-nums; }
+
+  @media (max-width: 980px) {
+    body { grid-template-columns: 1fr; }
+    aside { height: 70vh; position: static; border-left: 0; border-top: 1px solid var(--rule); }
+  }
+  @media (prefers-reduced-motion: reduce) { li { animation: none; } }
+</style>
+</head>
+<body>
+<main>
+  <h1>Transit</h1>
+  <p>Information departs the Archive, changes at headquarters and rides one branch line out to the people who need it. Each stop is a person; the board on the right logs every arrival. Click any stop to send them something.</p>
+  <svg id="map" viewBox="0 0 1100 690" role="img" aria-label="Line map: an archive feeds headquarters, which splits into five coloured branch lines, each stopping at five people"></svg>
+</main>
+
+<aside>
+  <div class="board-head"><h2>Arrivals</h2><span class="clock" id="clock">00:00:00</span></div>
+  <div class="lines" id="filters"></div>
+  <ol id="board"><li class="empty">Waiting for the first delivery…</li></ol>
+  <div class="board-foot">
+    <div>Delivered<b id="f-total">0</b></div>
+    <div>On the lines<b id="f-moving">0</b></div>
+    <div>Avg. trip<b id="f-trip">–</b></div>
+  </div>
+</aside>
+
+<script>
+const LINES = [
+  { name: "Research",  color: "#e8483b", x: 90,  people: [["Mira Lindqvist","Lead scientist"],["Tapio Kurki","Lab manager"],["Sanni Väisänen","Data analyst"],["Olli Paasi","Research engineer"],["Heta Honka","Intern"]] },
+  { name: "Finance",   color: "#f3a712", x: 300, people: [["Eero Ranta","CFO"],["Laura Keto","Controller"],["Juho Viita","Payables"],["Anni Lahti","Treasury"],["Pekka Huhta","Auditor"]] },
+  { name: "Sales",     color: "#3fb27f", x: 510, people: [["Sara Holm","Sales director"],["Niko Aro","Key accounts"],["Roosa Uusi","Inside sales"],["Teemu Pitkä","Partner manager"],["Vilma Koivu","Sales ops"]] },
+  { name: "Operations",color: "#3f8fe0", x: 720, people: [["Jussi Koski","COO"],["Krista Malm","Logistics"],["Arttu Seppä","Facilities"],["Inka Ström","Procurement"],["Matias Lumme","Fleet"]] },
+  { name: "People",    color: "#b56ad8", x: 930, people: [["Elina Saari","Head of people"],["Ronja Peura","Recruiter"],["Aleksi Ilves","Payroll"],["Salla Ojala","Learning"],["Ville Kaarna","Wellbeing"]] },
+];
+const DOCS = ["Q3 forecast","Customer export","Contract scan","Shift roster","Lab results","Pricing sheet","Policy update","Vendor list","Headcount plan","Incident report","Invoice batch","Survey results"];
+
+const NS = "http://www.w3.org/2000/svg";
+const map = document.getElementById("map");
+const mk = (tag, attrs, parent = map) => { const e = document.createElementNS(NS, tag); for (const k in attrs) e.setAttribute(k, attrs[k]); parent.appendChild(e); return e; };
+
+const SRC = { x: 510, y: 46 }, HQ = { x: 510, y: 176 };
+const STOP_Y = [330, 395, 460, 525, 590, 655];
+const R = 22;
+
+function rounded(pts) {
+  let d = `M${pts[0][0]},${pts[0][1]}`;
+  for (let i = 1; i < pts.length - 1; i++) {
+    const [x0, y0] = pts[i - 1], [x1, y1] = pts[i], [x2, y2] = pts[i + 1];
+    const l1 = Math.hypot(x1 - x0, y1 - y0), l2 = Math.hypot(x2 - x1, y2 - y1);
+    const r = Math.min(R, l1 / 2, l2 / 2);
+    const ax = x1 - (x1 - x0) / l1 * r, ay = y1 - (y1 - y0) / l1 * r;
+    const bx = x1 + (x2 - x1) / l2 * r, by = y1 + (y2 - y1) / l2 * r;
+    d += ` L${ax},${ay} Q${x1},${y1} ${bx},${by}`;
+  }
+  const e = pts[pts.length - 1];
+  return d + ` L${e[0]},${e[1]}`;
+}
+
+const gLines = mk("g", {}), gTrains = mk("g", {}), gStops = mk("g", {});
+
+// Intake line
+const intake = mk("path", { d: `M${SRC.x},${SRC.y + 22} L${HQ.x},${HQ.y - 16}`, class: "line", stroke: "#ecebe6", "stroke-dasharray": "1 13", "stroke-width": 5 }, gLines);
+
+// Branch lines with parallel offsets, no crossings
+const turnY = { 0: 222, 1: 236, 2: null, 3: 236, 4: 222 };
+LINES.forEach((L, i) => {
+  const sx = HQ.x + (i - 2) * 11;
+  const pts = [[sx, HQ.y + 10]];
+  if (turnY[i] !== null) { pts.push([sx, turnY[i]]); pts.push([L.x, turnY[i]]); }
+  pts.push([L.x, STOP_Y[5]]);
+  L.path = mk("path", { d: rounded(pts), class: "line", stroke: L.color }, gLines);
+  L.len = L.path.getTotalLength();
+  // length at each stop
+  L.stopLen = STOP_Y.map(y => {
+    let lo = 0, hi = L.len;
+    for (let k = 0; k < 30; k++) { const m = (lo + hi) / 2; L.path.getPointAtLength(m).y < y ? lo = m : hi = m; }
+    return hi;
+  });
+});
+
+// Archive station
+const arch = mk("g", { transform: `translate(${SRC.x},${SRC.y})` }, gStops);
+mk("rect", { x: -60, y: -22, width: 120, height: 44, rx: 22, fill: "#17181b", stroke: "#ecebe6", "stroke-width": 3 }, arch);
+mk("path", { d: "M-40,-8 a10,4 0 0,1 20,0 v16 a10,4 0 0,1 -20,0 z M-40,-8 a10,4 0 0,0 20,0 M-40,0 a10,4 0 0,0 20,0", fill: "none", stroke: "#ecebe6", "stroke-width": 1.6 }, arch);
+mk("text", { x: -12, y: 5, class: "hub-label" }, arch).textContent = "Archive";
+
+// HQ interchange
+const hq = mk("g", { transform: `translate(${HQ.x},${HQ.y})` }, gStops);
+mk("rect", { x: -44, y: -16, width: 88, height: 32, rx: 16, fill: "#17181b", stroke: "#ecebe6", "stroke-width": 3 }, hq);
+mk("text", { x: 0, y: 5, class: "hub-label", "text-anchor": "middle" }, hq).textContent = "HQ";
+mk("text", { x: 58, y: -2, class: "st-sub" }, hq).textContent = "interchange";
+const hqCount = mk("text", { x: 58, y: 12, class: "st-sub" }, hq); hqCount.textContent = "0 transfers";
+
+// Stops
+const stops = [];
+LINES.forEach((L, li) => {
+  // branch station
+  const g = mk("g", { transform: `translate(${L.x},${STOP_Y[0]})` }, gStops);
+  mk("rect", { x: -13, y: -13, width: 26, height: 26, rx: 13, fill: "#17181b", stroke: L.color, "stroke-width": 4 }, g);
+  mk("rect", { x: -5, y: -5, width: 10, height: 10, rx: 5, fill: "#ecebe6" }, g);
+  mk("text", { x: 22, y: -2, class: "hub-label", style: "font-size:13px" }, g).textContent = L.name;
+  L.countEl = mk("text", { x: 22, y: 13, class: "st-sub" }, g); L.countEl.textContent = "branch · 0";
+  L.people.forEach(([name, role], pi) => {
+    const s = mk("g", { transform: `translate(${L.x},${STOP_Y[pi + 1]})`, class: "stop", tabindex: 0, role: "button", "aria-label": `Send a document to ${name}` }, gStops);
+    const ring = mk("circle", { r: 7, fill: "#17181b", stroke: L.color, "stroke-width": 3.5 }, s);
+    mk("text", { x: 16, y: -1, class: "st-label" }, s).textContent = name;
+    const sub = mk("text", { x: 16, y: 13, class: "st-sub" }, s); sub.textContent = role;
+    const st = { line: li, idx: pi + 1, name, role, ring, sub, g: s, got: 0 };
+    s.addEventListener("click", () => dispatch(li, pi + 1));
+    s.addEventListener("keydown", e => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); dispatch(li, pi + 1); } });
+    stops.push(st); L.stops = L.stops || []; L.stops.push(st);
+  });
+});
+
+// Filters
+let only = null;
+const filters = document.getElementById("filters");
+LINES.forEach((L, i) => {
+  const b = document.createElement("button");
+  b.innerHTML = `<i style="background:${L.color}"></i>${L.name}`;
+  b.setAttribute("aria-pressed", "false");
+  b.addEventListener("click", () => { only = only === i ? null : i; applyFilter(); });
+  filters.appendChild(b); L.btn = b;
+});
+function applyFilter() {
+  LINES.forEach((L, i) => {
+    const off = only !== null && only !== i;
+    L.path.classList.toggle("dim", off);
+    L.stops.forEach(s => s.g.classList.toggle("dim", off));
+    L.btn.setAttribute("aria-pressed", only === i);
+  });
+  trains.forEach(t => t.el.classList.toggle("dim", only !== null && only !== t.line));
+}
+
+// Trains
+const trains = [];
+const intakeLen = intake.getTotalLength();
+let total = 0, transfers = 0, tripSum = 0;
+const lineTotals = LINES.map(() => 0);
+function dispatch(line, idx, now = performance.now()) {
+  if (line === undefined) { line = (Math.random() * LINES.length) | 0; idx = 1 + ((Math.random() * 5) | 0); }
+  const L = LINES[line];
+  const el = mk("g", {}, gTrains);
+  mk("rect", { x: -9, y: -4.5, width: 18, height: 9, rx: 4.5, fill: L.color, stroke: "#17181b", "stroke-width": 2 }, el);
+  const t = { line, idx, el, phase: 0, d: 0, speed: 2.4 + Math.random() * .8, born: now, doc: DOCS[(Math.random() * DOCS.length) | 0], wait: 0 };
+  el.classList.toggle("dim", only !== null && only !== line);
+  trains.push(t);
+}
+
+const board = document.getElementById("board");
+const ease = x => 1 - Math.pow(1 - x, 3);
+function stamp(d) { return d.toTimeString().slice(0, 8); }
+function arrive(t, now) {
+  const L = LINES[t.line], st = L.stops[t.idx - 1];
+  st.got++; total++; tripSum += (now - t.born) / 1000;
+  st.sub.textContent = `${st.role} · ${st.got}`;
+  st.ring.setAttribute("fill", L.color);
+  setTimeout(() => st.ring.setAttribute("fill", "#17181b"), 500);
+  const empty = board.querySelector(".empty"); if (empty) empty.remove();
+  const li = document.createElement("li");
+  li.innerHTML = `<time>${stamp(new Date())}</time><strong><i style="background:${L.color}"></i>${st.name}</strong><span>${t.doc} · ${L.name} line</span>`;
+  board.prepend(li);
+  while (board.children.length > 40) board.lastChild.remove();
+  document.getElementById("f-total").textContent = total;
+  document.getElementById("f-trip").textContent = (tripSum / total).toFixed(1) + "s";
+}
+
+let last = performance.now(), acc = 0;
+function tick(now) {
+  const dt = Math.min(50, now - last) / 16.67; last = now;
+  acc += dt * .022;
+  if (acc >= 1) { dispatch(undefined, undefined, now); acc = 0; }
+  for (let i = trains.length - 1; i >= 0; i--) {
+    const t = trains[i], L = LINES[t.line];
+    let p;
+    if (t.phase === 0) {
+      t.d += t.speed * dt; p = intake.getPointAtLength(Math.min(t.d, intakeLen));
+      if (t.d >= intakeLen) { t.phase = 1; t.wait = 18; transfers++; hqCount.textContent = transfers + " transfers"; }
+    } else if (t.phase === 1) {
+      t.wait -= dt; p = { x: HQ.x + (t.line - 2) * 11, y: HQ.y };
+      if (t.wait <= 0) { t.phase = 2; t.d = 0; }
+    } else {
+      t.d += t.speed * dt;
+      const target = L.stopLen[t.idx];
+      if (!t.passedBranch && t.d >= L.stopLen[0]) { t.passedBranch = true; lineTotals[t.line]++; L.countEl.textContent = `branch · ${lineTotals[t.line]}`; }
+      // ease in on approach to the stop
+      const remain = target - t.d;
+      if (remain < 40) t.d += Math.max(0, remain) * .02 * dt - t.speed * dt * (1 - ease(Math.max(0, remain) / 40)) * .6;
+      p = L.path.getPointAtLength(Math.min(t.d, target));
+      if (t.d >= target - .5) { arrive(t, now); t.el.remove(); trains.splice(i, 1); continue; }
+    }
+    t.el.setAttribute("transform", `translate(${p.x},${p.y}) rotate(${t.phase === 2 && L.path.getPointAtLength(Math.min(t.d + 2, L.len)).y - p.y < 1 ? 0 : 90})`);
+  }
+  document.getElementById("f-moving").textContent = trains.length;
+  requestAnimationFrame(tick);
+}
+setInterval(() => document.getElementById("clock").textContent = stamp(new Date()), 1000);
+document.getElementById("clock").textContent = stamp(new Date());
+if (!matchMedia("(prefers-reduced-motion: reduce)").matches) requestAnimationFrame(tick);
+</script>
+</body>
+</html>

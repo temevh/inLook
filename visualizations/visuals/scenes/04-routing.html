@@ -1,0 +1,44 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>04 · Routing</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Schibsted+Grotesk:wght@400;600;800&family=JetBrains+Mono:wght@500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="kit.css">
+</head>
+<body>
+<svg id="s" viewBox="0 0 1920 1080" preserveAspectRatio="xMidYMid meet" aria-label="Inlook sends each fact only to the people across teams who rely on it; everyone else is left alone."></svg>
+<script src="kit.js"></script>
+<script>
+TEMPO = 2.2;
+const c = core(120, 400, 300, 240);
+const cur = tag(120, 230, "", "", "", 300);
+const TEAMS = [["Sales", ["Mikko", "Anna", "Sara", "Juho"]], ["Product", ["Otto", "Leena", "Ville", "Iida"]], ["Finance", ["Eero", "Laura", "Petri", "Noora"]]];
+const ppl = {};
+TEAMS.forEach(([name, names], ti) => Object.assign(ppl, teamRow(760, 220 + ti * 200, 1080, 170, name, names, [420, 520], `${ti}`)));
+const ROUNDS = [
+  [["Competitor price", "€59 / seat", "Tuesday's meeting"], ["00", "01", "20"]],
+  [["Churn target", "3% / month", "Planning doc"], ["20", "21", "10"]],
+  [["Top customer ask", "Single sign-on", "Support chat"], ["10", "11", "12", "02"]],
+];
+say("Each fact reaches only the people who rely on it.");
+let r = 0;
+loop(async () => {
+  const [f, who] = ROUNDS[r++ % ROUNDS.length];
+  cur.set(...f); flash(cur.box, "ok", 700); c.status("routing…", COL.warn);
+  Object.entries(ppl).forEach(([k, p]) => p.classList.toggle("out", !who.includes(k)));
+  who.forEach(k => act(k, "live"));
+  await wait(600);
+  await Promise.all(who.map((k, i) => wait(i * 120).then(() => travel([k], COL.ok, 11)).then(() => ppl[k].classList.add("hit"))));
+  c.status("delivered");
+  await wait(2600);
+  Object.values(ppl).forEach(p => p.classList.remove("hit", "out"));
+  Object.keys(ppl).forEach(deact);
+  await wait(500);
+});
+</script>
+</body>
+</html>

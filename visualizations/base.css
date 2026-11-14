@@ -1,0 +1,22 @@
+:root{
+  --ground:#0e2a5a; --ground-2:#12336b; --leaf:#efe6cc; --leaf-dim:#b9b39e;
+  --ink:#0c1a33; --hot:#ff5a36; --line:#2a4a85;
+  --serif:"EB Garamond",Georgia,"Times New Roman",serif;
+  --sans:"Hanken Grotesk",system-ui,-apple-system,"Segoe UI",sans-serif;
+}
+*{box-sizing:border-box}
+html,body{margin:0;background:var(--ground);color:var(--leaf);font-family:var(--sans)}
+body{min-height:100vh;display:flex;flex-direction:column}
+::selection{background:var(--hot);color:var(--ink)}
+a{color:inherit;text-underline-offset:.25em;text-decoration-thickness:1px}
+:focus-visible{outline:2px solid var(--hot);outline-offset:3px}
+header.bar{display:flex;gap:2rem;align-items:baseline;justify-content:space-between;
+  padding:1.1rem clamp(1rem,3vw,2.5rem);border-bottom:1px solid var(--line)}
+header.bar h1{font:500 1.6rem/1 var(--serif);margin:0;letter-spacing:.01em}
+header.bar nav{display:flex;gap:1.5rem;font-size:.82rem;letter-spacing:.08em;text-transform:uppercase}
+header.bar nav a{text-decoration:none;color:var(--leaf-dim);padding-bottom:.2rem;border-bottom:1px solid transparent}
+header.bar nav a:hover{color:var(--leaf)}
+header.bar nav a[aria-current]{color:var(--leaf);border-color:var(--hot)}
+.note{font-size:.75rem;color:var(--leaf-dim);padding:.8rem clamp(1rem,3vw,2.5rem);border-top:1px solid var(--line)}
+.lede{font:400 1.25rem/1.45 var(--serif);max-width:46ch;margin:0;color:var(--leaf)}
+@media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}

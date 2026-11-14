@@ -1,0 +1,54 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>03 · Building blocks</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Schibsted+Grotesk:wght@400;600;800&family=JetBrains+Mono:wght@500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="kit.css">
+</head>
+<body>
+<svg id="s" viewBox="0 0 1920 1080" preserveAspectRatio="xMidYMid meet" aria-label="Four facts fill the foundation of a strategy, which becomes complete once all four are in place."></svg>
+<script src="kit.js"></script>
+<script>
+TEMPO = 2.6;
+const F = [["Competitor price", "€59 / seat", "Tuesday's meeting"], ["Churn target", "3% / month", "Planning doc"], ["Win rate vs. X", "34%", "Sales review"], ["Margin floor", "62%", "Finance review"]];
+const S = grp(1060, 190);
+const card = mk("g", {}, S);
+const cardBox = mk("rect", { width: 600, height: 210, rx: 20, class: "box" }, card);
+mk("path", { d: "M540,36 V84 M540,36 H572 L564,48 L572,60 H540", fill: "none", stroke: COL.muted, "stroke-width": 3, "stroke-linejoin": "round" }, card);
+txt(card, 40, 106, "t-xl", "Q1 pricing", { style: "font-size:46px" });
+const st = txt(card, 40, 154, "t-m", "", { style: "font-weight:600; font-size:22px" });
+const slots = F.map((f, i) => {
+  const g = grp(0, 226 + i * 68, S);
+  mk("rect", { width: 600, height: 56, rx: 12, class: "box dashed", style: `fill:${COL.bg}` }, g);
+  const fill = faded(mk("g", {}, g));
+  mk("rect", { width: 600, height: 56, rx: 12, class: "box ok", style: `fill:${COL.card2}` }, fill);
+  txt(fill, 22, 34, "t-col", f[0], { style: "font-size:14px" });
+  txt(fill, 578, 37, "t-val", f[1], { "text-anchor": "end", style: "font-size:24px" });
+  return fill;
+});
+const tags = F.map((f, i) => { const cy = 278 + i * 160; link("f" + i, curve(420, cy, 1060, 444 + i * 68)); return tag(140, cy - 58, ...f); });
+say("Facts become the building blocks of strategy.");
+loop(async () => {
+  slots.forEach(s => show(s, false)); ghost(card);
+  st.textContent = "missing 4 building blocks"; st.style.fill = COL.muted;
+  Object.values(P).forEach(p => p.classList.remove("live"));
+  await wait(900);
+  for (let i = 0; i < 4; i++) {
+    flash(tags[i].box, "ok", 700); P["f" + i].classList.add("live");
+    await travel(["f" + i]);
+    show(slots[i]);
+    st.textContent = i < 3 ? `missing ${3 - i} building block${3 - i > 1 ? "s" : ""}` : "";
+    await wait(150);
+  }
+  ghost(card, false); cardBox.classList.add("ok");
+  st.textContent = "healthy · built on 4 facts"; st.style.fill = COL.ok;
+  await wait(5600);
+  cardBox.classList.remove("ok");
+});
+</script>
+</body>
+</html>

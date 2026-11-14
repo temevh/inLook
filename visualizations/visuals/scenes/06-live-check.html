@@ -1,0 +1,72 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>06 · Live check</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Schibsted+Grotesk:wght@400;600;800&family=JetBrains+Mono:wght@500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="kit.css">
+</head>
+<body>
+<svg id="s" viewBox="0 0 1920 1080" preserveAspectRatio="xMidYMid meet" aria-label="During a meeting, a spoken claim is spotted, matched against company memory, checked against the live source and judged outdated."></svg>
+<script src="kit.js"></script>
+<script>
+TEMPO = 1.2;
+const T = grp(100, 170);
+mk("rect", { width: 920, height: 680, rx: 18, class: "box" }, T);
+mk("path", { class: "detail", d: "M0,64 H920" }, T);
+txt(T, 32, 42, "t-l", "Meeting · live transcript", { style: "font-size:22px" });
+mk("circle", { cx: 860, cy: 34, r: 7, fill: COL.bad }, T);
+txt(T, 846, 41, "t-m", "live", { "text-anchor": "end", style: "font-size:18px" });
+
+const l1 = faded(grp(40, 130, T));
+txt(l1, 0, 0, "t-m", "Anna", { style: `fill:${COL.muted}; font-weight:600` });
+txt(l1, 0, 40, "t-l", "So for the enterprise push, how do we");
+txt(l1, 0, 76, "t-l", "position on price?");
+
+const l2 = faded(grp(40, 300, T));
+txt(l2, 0, 0, "t-m", "Mikko", { style: `fill:${COL.muted}; font-weight:600` });
+const a = mk("text", { x: 0, y: 40, class: "t-l" }, l2);
+a.append("Like we said last week, ");
+const c1 = mk("tspan", {}, a); c1.textContent = "we're €10 cheaper";
+const b = mk("text", { x: 0, y: 76, class: "t-l" }, l2);
+const c2 = mk("tspan", {}, b); c2.textContent = "than Competitor X";
+b.append(", so we lead with that.");
+const claim = col => { c1.style.fill = col || ""; c2.style.fill = col || ""; c1.style.transition = c2.style.transition = "fill .4s"; };
+
+const note = faded(grp(40, 450, T));
+mk("rect", { width: 840, height: 130, rx: 14, fill: "#2a1618", stroke: COL.bad, "stroke-width": 2.5 }, note);
+txt(note, 28, 52, "t-l", "Outdated: Competitor X now charges €39.", { style: `fill:${COL.bad}` });
+txt(note, 28, 92, "t-m", "Changed today · source: competitor's pricing page");
+
+const STEPS = [["bubble", "Claim spotted", "“€10 cheaper than X”"], ["db", "Found in memory", "Competitor price · €59"], ["web", "Source checked", "pricing page · €39"], ["tag", "Verdict", "outdated"]];
+const steps = STEPS.map(([k, t, d], i) => {
+  const y = 190 + i * 170;
+  const ic = icon(k, 1200, y);
+  const lab = grp(1360, y + 34);
+  txt(lab, 0, 0, "t-l", t);
+  const dd = faded(txt(lab, 0, 34, "t-m", d));
+  if (i) link("s" + i, line(1260, y - 78, 1260, y));
+  return { ic, dd };
+});
+link("in", curve(1020, 520, 1200, 226));
+
+loop(async () => {
+  [l1, l2, note].forEach(e => show(e, false)); claim(); steps.forEach(s => { show(s.dd, false); s.ic.box.classList.remove("ok", "bad", "warn"); });
+  await say("Inlook checks claims while the meeting is still going.");
+  await wait(600); show(l1); await wait(1500); show(l2); await wait(1200);
+  claim(COL.warn);
+  await travel(["in"], COL.warn);
+  for (let i = 0; i < 4; i++) {
+    if (i) await travel(["s" + i], COL.warn, 7);
+    steps[i].ic.box.classList.add(i === 3 ? "bad" : "warn"); show(steps[i].dd);
+    await wait(500);
+  }
+  claim(COL.bad); show(note);
+  await wait(4200);
+});
+</script>
+</body>
+</html>

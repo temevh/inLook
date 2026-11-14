@@ -1,0 +1,136 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>One message · inLook</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=EB+Garamond:wght@400;500&family=Hanken+Grotesk:wght@400;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="base.css">
+<style>
+main{flex:1;padding:clamp(1.25rem,3vw,2.5rem);display:flex;flex-direction:column;gap:1.5rem}
+.top{display:flex;justify-content:space-between;align-items:flex-end;gap:2rem;flex-wrap:wrap}
+h2.big{font:500 clamp(1.9rem,3.6vw,3rem)/1.05 var(--serif);margin:0 0 .8rem}
+.ctrl{all:unset;cursor:pointer;font-size:.78rem;letter-spacing:.1em;text-transform:uppercase;padding:.55rem 1rem;border:1px solid var(--leaf-dim)}
+.ctrl:hover{background:var(--leaf);color:var(--ink)}
+.ctrl:focus-visible{outline:2px solid var(--hot);outline-offset:3px}
+.scroll{overflow-x:auto;border-top:1px solid var(--line)}
+svg{display:block;width:100%;min-width:940px;height:auto}
+.band{fill:var(--ground-2)}
+.band.alt{fill:none}
+.bl{font:500 20px var(--serif);fill:var(--leaf)}
+.ch{font:600 10.5px var(--sans);letter-spacing:.14em;text-transform:uppercase;fill:var(--leaf-dim)}
+.chs{font:400 13px var(--sans);fill:var(--leaf)}
+.edge{fill:none;stroke:var(--hot);stroke-width:1.5;stroke-linecap:round}
+.edge.two{stroke-width:1.1;opacity:.75}
+.n circle{fill:var(--leaf);stroke:var(--ground);stroke-width:2}
+.n.s1 circle{fill:var(--hot)}
+.n.src circle{fill:var(--hot)}
+.n text{font:400 11.5px var(--sans);fill:var(--leaf);text-anchor:middle;pointer-events:none}
+.n .role{font-size:10px;fill:var(--leaf-dim)}
+.n{opacity:0;transition:opacity .4s}
+.n.in{opacity:1}
+.edge{transition:none}
+.end{font:italic 400 15px var(--serif);fill:var(--leaf-dim)}
+.sum{display:flex;gap:2.5rem;flex-wrap:wrap;font-size:.92rem;color:var(--leaf-dim)}
+.sum b{display:block;font:500 2rem/1 var(--serif);color:var(--leaf);margin-bottom:.2rem;font-variant-numeric:tabular-nums}
+</style>
+</head>
+<body>
+<header class="bar">
+  <h1>inLook</h1>
+  <nav aria-label="Views">
+    <a href="network.html">Network</a>
+    <a href="matrix.html">Branch to branch</a>
+    <a href="journey.html" aria-current="page">One message</a>
+  </nav>
+</header>
+<main>
+  <div class="top">
+    <div>
+      <h2 class="big" id="title"></h2>
+      <p class="lede" id="lede"></p>
+    </div>
+    <button class="ctrl" id="replay" type="button">Replay</button>
+  </div>
+  <div class="sum" id="sum"></div>
+  <div class="scroll"><svg id="s" viewBox="0 0 1200 700" role="img" aria-label="How one policy message passed from head office to branch managers and on to their teams"></svg></div>
+</main>
+<p class="note">Sample data: Meridian Group, its branches, people and messages are made up. Edit data.js to use real ones.</p>
+<script src="data.js"></script>
+<script>
+const NS="http://www.w3.org/2000/svg",svg=document.getElementById("s");
+const el=(n,a={},p=svg,t)=>{const e=document.createElementNS(NS,n);for(const k in a)e.setAttribute(k,a[k]);if(t)e.textContent=t;p.appendChild(e);return e};
+const M=id=>ORG.messages.find(m=>m.id===id);
+const root=M(3),kids=[4,5,6,7].map(M);
+const P=ORG.people;
+const bandH=118,top0=64,x0=120,x1=430,x2start=690,gap=92;
+const bands=ORG.branches.map((b,i)=>({b,y:top0+i*bandH,cy:top0+i*bandH+bandH/2}));
+const bandOf=id=>bands.find(x=>x.b.id===id);
+bands.forEach((x,i)=>{
+  el("rect",{x:0,y:x.y,width:1200,height:bandH,class:"band"+(i%2?" alt":"")});
+  el("text",{x:20,y:x.y+27,class:"bl"},svg,x.b.name);
+});
+el("text",{x:x0,y:34,class:"ch","text-anchor":"middle"},svg,"Sender");
+el("text",{x:x1,y:34,class:"ch","text-anchor":"middle"},svg,"Branch heads");
+el("text",{x:x2start+gap*2,y:34,class:"ch","text-anchor":"middle"},svg,"Their teams");
+const gE=el("g"),gN=el("g");
+const pos={};
+const sender=root.from;
+pos[sender]=[x0,bandOf("hq").cy+8];
+root.to.forEach(k=>{const bd=bandOf(k.split(":")[0]);pos[k]=[x1,bd.cy+8]});
+const groups=[];
+kids.forEach(m=>{
+  const bd=bandOf(m.from.split(":")[0]);
+  m.to.forEach((k,i)=>pos[k]=[x2start+i*gap,bd.cy+8]);
+  groups.push(m);
+});
+function node(k,cls){
+  const [x,y]=pos[k],g=el("g",{class:"n "+(cls||""),transform:`translate(${x},${y})`},gN);
+  el("circle",{r:10},g);
+  el("text",{y:28},g,P[k].name.split(" ")[0]);
+  el("text",{y:41,class:"role"},g,P[k].role);
+  return g;
+}
+const all=[];
+const edge=(a,b,two)=>{const [xa,ya]=pos[a],[xb,yb]=pos[b],mx=(xa+xb)/2;
+  const p=el("path",{d:`M${xa+12},${ya} C${mx},${ya} ${mx},${yb} ${xb-12},${yb}`,class:"edge"+(two?" two":""),pathLength:1},gE);
+  p.style.strokeDasharray="1";p.style.strokeDashoffset="1";return p};
+const stages=[];
+const srcN=node(sender,"src");
+stages.push({nodes:[srcN],edges:[]});
+const s1n=[],s1e=[];
+root.to.forEach(k=>{s1n.push(node(k,"s1"));s1e.push(edge(sender,k))});
+stages.push({nodes:s1n,edges:s1e});
+let forwarded=0;
+groups.forEach(m=>{
+  const ns=[],es=[];
+  m.to.forEach(k=>{ns.push(node(k));es.push(edge(m.from,k,true));forwarded++});
+  stages.push({nodes:ns,edges:es});
+});
+// HQ has no forward step
+el("text",{x:x2start+gap*2,y:bandOf("hq").cy+12,class:"end","text-anchor":"middle"},svg,"Head office recipients did not pass it on.");
+let timers=[];
+function play(){
+  timers.forEach(clearTimeout);timers=[];
+  stages.forEach(s=>{s.nodes.forEach(n=>n.classList.remove("in"));s.edges.forEach(e=>{e.style.transition="none";e.style.strokeDashoffset="1"})});
+  void svg.getBoundingClientRect();
+  const reduce=matchMedia("(prefers-reduced-motion:reduce)").matches;
+  stages.forEach((s,i)=>{
+    const t=reduce?0:[0,500,1700,2100,2500,2900][i]||2900;
+    timers.push(setTimeout(()=>{
+      s.edges.forEach((e,j)=>{e.style.transition=reduce?"none":`stroke-dashoffset .9s cubic-bezier(.16,1,.3,1) ${j*60}ms`;e.style.strokeDashoffset="0"});
+      s.nodes.forEach((n,j)=>timers.push(setTimeout(()=>n.classList.add("in"),reduce?0:(i?500:0)+j*60)));
+    },t));
+  });
+}
+document.getElementById("replay").onclick=play;
+document.getElementById("title").textContent=root.topic;
+document.getElementById("lede").textContent=`Sent by ${P[sender].name} (${P[sender].role}) on ${root.day}. Each branch head received it and briefed their own team within two days.`;
+const heads=root.to.length;
+document.getElementById("sum").innerHTML=
+ `<div><b>1</b>person sent it</div><div><b>${heads}</b>people received it directly</div><div><b>${forwarded}</b>more heard it from a branch head</div><div><b>${1+heads+forwarded}</b>people reached in total</div>`;
+play();
+</script>
+</body>
+</html>

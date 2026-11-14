@@ -1,0 +1,126 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Inlook · Architecture</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Schibsted+Grotesk:wght@400;600;800&family=JetBrains+Mono:wght@500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="scenes/kit.css">
+<style>
+  .ab { fill: var(--bg); stroke: var(--text); stroke-width: 2.5; }
+  .ab.inner { fill: var(--card); stroke: var(--muted); stroke-width: 2; }
+  .bl { font-weight: 600; font-size: 26px; letter-spacing: .06em; fill: var(--text); text-anchor: middle; }
+  .bl.s { font-size: 20px; }
+  .bs { font-weight: 400; font-size: 17px; letter-spacing: .08em; fill: var(--muted); text-anchor: middle; }
+  .ar { fill: none; stroke: var(--text); stroke-width: 2.5; }
+  .ar.thin { stroke: var(--muted); stroke-width: 2; }
+  .lh { font-weight: 600; font-size: 15px; letter-spacing: .12em; fill: var(--text); }
+  .ld { font-weight: 400; font-size: 17px; fill: var(--muted); }
+  .mid { text-anchor: middle; } .end { text-anchor: end; }
+</style>
+</head>
+<body>
+<svg viewBox="0 0 1920 1080" preserveAspectRatio="xMidYMid meet" role="img" aria-label="Inlook architecture: the desktop feeds the overlay app, which talks to the Inlook backend; the backend uses MongoDB, Gemini and Context.dev.">
+  <defs>
+    <marker id="h" viewBox="0 0 12 12" refX="10" refY="6" markerWidth="12" markerHeight="12" markerUnits="userSpaceOnUse" orient="auto-start-reverse">
+      <path d="M1 1 L10 6 L1 11" fill="none" stroke="#eceef1" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+    </marker>
+    <marker id="hm" viewBox="0 0 12 12" refX="10" refY="6" markerWidth="11" markerHeight="11" markerUnits="userSpaceOnUse" orient="auto-start-reverse">
+      <path d="M1 1 L10 6 L1 11" fill="none" stroke="#8f97a3" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+    </marker>
+  </defs>
+
+  <!-- Boxes -->
+  <rect class="ab" x="80" y="70" width="480" height="150" rx="18"/>
+  <text class="bl" x="320" y="138">DESKTOP</text>
+  <text class="bs" x="320" y="172">MIC · HIGHLIGHTED TEXT · SCREENSHOTS</text>
+
+  <rect class="ab" x="80" y="380" width="480" height="480" rx="18"/>
+  <text class="bl" x="320" y="428">OVERLAY APP</text>
+  <text class="bs" x="320" y="460">ELECTRON · DEBIAN X11</text>
+
+  <rect class="ab inner" x="110" y="500" width="160" height="330" rx="14"/>
+  <text class="bl s" x="190" y="640">HUD</text>
+  <text class="bs" x="190" y="672">SIDE STRIP</text>
+  <text class="bs" x="190" y="700">CLICK-</text>
+  <text class="bs" x="190" y="722">THROUGH</text>
+
+  <rect class="ab inner" x="370" y="500" width="160" height="140" rx="14"/>
+  <text class="bl s" x="450" y="562">WIDGET</text>
+  <text class="bs" x="450" y="594">INTERACTIVE</text>
+
+  <rect class="ab" x="900" y="450" width="320" height="300" rx="18"/>
+  <text class="bl" x="1060" y="592">INLOOK BACKEND</text>
+  <text class="bs" x="1060" y="626">NODE / TS</text>
+
+  <rect class="ab" x="900" y="70" width="320" height="160" rx="18"/>
+  <text class="bl" x="1060" y="160">CONTEXT.DEV</text>
+
+  <rect class="ab" x="900" y="880" width="320" height="140" rx="18"/>
+  <text class="bl" x="1060" y="960">GEMINI</text>
+
+  <rect class="ab" x="1560" y="450" width="300" height="300" rx="18"/>
+  <text class="bl" x="1710" y="592">MONGODB</text>
+  <text class="bs" x="1710" y="626">ATLAS</text>
+
+  <!-- Desktop → Overlay app -->
+  <path class="ar" d="M320 220 V376" marker-end="url(#h)"/>
+  <text class="lh" x="344" y="276">READS ↓</text>
+  <text class="ld" x="344" y="302">mic audio, highlighted text (X11 selection)</text>
+  <text class="ld" x="344" y="326">and screenshots on demand</text>
+
+  <!-- Widget → HUD -->
+  <path class="ar thin" d="M450 640 V770 H274" marker-end="url(#hm)"/>
+  <text class="ld mid" x="356" y="724" style="font-size:15px">toggles whether</text>
+  <text class="ld mid" x="356" y="746" style="font-size:15px">HUD takes clicks</text>
+
+  <!-- Overlay app → Backend -->
+  <path class="ar" d="M560 540 H896" marker-end="url(#h)"/>
+  <text class="lh mid" x="730" y="466">HTTP POST →</text>
+  <text class="ld mid" x="730" y="492">~10 s audio chunks, selected text,</text>
+  <text class="ld mid" x="730" y="516">screenshots, accept / reject of reviews</text>
+
+  <!-- Backend → Overlay app -->
+  <path class="ar" d="M900 680 H564" marker-end="url(#h)"/>
+  <text class="lh mid" x="730" y="606">← SSE LIVE STREAM</text>
+  <text class="ld mid" x="730" y="632">transcript, claims, verdicts,</text>
+  <text class="ld mid" x="730" y="656">flags and messages</text>
+
+  <!-- Backend ↔ MongoDB -->
+  <path class="ar" d="M1224 540 H1556" marker-start="url(#h)" marker-end="url(#h)"/>
+  <text class="lh mid" x="1390" y="466">READ / WRITE ↔</text>
+  <text class="ld mid" x="1390" y="492">facts, strategies, reviews,</text>
+  <text class="ld mid" x="1390" y="516">messages and events</text>
+
+  <path class="ar" d="M1560 680 H1224" marker-end="url(#h)"/>
+  <text class="lh mid" x="1390" y="606">← CHANGE STREAM</text>
+  <text class="ld mid" x="1390" y="632">new events feed</text>
+  <text class="ld mid" x="1390" y="656">the SSE stream</text>
+
+  <!-- Backend ↔ Context.dev -->
+  <path class="ar" d="M1020 450 V234" marker-end="url(#h)"/>
+  <text class="lh end" x="996" y="312">REQUEST ↑</text>
+  <text class="ld end" x="996" y="338">fetch the fact's source URL</text>
+  <text class="ld end" x="996" y="362">or a web search</text>
+
+  <path class="ar" d="M1100 230 V446" marker-end="url(#h)"/>
+  <text class="lh" x="1124" y="312">RESPONSE ↓</text>
+  <text class="ld" x="1124" y="338">page content</text>
+
+  <!-- Backend ↔ Gemini -->
+  <path class="ar" d="M1020 750 V876" marker-end="url(#h)"/>
+  <text class="lh end" x="996" y="784">SENDS ↓</text>
+  <text class="ld end" x="996" y="810">audio, text and images for transcription,</text>
+  <text class="ld end" x="996" y="834">claim spotting, fact matching and verdicts</text>
+
+  <path class="ar" d="M1100 880 V754" marker-end="url(#h)"/>
+  <text class="lh" x="1124" y="810">RETURNS ↑</text>
+  <text class="ld" x="1124" y="836">structured JSON</text>
+
+  <text class="wordmark" x="80" y="1000">Inlook</text>
+  <text class="t-col" x="200" y="998">Architecture</text>
+</svg>
+</body>
+</html>

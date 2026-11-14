@@ -1,0 +1,103 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Branch to branch · inLook</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=EB+Garamond:wght@400;500&family=Hanken+Grotesk:wght@400;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="base.css">
+<style>
+main{flex:1;display:grid;grid-template-columns:minmax(0,1fr) minmax(280px,380px);gap:clamp(1.5rem,4vw,4rem);padding:clamp(1.25rem,3vw,2.5rem)}
+h2.big{font:500 clamp(1.9rem,3.6vw,3rem)/1.05 var(--serif);margin:0 0 .8rem}
+.grid{display:grid;grid-template-columns:minmax(7rem,10rem) repeat(5,1fr) minmax(3.5rem,5rem);margin-top:2rem;max-width:860px}
+.grid>*{min-width:0}
+.colhead{font-size:.72rem;letter-spacing:.08em;text-transform:uppercase;color:var(--leaf-dim);padding:0 .3rem .7rem;text-align:center;align-self:end;line-height:1.25}
+.rowhead{font:500 1.1rem var(--serif);align-self:center;padding-right:.8rem}
+.axis{grid-column:2/7;font:500 1rem var(--serif);letter-spacing:.14em;text-transform:uppercase;color:var(--leaf-dim);text-align:center;padding-bottom:.6rem;border-bottom:1px solid var(--line);margin-bottom:.6rem}
+.tot{align-self:center;text-align:right;font-variant-numeric:tabular-nums;color:var(--leaf-dim);font-size:.9rem}
+.cell{all:unset;box-sizing:border-box;aspect-ratio:1;display:grid;place-items:center;cursor:pointer;position:relative;border:1px solid var(--line);margin:-.5px}
+.cell:hover{background:var(--ground-2)}
+.cell:focus-visible{outline:2px solid var(--hot);outline-offset:-2px;z-index:2}
+.cell[aria-pressed=true]{background:var(--leaf)}
+.cell[aria-pressed=true] .v{color:var(--ink)}
+.cell i{position:absolute;inset:0;margin:auto;background:var(--leaf);border-radius:50%;width:calc(var(--s)*78%);height:calc(var(--s)*78%);opacity:.92}
+.cell.self i{background:var(--hot)}
+.cell[aria-pressed=true] i{background:var(--hot)}
+.cell[aria-pressed=true].self i{background:var(--ink)}
+.cell .v{position:relative;font:600 .88rem var(--sans);font-variant-numeric:tabular-nums;color:var(--ink)}
+.cell.zero i{display:none}.cell.zero .v{color:var(--line)}
+.cell.self .v{color:var(--ink)}
+.cell.self[aria-pressed=true] .v{color:var(--leaf)}
+.legend{display:flex;gap:1.5rem;font-size:.8rem;color:var(--leaf-dim);margin-top:1.4rem;flex-wrap:wrap}
+.legend span::before{content:"";display:inline-block;width:.8em;height:.8em;border-radius:50%;margin-right:.5em;background:var(--leaf);vertical-align:-.05em}
+.legend .h::before{background:var(--hot)}
+aside{border-left:1px solid var(--line);padding-left:clamp(1rem,2vw,2rem)}
+aside h3{font:500 1.7rem/1.1 var(--serif);margin:0 0 .4rem}
+aside p.s{margin:0 0 1.4rem;color:var(--leaf-dim);font-size:.92rem}
+aside ul{list-style:none;padding:0;margin:0}
+aside li{padding:.7rem 0;border-bottom:1px solid var(--line)}
+aside li b{display:block;font:500 1.15rem var(--serif)}
+aside li span{font-size:.85rem;color:var(--leaf-dim)}
+@media (max-width:860px){main{grid-template-columns:1fr}aside{border-left:0;padding-left:0;border-top:1px solid var(--line);padding-top:1.5rem}
+ .colhead{font-size:.6rem;letter-spacing:.02em}.rowhead{font-size:.9rem}}
+</style>
+</head>
+<body>
+<header class="bar">
+  <h1>inLook</h1>
+  <nav aria-label="Views">
+    <a href="network.html">Network</a>
+    <a href="matrix.html" aria-current="page">Branch to branch</a>
+    <a href="journey.html">One message</a>
+  </nav>
+</header>
+<main>
+  <section>
+    <h2 class="big">Who shares with whom</h2>
+    <p class="lede">Each circle counts the times a person in the row's branch sent something to a person in the column's branch. Red circles are messages that stayed inside their own branch.</p>
+    <div class="grid" id="grid" role="group" aria-label="Messages sent between branches"></div>
+    <div class="legend"><span>To another branch</span><span class="h">Within the same branch</span></div>
+  </section>
+  <aside aria-live="polite" id="detail"></aside>
+</main>
+<p class="note">Sample data: Meridian Group, its branches, people and messages are made up. Edit data.js to use real ones.</p>
+<script src="data.js"></script>
+<script>
+const B=ORG.branches, N={}, items={};
+B.forEach(a=>B.forEach(b=>{N[a.id+">"+b.id]=0;items[a.id+">"+b.id]=[]}));
+ORG.messages.forEach(m=>{const f=m.from.split(":")[0];
+  m.to.forEach(t=>{const k=f+">"+t.split(":")[0];N[k]++;items[k].push({m,to:t})})});
+const max=Math.max(...Object.values(N));
+const grid=document.getElementById("grid"),detail=document.getElementById("detail");
+const d=(h,c,t)=>{const e=document.createElement("div");e.className=c;e.innerHTML=h;grid.appendChild(e);return e};
+d("Sent from","rowhead"); const ax=d("Received by","axis"); d("","tot");
+d("","colhead");B.forEach(b=>d(b.name.replace(" Branch",""),"colhead"));d("Sent","colhead");
+const cells=[];
+B.forEach(a=>{
+  d(a.name,"rowhead");let sent=0;
+  B.forEach(b=>{
+    const k=a.id+">"+b.id,n=N[k];sent+=n;
+    const c=document.createElement("button");c.type="button";c.setAttribute("aria-pressed","false");
+    c.className="cell"+(a===b?" self":"")+(n?"":" zero");
+    c.style.setProperty("--s",n?(.28+.72*Math.sqrt(n/max)).toFixed(3):0);
+    c.setAttribute("aria-label",`${a.name} to ${b.name}: ${n}`);
+    c.innerHTML=`<i></i><span class="v">${n}</span>`;
+    c.onclick=()=>pick(a,b,c);grid.appendChild(c);cells.push(c);
+  });
+  d(String(sent),"tot");
+});
+function pick(a,b,c){
+  cells.forEach(x=>x.setAttribute("aria-pressed",String(x===c)));
+  const list=items[a.id+">"+b.id],grp={};
+  list.forEach(({m,to})=>{(grp[m.id]=grp[m.id]||{m,to:[]}).to.push(ORG.people[to].name)});
+  const same=a===b;
+  detail.innerHTML=`<h3>${same?a.name+", internally":a.name+" to "+b.name}</h3>
+   <p class="s">${list.length} ${list.length===1?"delivery":"deliveries"} in ${Object.keys(grp).length} ${Object.keys(grp).length===1?"message":"messages"}.</p>
+   <ul>${Object.values(grp).map(({m,to})=>`<li><b>${m.topic}</b><span>${m.day}, from ${ORG.people[m.from].name} to ${to.join(", ")}</span></li>`).join("")||"<li><span>Nothing was shared this week.</span></li>"}</ul>`;
+}
+detail.innerHTML=`<h3>Pick a circle</h3><p class="s">Choose any cell to see what moved between those two branches.</p>`;
+pick(B[0],B[1],cells[1]);
+</script>
+</body>
+</html>

@@ -1,0 +1,42 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>08 · Strategy flagged</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Schibsted+Grotesk:wght@400;600;800&family=JetBrains+Mono:wght@500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="kit.css">
+</head>
+<body>
+<svg id="s" viewBox="0 0 1920 1080" preserveAspectRatio="xMidYMid meet" aria-label="One fact turns outdated and the warning travels only to the two strategies built on it; the third strategy stays healthy."></svg>
+<script src="kit.js"></script>
+<script>
+TEMPO = 2.6;
+const F = [["Competitor price", "€59 / seat", "Tuesday's meeting"], ["Churn target", "3% / month", "Planning doc"], ["Launch date", "14 March", "Product sync"], ["Top customer ask", "Single sign-on", "Support chat"]];
+txt(L.nodes, 200, 180, "t-col", "Facts"); txt(L.nodes, 1260, 180, "t-col", "Strategies");
+const facts = F.map((f, i) => tag(200, 212 + i * 170, ...f, 320));
+const S = [["Q1 pricing", [0, 1]], ["Enterprise push", [0, 3]], ["Spring launch", [2, 3]]];
+const strats = S.map(([name, uses], si) => {
+  const y = 212 + si * 230;
+  uses.forEach((fi, j) => link(`f${fi}s${si}`, curve(520, 270 + fi * 170, 1260, y + 50 + j * 50)));
+  return strategy(1260, y, name, 320, 190, 2, uses.map(fi => F[fi][0]));
+});
+say("Every strategy built on the stale fact is flagged. Nothing else.");
+loop(async () => {
+  facts[0].box.classList.remove("bad"); facts[0].v.style.fill = "";
+  strats.forEach(s => { s.box.classList.remove("bad", "ok"); s.blocks[0].classList.remove("bad"); s.set("healthy"); });
+  Object.values(P).forEach(p => p.classList.remove("bad"));
+  await wait(1500);
+  facts[0].box.classList.add("bad"); facts[0].v.style.fill = COL.bad;
+  await wait(800);
+  P.f0s0.classList.add("bad"); P.f0s1.classList.add("bad");
+  await Promise.all([travel(["f0s0"], COL.bad, 10, 8), travel(["f0s1"], COL.bad, 10, 8)]);
+  [0, 1].forEach(i => { strats[i].box.classList.add("bad"); strats[i].blocks[0].classList.add("bad"); strats[i].set("1 fact outdated", COL.bad); });
+  strats[2].box.classList.add("ok");
+  await wait(6000);
+});
+</script>
+</body>
+</html>

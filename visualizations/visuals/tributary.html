@@ -1,0 +1,286 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Tributary — from sources to people</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Newsreader:opsz,wght@6..72,400;6..72,600;6..72,800&family=IBM+Plex+Sans+Condensed:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --paper: #e4e8eb;
+    --paper-2: #d3d9de;
+    --ink: #16191d;
+    --ink-2: #454b52;
+    --rule: #b4bcc4;
+    --c-warehouse: #c8402b;
+    --c-crm: #2f4b8f;
+    --c-ledger: #b88411;
+  }
+  * { box-sizing: border-box; margin: 0; }
+  html { background: var(--paper); color: var(--ink); }
+  body { font-family: "IBM Plex Sans Condensed", system-ui, sans-serif; min-height: 100vh; padding: clamp(20px, 4vw, 56px); }
+  ::selection { background: var(--ink); color: var(--paper); }
+
+  .top { display: flex; justify-content: space-between; align-items: end; gap: 32px; flex-wrap: wrap; border-bottom: 1.5px solid var(--ink); padding-bottom: 18px; }
+  h1 { font-family: "Newsreader", serif; font-weight: 800; font-size: clamp(2.4rem, 5.5vw, 4.6rem); letter-spacing: -0.03em; line-height: .9; }
+  .top p { max-width: 46ch; color: var(--ink-2); line-height: 1.45; font-size: 1rem; }
+
+  .legend { display: flex; gap: 6px; flex-wrap: wrap; margin: 18px 0 8px; }
+  .legend button {
+    font: 500 0.88rem "IBM Plex Sans Condensed", sans-serif; color: var(--ink);
+    background: transparent; border: 1px solid var(--rule); border-radius: 3px;
+    padding: 7px 12px 7px 10px; display: inline-flex; align-items: center; gap: 8px; cursor: pointer;
+    transition: background .15s, border-color .15s, opacity .15s;
+  }
+  .legend button:hover { border-color: var(--ink-2); }
+  .legend button[aria-pressed="false"] { opacity: .4; }
+  .legend button:focus-visible { outline: 2px solid var(--ink); outline-offset: 2px; }
+  .legend i { width: 14px; height: 3px; display: inline-block; }
+  .legend .hint { margin-left: auto; align-self: center; color: var(--ink-2); font-size: 0.85rem; }
+
+  .stage { position: relative; }
+  svg { width: 100%; height: auto; display: block; overflow: visible; }
+  .colhead { font: 600 11px "IBM Plex Mono", monospace; letter-spacing: .08em; fill: var(--ink-2); text-transform: uppercase; }
+  .node-label { font: 600 15px "Newsreader", serif; fill: var(--ink); }
+  .node-sub { font: 400 11px "IBM Plex Mono", monospace; fill: var(--ink-2); }
+  .person { font: 500 13px "IBM Plex Sans Condensed", sans-serif; fill: var(--ink); }
+  .role { font: 400 11px "IBM Plex Sans Condensed", sans-serif; fill: var(--ink-2); }
+  .count { font: 500 12px "IBM Plex Mono", monospace; fill: var(--ink); font-variant-numeric: tabular-nums; }
+  .link { fill: none; stroke-linecap: butt; transition: opacity .25s; mix-blend-mode: multiply; }
+  .branch-g, .person-g { cursor: pointer; transition: opacity .25s; }
+  .dim { opacity: .14; }
+  .bar { transition: width .4s cubic-bezier(.16,1,.3,1); }
+
+  .foot { margin-top: 20px; border-top: 1px solid var(--rule); padding-top: 12px; display: flex; justify-content: space-between; gap: 20px; flex-wrap: wrap; color: var(--ink-2); font-size: 0.9rem; }
+  .foot b { font: 500 0.95rem "IBM Plex Mono", monospace; color: var(--ink); font-variant-numeric: tabular-nums; }
+</style>
+</head>
+<body>
+<div class="top">
+  <h1>Tributary</h1>
+  <p>Three systems feed one organisation. Intake splits the stream across four branches, and each branch passes it on to its people. Line weight shows volume. Click a branch or a person to follow their stream.</p>
+</div>
+
+<div class="legend" id="legend">
+  <button data-src="warehouse" aria-pressed="true"><i style="background:var(--c-warehouse)"></i>Warehouse</button>
+  <button data-src="crm" aria-pressed="true"><i style="background:var(--c-crm)"></i>CRM</button>
+  <button data-src="ledger" aria-pressed="true"><i style="background:var(--c-ledger)"></i>Ledger</button>
+  <span class="hint" id="focus-hint">Showing the whole organisation</span>
+</div>
+
+<div class="stage">
+  <svg id="svg" viewBox="0 0 1200 760" role="img" aria-label="Flow diagram from three data sources through an organisation to four branches and twenty people"></svg>
+</div>
+
+<div class="foot">
+  <span>Delivered today <b id="total">0</b></span>
+  <span>In transit <b id="transit">0</b></span>
+  <span>Busiest person <b id="busiest">none yet</b></span>
+</div>
+
+<script>
+const SOURCES = [
+  { key: "warehouse", name: "Warehouse", sub: "orders, stock", color: "#c8402b", rate: 5 },
+  { key: "crm",       name: "CRM",       sub: "accounts, leads", color: "#2f4b8f", rate: 3 },
+  { key: "ledger",    name: "Ledger",    sub: "invoices, payroll", color: "#b88411", rate: 2 },
+];
+const BRANCHES = [
+  { name: "North",  sub: "Oulu",      share: .30, people: [["Kaisa Mäki","Operations lead"],["Antti Hakala","Buyer"],["Riikka Oja","Analyst"],["Lauri Tervo","Field sales"],["Emmi Vaara","Accounts"]] },
+  { name: "Capital",sub: "Helsinki",  share: .34, people: [["Aino Virtanen","Branch director"],["Mikko Laine","Finance"],["Sara Holm","Account manager"],["Jussi Koski","Logistics"],["Elina Saari","HR partner"]] },
+  { name: "West",   sub: "Turku",     share: .20, people: [["Joonas Lind","Port liaison"],["Milla Aho","Buyer"],["Eero Ranta","Controller"],["Pinja Suomi","Sales"],["Kalle Nurmi","Warehouse"]] },
+  { name: "East",   sub: "Joensuu",   share: .16, people: [["Ville Heino","Branch lead"],["Noora Lehto","Accounts"],["Petri Salo","Field sales"],["Iida Karjala","Analyst"],["Tuomas Rinne","Support"]] },
+];
+const ITEMS = {
+  warehouse: ["Order #4471","Stock count, aisle 9","Returns batch","Reorder alert","Delivery manifest"],
+  crm:       ["New lead: Kesko","Account note","Renewal due","Churn risk flag","Meeting summary"],
+  ledger:    ["Invoice 22-118","Payroll run","Expense claim","Budget variance","Credit memo"],
+};
+
+const NS = "http://www.w3.org/2000/svg";
+const svg = document.getElementById("svg");
+const mk = (tag, attrs, parent = svg) => { const e = document.createElementNS(NS, tag); for (const k in attrs) e.setAttribute(k, attrs[k]); parent.appendChild(e); return e; };
+
+const X = { src: 40, org: 330, br: 610, ppl: 880 };
+const layers = { links: mk("g", {}), packets: mk("g", {}), nodes: mk("g", {}) };
+
+// Column heads
+[["Sources", X.src], ["Organisation", X.org], ["Branches", X.br], ["People", X.ppl]].forEach(([t, x]) =>
+  mk("text", { x, y: 18, class: "colhead" }, layers.nodes).textContent = t);
+
+// Geometry
+const srcY = [170, 380, 590];
+const orgY = 380, orgH = 300;
+const brY = [130, 300, 470, 640];
+const people = [];
+BRANCHES.forEach((b, bi) => b.people.forEach(([name, role], pi) => {
+  people.push({ name, role, branch: bi, y: 52 + (bi * 5 + pi) * 35.5 + bi * 6, got: 0, last: "" });
+}));
+
+function curve(x1, y1, x2, y2) {
+  const mx = (x1 + x2) / 2;
+  return `M${x1},${y1} C${mx},${y1} ${mx},${y2} ${x2},${y2}`;
+}
+
+// Links: source → org (one per source), org → branch (per source, stacked), branch → person
+const links = [];
+const totalRate = SOURCES.reduce((n, s) => n + s.rate, 0);
+let orgStack = orgY - orgH / 2 + 20;
+SOURCES.forEach((s, si) => {
+  const w = 10 + s.rate * 4;
+  const y2 = orgStack + w / 2; orgStack += w + 6;
+  links.push({ el: mk("path", { d: curve(X.src + 150, srcY[si], X.org, y2), class: "link", stroke: s.color, "stroke-width": w, opacity: .55 }, layers.links), kind: "in", src: s.key });
+  s.orgY = y2;
+});
+const brLinks = BRANCHES.map((b, bi) => {
+  const per = {};
+  let stack = brY[bi] - 18;
+  SOURCES.forEach(s => {
+    const w = Math.max(2, (10 + s.rate * 4) * b.share * 1.6);
+    const y2 = stack + w / 2; stack += w + 1;
+    per[s.key] = mk("path", { d: curve(X.org + 160, s.orgY, X.br, y2), class: "link", stroke: s.color, "stroke-width": w, opacity: .5 }, layers.links);
+    per[s.key].dataset.branch = bi; per[s.key].dataset.src = s.key;
+  });
+  return per;
+});
+const pLinks = people.map((p, i) => {
+  const per = {};
+  SOURCES.forEach((s, si) => {
+    const el = mk("path", { d: curve(X.br + 150, brY[p.branch] - 10 + si * 7, X.ppl, p.y - 3 + si * 3), class: "link", stroke: s.color, "stroke-width": 1.4, opacity: .38 }, layers.links);
+    el.dataset.branch = p.branch; el.dataset.person = i; el.dataset.src = s.key;
+    per[s.key] = el;
+  });
+  return per;
+});
+
+// Nodes
+SOURCES.forEach((s, si) => {
+  const g = mk("g", { transform: `translate(${X.src},${srcY[si] - 34})` }, layers.nodes);
+  // cylinder
+  mk("path", { d: "M0,10 a24,8 0 0,1 48,0 v40 a24,8 0 0,1 -48,0 z", fill: "#e4e8eb", stroke: "#16191d", "stroke-width": 1.5 }, g);
+  mk("path", { d: "M0,10 a24,8 0 0,0 48,0 M0,24 a24,8 0 0,0 48,0 M0,38 a24,8 0 0,0 48,0", fill: "none", stroke: "#16191d", "stroke-width": 1.2 }, g);
+  mk("rect", { x: 56, y: 22, width: 4, height: 24, fill: s.color }, g);
+  mk("text", { x: 68, y: 34, class: "node-label" }, g).textContent = s.name;
+  mk("text", { x: 68, y: 50, class: "node-sub" }, g).textContent = s.sub;
+});
+
+const org = mk("g", { transform: `translate(${X.org},${orgY - orgH / 2})` }, layers.nodes);
+mk("rect", { x: 0, y: 0, width: 160, height: orgH, fill: "#d3d9de", stroke: "#16191d", "stroke-width": 1.5 }, org);
+mk("text", { x: 14, y: 30, class: "node-label" }, org).textContent = "Norrsken Oy";
+mk("text", { x: 14, y: 48, class: "node-sub" }, org).textContent = "intake & routing";
+const orgCount = mk("text", { x: 14, y: orgH - 18, class: "count" }, org);
+orgCount.textContent = "0 routed";
+
+const brNodes = BRANCHES.map((b, bi) => {
+  const g = mk("g", { transform: `translate(${X.br},${brY[bi] - 26})`, class: "branch-g", tabindex: 0, role: "button", "aria-label": `Focus ${b.name} branch` }, layers.nodes);
+  mk("rect", { x: 0, y: 0, width: 150, height: 52, fill: "#e4e8eb", stroke: "#16191d", "stroke-width": 1.5 }, g);
+  mk("text", { x: 12, y: 22, class: "node-label" }, g).textContent = b.name;
+  mk("text", { x: 12, y: 40, class: "node-sub" }, g).textContent = b.sub;
+  const c = mk("text", { x: 138, y: 40, class: "count", "text-anchor": "end" }, g); c.textContent = "0";
+  g.addEventListener("click", () => setFocus(focus && focus.type === "b" && focus.i === bi ? null : { type: "b", i: bi }));
+  g.addEventListener("keydown", e => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); g.dispatchEvent(new Event("click")); } });
+  return { g, c, got: 0 };
+});
+
+const pNodes = people.map((p, i) => {
+  const g = mk("g", { transform: `translate(${X.ppl},${p.y})`, class: "person-g", tabindex: 0, role: "button", "aria-label": `Focus ${p.name}` }, layers.nodes);
+  mk("circle", { cx: 0, cy: 0, r: 4, fill: "#16191d" }, g);
+  mk("text", { x: 12, y: -2, class: "person" }, g).textContent = p.name;
+  const role = mk("text", { x: 12, y: 12, class: "role" }, g); role.textContent = p.role;
+  mk("rect", { x: 140, y: -6, width: 120, height: 6, fill: "#d3d9de" }, g);
+  const bar = mk("rect", { x: 140, y: -6, width: 0, height: 6, fill: "#16191d", class: "bar" }, g);
+  const c = mk("text", { x: 300, y: 0, class: "count", "text-anchor": "end" }, g); c.textContent = "0";
+  const last = mk("text", { x: 140, y: 12, class: "role" }, g);
+  g.addEventListener("click", () => setFocus(focus && focus.type === "p" && focus.i === i ? null : { type: "p", i }));
+  g.addEventListener("keydown", e => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); g.dispatchEvent(new Event("click")); } });
+  return { g, bar, c, last, role };
+});
+
+// Focus + filters
+let focus = null;
+const enabled = { warehouse: true, crm: true, ledger: true };
+function visible(src, branch, person) {
+  if (!enabled[src]) return false;
+  if (!focus) return true;
+  if (focus.type === "b") return branch === undefined || branch === focus.i;
+  if (focus.type === "p") return branch === undefined || (branch === people[focus.i].branch && (person === undefined || person === focus.i));
+  return true;
+}
+function setFocus(f) {
+  focus = f;
+  links.forEach(l => l.el.classList.toggle("dim", !visible(l.src)));
+  brLinks.forEach((per, bi) => SOURCES.forEach(s => per[s.key].classList.toggle("dim", !visible(s.key, bi))));
+  pLinks.forEach((per, pi) => SOURCES.forEach(s => per[s.key].classList.toggle("dim", !visible(s.key, people[pi].branch, pi))));
+  brNodes.forEach((n, bi) => n.g.classList.toggle("dim", !!focus && !(focus.type === "b" ? focus.i === bi : people[focus.i].branch === bi)));
+  pNodes.forEach((n, pi) => n.g.classList.toggle("dim", !!focus && !(focus.type === "b" ? people[pi].branch === focus.i : focus.i === pi)));
+  document.getElementById("focus-hint").textContent = !focus ? "Showing the whole organisation"
+    : focus.type === "b" ? `Following ${BRANCHES[focus.i].name} branch · click again to clear`
+    : `Following ${people[focus.i].name} · click again to clear`;
+}
+document.querySelectorAll("#legend button").forEach(b => b.addEventListener("click", () => {
+  const k = b.dataset.src; enabled[k] = !enabled[k]; b.setAttribute("aria-pressed", enabled[k]); setFocus(focus);
+}));
+
+// Packets
+const packets = [];
+let total = 0, routed = 0;
+function pickBranch() {
+  let r = Math.random();
+  for (let i = 0; i < BRANCHES.length; i++) { if ((r -= BRANCHES[i].share) <= 0) return i; }
+  return 0;
+}
+function spawn() {
+  let r = Math.random() * totalRate, s = SOURCES[0];
+  for (const x of SOURCES) { if ((r -= x.rate) <= 0) { s = x; break; } }
+  const bi = pickBranch();
+  const members = people.map((p, i) => i).filter(i => people[i].branch === bi);
+  const pi = members[(Math.random() * members.length) | 0];
+  const segs = [links.find(l => l.src === s.key).el, brLinks[bi][s.key], pLinks[pi][s.key]];
+  const lens = segs.map(e => e.getTotalLength());
+  const item = ITEMS[s.key][(Math.random() * 5) | 0];
+  const el = mk("rect", { width: 9, height: 5, rx: 1, fill: s.color, stroke: "#16191d", "stroke-width": .6 }, layers.packets);
+  packets.push({ s, bi, pi, segs, lens, seg: 0, d: 0, speed: 2.1 + Math.random() * 1.3, el, item });
+}
+
+let last = performance.now(), acc = 0;
+function tick(now) {
+  const dt = Math.min(48, now - last) / 16.67; last = now;
+  acc += dt * .09;
+  while (acc >= 1) { spawn(); acc -= 1; }
+  for (let i = packets.length - 1; i >= 0; i--) {
+    const p = packets[i];
+    p.d += p.speed * dt * (p.seg === 1 ? 1.2 : 1);
+    // stop briefly inside the org and branch boxes is implied by the box gaps: jump across
+    while (p.d >= p.lens[p.seg]) {
+      p.d -= p.lens[p.seg]; p.seg++;
+      if (p.seg === 1) { routed++; orgCount.textContent = routed.toLocaleString() + " routed"; }
+      if (p.seg === 2) { brNodes[p.bi].got++; brNodes[p.bi].c.textContent = brNodes[p.bi].got; }
+      if (p.seg === 3) { deliver(p); p.el.remove(); packets.splice(i, 1); break; }
+    }
+    if (p.seg > 2) continue;
+    const pt = p.segs[p.seg].getPointAtLength(p.d);
+    const ahead = p.segs[p.seg].getPointAtLength(Math.min(p.lens[p.seg], p.d + 2));
+    const ang = Math.atan2(ahead.y - pt.y, ahead.x - pt.x) * 180 / Math.PI;
+    p.el.setAttribute("transform", `translate(${pt.x},${pt.y}) rotate(${ang}) translate(-4.5,-2.5)`);
+    p.el.classList.toggle("dim", !visible(p.s.key, p.seg ? p.bi : undefined, p.seg === 2 ? p.pi : undefined));
+  }
+  document.getElementById("transit").textContent = packets.length;
+  requestAnimationFrame(tick);
+}
+let maxGot = 1;
+function deliver(p) {
+  total++; document.getElementById("total").textContent = total.toLocaleString();
+  const person = people[p.pi], n = pNodes[p.pi];
+  person.got++; maxGot = Math.max(maxGot, person.got);
+  n.c.textContent = person.got;
+  n.last.textContent = p.item;
+  n.last.setAttribute("fill", p.s.color);
+  pNodes.forEach((m, i) => m.bar.setAttribute("width", 120 * people[i].got / maxGot));
+  const busiest = people.reduce((a, b) => b.got > a.got ? b : a);
+  document.getElementById("busiest").textContent = `${busiest.name} · ${busiest.got}`;
+}
+if (!matchMedia("(prefers-reduced-motion: reduce)").matches) requestAnimationFrame(tick);
+</script>
+</body>
+</html>

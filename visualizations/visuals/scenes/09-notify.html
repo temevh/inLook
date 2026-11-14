@@ -1,0 +1,46 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>09 · The right people</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Schibsted+Grotesk:wght@400;600;800&family=JetBrains+Mono:wght@500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="kit.css">
+</head>
+<body>
+<svg id="s" viewBox="0 0 1920 1080" preserveAspectRatio="xMidYMid meet" aria-label="A flagged strategy sends one message, delivered only to the three people who own it; everyone else keeps working."></svg>
+<script src="kit.js"></script>
+<script>
+TEMPO = 1.8;
+const s = strategy(120, 400, "Q1 pricing", 300, 200, 3, ["Price", "Churn", "Margin"]);
+s.box.classList.add("bad"); s.blocks[0].classList.add("bad"); s.set("1 fact outdated", COL.bad);
+const msg = grp(530, 400);
+const msgBox = mk("rect", { width: 540, height: 180, rx: 20, class: "box" }, msg);
+mk("rect", { x: 28, y: 28, width: 44, height: 44, rx: 12, fill: COL.ok }, msg);
+txt(msg, 90, 46, "t-l", "Inlook", { style: "font-size:22px" });
+txt(msg, 90, 72, "t-m", "now", { style: "font-size:16px" });
+txt(msg, 28, 118, "t-l", "Q1 pricing relies on a competitor", { style: "font-size:23px" });
+txt(msg, 28, 150, "t-l", "price that changed today.", { style: "font-size:23px" });
+link("sm", curve(420, 479, 530, 490));
+const TEAMS = [["Sales", ["Mikko", "Anna", "Sara"]], ["Product", ["Otto", "Leena", "Ville"]], ["Finance", ["Eero", "Laura", "Petri"]]];
+const ppl = {};
+TEAMS.forEach(([name, names], ti) => Object.assign(ppl, teamRow(1180, 180 + ti * 240, 640, 200, name, names, [1070, 490], `${ti}`, 200)));
+const WHO = ["00", "01", "20"];
+say("Only the people who own it are told. Everyone else keeps working.");
+loop(async () => {
+  ghost(msg); msgBox.classList.remove("bad");
+  Object.values(ppl).forEach(p => p.classList.remove("paged", "out")); Object.keys(ppl).forEach(deact); P.sm.classList.remove("bad");
+  await wait(900);
+  await travel(["sm"], COL.bad, 7, 8);
+  ghost(msg, false); msgBox.classList.add("bad");
+  await wait(700);
+  Object.entries(ppl).forEach(([k, p]) => p.classList.toggle("out", !WHO.includes(k)));
+  WHO.forEach(k => act(k, "bad"));
+  await Promise.all(WHO.map((k, i) => wait(i * 150).then(() => travel([k], COL.bad, 11, 8)).then(() => ppl[k].classList.add("paged"))));
+  await wait(4200);
+});
+</script>
+</body>
+</html>

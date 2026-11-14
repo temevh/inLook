@@ -1,0 +1,40 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>01 · Capture</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Schibsted+Grotesk:wght@400;600;800&family=JetBrains+Mono:wght@500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="kit.css">
+</head>
+<body>
+<svg id="s" viewBox="0 0 1920 1080" preserveAspectRatio="xMidYMid meet" aria-label="Meetings, chat threads and documents flow into Inlook and come out as facts."></svg>
+<script src="kit.js"></script>
+<script>
+TEMPO = 1.7;
+const sp = speech(160, 300, "Meetings"), ch = chat(160, 480, "Chat threads"), dc = doc(160, 660, "Documents");
+const c = core(800, 390, 300, 240);
+link("a", curve(400, 345, 800, 450)); link("b", curve(410, 525, 800, 510)); link("c", curve(400, 715, 800, 570));
+const F = [["Competitor price", "€59 / seat", "Tuesday's meeting"], ["Churn target", "3% / month", "Planning doc"], ["Top customer ask", "Single sign-on", "Support chat"]];
+const tags = F.map((f, i) => { link("f" + i, curve(1100, 470 + i * 40, 1400, 330 + i * 180)); return tag(1400, 272 + i * 180, ...f); });
+const order = [[sp, "a"], [dc, "c"], [ch, "b"]];
+say("Inlook turns what teams say and write into facts.");
+loop(async () => {
+  tags.forEach(t => ghost(t.g)); c.status("listening");
+  await wait(900);
+  for (let i = 0; i < 3; i++) {
+    const [src, k] = order[i];
+    flash(src.box, "ok", 700);
+    await travel([k]);
+    flash(c.box); c.status("capturing…", COL.warn);
+    await travel(["f" + i]);
+    ghost(tags[i].g, false); flash(tags[i].box, "ok", 900); c.status("listening");
+    await wait(400);
+  }
+  await wait(3000);
+});
+</script>
+</body>
+</html>

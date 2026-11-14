@@ -1,0 +1,56 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>10 · One shared memory</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Schibsted+Grotesk:wght@400;600;800&family=JetBrains+Mono:wght@500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="kit.css">
+</head>
+<body>
+<svg id="s" viewBox="0 0 1920 1080" preserveAspectRatio="xMidYMid meet" aria-label="Cross-section of a company building: what one team learns travels along the floor's corridor, through Inlook's shared memory, to the people on other floors who need it."></svg>
+<script src="kit.js"></script>
+<script>
+// The only scene with the building: Inlook is the shared spine between floors.
+TEMPO = 1.9;
+const BX = 480, BW = 960, TOP = 250, FH = 150;
+const FLOORS = [["Sales", ["Mikko", "Anna", "Sara"]], ["Product", ["Otto", "Leena", "Ville"]], ["Finance", ["Eero", "Laura", "Petri"]], ["Support", ["Kaisa", "Antti", "Riikka"]]];
+mk("path", { class: "box", d: `M${BX},${TOP} L${BX + BW / 2},${TOP - 110} L${BX + BW},${TOP} V${TOP + FH * 4} H${BX} Z` }, L.links);
+FLOORS.forEach((_, i) => { if (i) mk("path", { class: "detail", d: `M${BX},${TOP + i * FH} H${BX + BW - 180}` }, L.links); });
+const SX = BX + BW - 180, MID = SX + 90;
+mk("rect", { x: SX, y: TOP, width: 180, height: FH * 4, fill: "#13211e", stroke: COL.ok, "stroke-width": 2.5 }, L.links);
+mk("path", { d: `M${MID},${TOP + 100} V${TOP + FH * 4 - 16}`, stroke: "#2f6f61", "stroke-width": 3, "stroke-dasharray": "2 8", "stroke-linecap": "round", fill: "none" }, L.links);
+txt(L.nodes, MID, TOP + 44, "t-l", "Inlook", { "text-anchor": "middle", style: "font-weight:800" });
+txt(L.nodes, MID, TOP + 72, "t-m", "shared memory", { "text-anchor": "middle", style: "font-size:17px" });
+const px = j => BX + 70 + j * 200, walk = fi => TOP + fi * FH + 132;
+const ppl = {};
+FLOORS.forEach(([name, names], fi) => {
+  const y = TOP + fi * FH;
+  txt(L.nodes, BX + 28, y + 40, "t-col", name);
+  // corridor: each desk drops to the floor's walkway, which runs into the Inlook spine
+  mk("path", { class: "detail", d: `M${px(0)},${walk(fi)} H${MID} ` + names.map((_, j) => `M${px(j)},${y + 116} V${walk(fi)}`).join(" ") }, L.links);
+  names.forEach((n, j) => { ppl[`${fi}${j}`] = person(px(j), y + 98, n); });
+});
+const route = (from, to) => {
+  const [f1, j1] = [+from[0], +from[1]], [f2, j2] = [+to[0], +to[1]];
+  return `M${px(j1)},${TOP + f1 * FH + 116} V${walk(f1)} H${MID} V${walk(f2)} H${px(j2)} V${TOP + f2 * FH + 116}`;
+};
+const ROUTES = [["00", ["11"]], ["20", ["01"]], ["11", ["30", "21"]], ["30", ["12"]]];
+say("What one team learns, every team that needs it can use.");
+let r = 0;
+loop(async () => {
+  const [from, tos] = ROUTES[r++ % ROUTES.length];
+  tos.forEach((t, i) => link(`r${i}`, route(from, t), "link live"));
+  ppl[from].classList.add("hit");
+  await wait(400);
+  await Promise.all(tos.map((t, i) => travel([`r${i}`], COL.ok, 10).then(() => ppl[t].classList.add("hit"))));
+  await wait(1200);
+  Object.values(ppl).forEach(p => p.classList.remove("hit"));
+  tos.forEach((_, i) => P[`r${i}`].remove());
+  await wait(300);
+});
+</script>
+</body>
+</html>

@@ -1,0 +1,324 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Bloom — data radiating through the organisation</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,400;12..96,600;12..96,750&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --ink: #0b0d12;
+    --ink-2: #12151d;
+    --line: #232837;
+    --text: #e9e4d8;
+    --muted: #9a9585;
+    --record: #f2b544;
+    --report: #6fd3c1;
+    --alert: #ff6b5b;
+  }
+  * { box-sizing: border-box; margin: 0; }
+  html, body { height: 100%; background: var(--ink); color: var(--text); }
+  body { font-family: "Bricolage Grotesque", system-ui, sans-serif; overflow: hidden; }
+  ::selection { background: var(--record); color: var(--ink); }
+  canvas { position: fixed; inset: 0; width: 100vw; height: 100vh; display: block; }
+
+  header { position: fixed; top: clamp(16px, 3vw, 36px); left: clamp(16px, 3vw, 40px); max-width: 30ch; pointer-events: none; }
+  h1 { font-size: clamp(2rem, 4.4vw, 3.6rem); font-weight: 750; letter-spacing: -0.035em; line-height: .92; }
+  header p { margin-top: 14px; color: var(--muted); font-size: 0.95rem; line-height: 1.45; }
+
+  .tally { position: fixed; top: clamp(16px, 3vw, 36px); right: clamp(16px, 3vw, 40px); display: grid; gap: 10px; text-align: right; }
+  .tally div { display: flex; align-items: baseline; justify-content: flex-end; gap: 12px; font-size: 0.85rem; color: var(--muted); }
+  .tally b { font: 500 1.35rem/1 "JetBrains Mono", monospace; font-variant-numeric: tabular-nums; color: var(--text); min-width: 5ch; }
+  .tally i { width: 8px; height: 8px; border-radius: 50%; display: inline-block; }
+
+  .controls { position: fixed; left: clamp(16px, 3vw, 40px); bottom: clamp(16px, 3vw, 36px); display: flex; gap: 8px; flex-wrap: wrap; }
+  button {
+    font: 600 0.85rem "Bricolage Grotesque", sans-serif; color: var(--text);
+    background: var(--ink-2); border: 1px solid var(--line); border-radius: 999px;
+    padding: 9px 16px; cursor: pointer; transition: border-color .2s, background .2s;
+  }
+  button:hover { border-color: #3a4256; background: #171b26; }
+  button[aria-pressed="true"] { background: var(--text); color: var(--ink); border-color: var(--text); }
+  button:focus-visible { outline: 2px solid var(--record); outline-offset: 3px; }
+
+  .tip {
+    position: fixed; pointer-events: none; padding: 10px 12px; border-radius: 8px;
+    background: rgba(18, 21, 29, .96); border: 1px solid var(--line);
+    box-shadow: 0 12px 30px -8px rgba(0,0,0,.6);
+    font-size: 0.85rem; line-height: 1.35; opacity: 0; transform: translateY(4px);
+    transition: opacity .15s, transform .15s; max-width: 240px;
+  }
+  .tip.on { opacity: 1; transform: none; }
+  .tip small { display: block; color: var(--muted); font-size: 0.78rem; }
+  .tip span { font-family: "JetBrains Mono", monospace; font-size: 0.78rem; }
+
+  @media (max-width: 640px) { header p { display: none; } .tally b { font-size: 1rem; } }
+</style>
+</head>
+<body>
+<canvas id="c" aria-label="Animated radial diagram: records leave a central database, pass the organisation boundary, reach six branches and are delivered to individual people."></canvas>
+
+<header>
+  <h1>Bloom</h1>
+  <p>Every record starts at the core store, crosses the organisation's boundary, lands at a branch and is handed to a person. Hover anyone to see what they have received.</p>
+</header>
+
+<div class="tally" aria-live="off">
+  <div>Records <i style="background:var(--record)"></i><b id="t-record">0</b></div>
+  <div>Reports <i style="background:var(--report)"></i><b id="t-report">0</b></div>
+  <div>Alerts <i style="background:var(--alert)"></i><b id="t-alert">0</b></div>
+</div>
+
+<div class="controls">
+  <button id="pause" aria-pressed="false">Pause flow</button>
+  <button id="burst">Broadcast to everyone</button>
+</div>
+
+<div class="tip" id="tip"></div>
+
+<script>
+const BRANCHES = [
+  { name: "Helsinki",  people: ["Aino Virtanen","Mikko Laine","Sara Holm","Jussi Koski","Elina Saari","Otto Niemi","Leena Aalto"] },
+  { name: "Tampere",   people: ["Ville Heino","Noora Lehto","Petri Salo","Iida Karjala","Tuomas Rinne","Hanna Peltola"] },
+  { name: "Oulu",      people: ["Kaisa Mäki","Antti Hakala","Riikka Oja","Lauri Tervo","Emmi Vaara","Sami Kallio","Veera Hirvi"] },
+  { name: "Turku",     people: ["Joonas Lind","Milla Aho","Eero Ranta","Pinja Suomi","Kalle Nurmi"] },
+  { name: "Stockholm", people: ["Ebba Lund","Oskar Berg","Maja Ek","Nils Strand","Freja Dahl","Axel Wiklund"] },
+  { name: "Tallinn",   people: ["Kadri Tamm","Rasmus Kask","Liis Mägi","Mart Saar","Grete Pärn","Karl Rebane","Anu Sepp"] },
+];
+const KINDS = [
+  { key: "record", color: "#f2b544", weight: .62 },
+  { key: "report", color: "#6fd3c1", weight: .28 },
+  { key: "alert",  color: "#ff6b5b", weight: .10 },
+];
+
+const cv = document.getElementById("c"), ctx = cv.getContext("2d");
+const tip = document.getElementById("tip");
+let W, H, dpr, cx, cy, M;
+let paused = false, hover = null, hoverBranch = null;
+const tally = { record: 0, report: 0, alert: 0 };
+
+// Build nodes
+const people = [];
+const branches = BRANCHES.map((b, bi) => ({ ...b, idx: bi, pulse: 0, members: [] }));
+const totalPeople = branches.reduce((n, b) => n + b.people.length, 0);
+branches.forEach(b => b.people.forEach(name => {
+  const p = { name, branch: b, pulse: 0, got: { record: 0, report: 0, alert: 0 }, last: null };
+  people.push(p); b.members.push(p);
+}));
+
+function layout() {
+  dpr = Math.min(window.devicePixelRatio || 1, 2);
+  W = innerWidth; H = innerHeight;
+  cv.width = W * dpr; cv.height = H * dpr;
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  cx = W * (W > 900 ? .56 : .5); cy = H * .53;
+  M = Math.min(W * (W > 900 ? .40 : .46), H * .42);
+  const gap = 0.22; // radians between branch sectors
+  const usable = Math.PI * 2 - gap * branches.length;
+  let a = -Math.PI / 2 - (usable * branches[0].people.length / totalPeople) / 2;
+  branches.forEach(b => {
+    const span = usable * b.people.length / totalPeople;
+    b.a0 = a; b.a1 = a + span; b.mid = a + span / 2;
+    b.x = cx + Math.cos(b.mid) * M * .58; b.y = cy + Math.sin(b.mid) * M * .58;
+    b.gx = cx + Math.cos(b.mid) * M * .27; b.gy = cy + Math.sin(b.mid) * M * .27;
+    b.members.forEach((p, i) => {
+      const t = b.members.length === 1 ? .5 : i / (b.members.length - 1);
+      p.a = b.a0 + span * (.08 + t * .84);
+      const r = M * (i % 2 ? .93 : .99);
+      p.x = cx + Math.cos(p.a) * r; p.y = cy + Math.sin(p.a) * r;
+    });
+    a += span + gap;
+  });
+}
+
+// Packets
+const packets = [];
+function pickKind() {
+  let r = Math.random();
+  for (const k of KINDS) { if ((r -= k.weight) <= 0) return k; }
+  return KINDS[0];
+}
+function spawn(target, kind) {
+  target = target || people[(Math.random() * people.length) | 0];
+  kind = kind || pickKind();
+  packets.push({ to: target, kind, t: 0, speed: .0028 + Math.random() * .0018, trail: [] });
+}
+function quad(ax, ay, bx, by, qx, qy, t) {
+  const u = 1 - t;
+  return [u*u*ax + 2*u*t*qx + t*t*bx, u*u*ay + 2*u*t*qy + t*t*by];
+}
+function pos(pk) {
+  const b = pk.to.branch, p = pk.to;
+  if (pk.t < .6) { // core → branch, bending through the gate
+    const t = easeInOut(pk.t / .6);
+    return quad(cx, cy, b.x, b.y, b.gx * 2 - (cx + b.x) / 2, b.gy * 2 - (cy + b.y) / 2, t);
+  }
+  const t = easeInOut((pk.t - .6) / .4);
+  const mx = (b.x + p.x) / 2, my = (b.y + p.y) / 2;
+  const qx = mx + (cx + Math.cos(b.mid) * M * .8 - mx) * .6;
+  const qy = my + (cy + Math.sin(b.mid) * M * .8 - my) * .6;
+  return quad(b.x, b.y, p.x, p.y, qx, qy, t);
+}
+const easeInOut = t => t < .5 ? 2*t*t : 1 - Math.pow(-2*t + 2, 2) / 2;
+
+// Draw
+let clock = 0, spawnAcc = 0;
+function frame() {
+  if (!paused) {
+    clock++;
+    spawnAcc += 0.55;
+    while (spawnAcc >= 1) { spawn(); spawnAcc -= 1 + Math.random() * 2; }
+  }
+  ctx.clearRect(0, 0, W, H);
+
+  // org boundary
+  const breathe = 1 + Math.sin(clock / 70) * .006;
+  ctx.save();
+  ctx.setLineDash([2, 7]);
+  ctx.strokeStyle = "rgba(233,228,216,.22)";
+  ctx.lineWidth = 1;
+  ctx.beginPath(); ctx.arc(cx, cy, M * .27 * breathe, 0, Math.PI * 2); ctx.stroke();
+  ctx.restore();
+
+  // sector arcs + spokes
+  branches.forEach(b => {
+    const dim = hoverBranch && hoverBranch !== b;
+    ctx.strokeStyle = dim ? "rgba(233,228,216,.05)" : "rgba(233,228,216,.14)";
+    ctx.lineWidth = 1;
+    ctx.beginPath(); ctx.arc(cx, cy, M * 1.06, b.a0, b.a1); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(b.gx, b.gy); ctx.lineTo(b.x, b.y); ctx.stroke();
+    b.members.forEach(p => {
+      ctx.strokeStyle = dim ? "rgba(233,228,216,.03)" : "rgba(233,228,216,.08)";
+      ctx.beginPath(); ctx.moveTo(b.x, b.y); ctx.lineTo(p.x, p.y); ctx.stroke();
+    });
+  });
+
+  // packets
+  for (let i = packets.length - 1; i >= 0; i--) {
+    const pk = packets[i];
+    if (!paused) pk.t += pk.speed;
+    if (pk.t >= .6 && !pk.hitBranch) { pk.hitBranch = true; pk.to.branch.pulse = 1; }
+    if (pk.t >= 1) {
+      const p = pk.to;
+      p.pulse = 1; p.pulseColor = pk.kind.color; p.got[pk.kind.key]++; p.last = pk.kind.key;
+      tally[pk.kind.key]++; document.getElementById("t-" + pk.kind.key).textContent = tally[pk.kind.key].toLocaleString();
+      packets.splice(i, 1); continue;
+    }
+    const [x, y] = pos(pk);
+    if (!paused) { pk.trail.push(x, y); if (pk.trail.length > 28) pk.trail.splice(0, 2); }
+    const dim = hoverBranch && hoverBranch !== pk.to.branch;
+    ctx.globalAlpha = dim ? .12 : 1;
+    for (let j = 2; j < pk.trail.length; j += 2) {
+      ctx.strokeStyle = pk.kind.color;
+      ctx.globalAlpha = (dim ? .12 : 1) * (j / pk.trail.length) * .5;
+      ctx.lineWidth = 1.6;
+      ctx.beginPath(); ctx.moveTo(pk.trail[j-2], pk.trail[j-1]); ctx.lineTo(pk.trail[j], pk.trail[j+1]); ctx.stroke();
+    }
+    ctx.globalAlpha = dim ? .15 : 1;
+    ctx.fillStyle = pk.kind.color;
+    ctx.beginPath(); ctx.arc(x, y, pk.kind.key === "alert" ? 3.2 : 2.4, 0, Math.PI * 2); ctx.fill();
+    ctx.globalAlpha = 1;
+  }
+
+  // core
+  const coreR = Math.max(16, M * .075);
+  ctx.fillStyle = "#12151d";
+  ctx.strokeStyle = "rgba(242,181,68,.7)"; ctx.lineWidth = 1.5;
+  ctx.beginPath(); ctx.arc(cx, cy, coreR, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
+  // cylinder glyph
+  const gw = coreR * .7, gh = coreR * .8;
+  ctx.strokeStyle = "#f2b544"; ctx.lineWidth = 1.4;
+  for (let k = 0; k < 3; k++) {
+    ctx.beginPath(); ctx.ellipse(cx, cy - gh/2 + k * gh/2, gw/2, gw/6, 0, k ? 0 : 0, k ? Math.PI : Math.PI * 2); ctx.stroke();
+  }
+  ctx.beginPath(); ctx.moveTo(cx - gw/2, cy - gh/2); ctx.lineTo(cx - gw/2, cy + gh/2);
+  ctx.moveTo(cx + gw/2, cy - gh/2); ctx.lineTo(cx + gw/2, cy + gh/2); ctx.stroke();
+
+  ctx.font = "500 11px 'JetBrains Mono', monospace";
+  ctx.fillStyle = "rgba(233,228,216,.55)"; ctx.textAlign = "center";
+  ctx.fillText("CORE STORE", cx, cy + coreR + 18);
+  ctx.fillText("ORGANISATION", cx, cy - M * .27 - 10);
+
+  // branches
+  branches.forEach(b => {
+    const dim = hoverBranch && hoverBranch !== b;
+    b.pulse *= .93;
+    const r = 7 + b.pulse * 5;
+    ctx.globalAlpha = dim ? .3 : 1;
+    ctx.fillStyle = "#0b0d12"; ctx.strokeStyle = "#e9e4d8"; ctx.lineWidth = 1.5;
+    ctx.beginPath(); ctx.arc(b.x, b.y, r, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
+    ctx.fillStyle = "#e9e4d8";
+    ctx.beginPath(); ctx.arc(b.x, b.y, 2.5, 0, Math.PI * 2); ctx.fill();
+    const lx = cx + Math.cos(b.mid) * M * .58, ly = cy + Math.sin(b.mid) * M * .58;
+    const off = Math.cos(b.mid);
+    ctx.textAlign = Math.abs(off) < .3 ? "center" : off > 0 ? "left" : "right";
+    ctx.font = "600 14px 'Bricolage Grotesque', sans-serif";
+    const tx = lx + (Math.abs(off) < .3 ? 0 : off > 0 ? 16 : -16);
+    const ty = ly + (Math.abs(off) < .3 ? (Math.sin(b.mid) > 0 ? 28 : -18) : 5);
+    ctx.fillText(b.name, tx, ty);
+    ctx.globalAlpha = 1;
+  });
+
+  // people
+  people.forEach(p => {
+    const dim = hoverBranch && hoverBranch !== p.branch;
+    p.pulse *= .955;
+    const total = p.got.record + p.got.report + p.got.alert;
+    const r = 3 + Math.min(4, Math.sqrt(total) * .5);
+    if (p.pulse > .02) {
+      ctx.strokeStyle = p.pulseColor; ctx.globalAlpha = p.pulse * (dim ? .2 : .8); ctx.lineWidth = 1.2;
+      ctx.beginPath(); ctx.arc(p.x, p.y, r + (1 - p.pulse) * 16, 0, Math.PI * 2); ctx.stroke();
+    }
+    ctx.globalAlpha = dim ? .25 : 1;
+    ctx.fillStyle = hover === p ? "#ffffff" : (p.last ? KINDS.find(k => k.key === p.last).color : "#59606f");
+    ctx.beginPath(); ctx.arc(p.x, p.y, hover === p ? r + 2 : r, 0, Math.PI * 2); ctx.fill();
+    ctx.globalAlpha = 1;
+  });
+
+  requestAnimationFrame(frame);
+}
+
+// Interaction
+cv.addEventListener("pointermove", e => {
+  const x = e.clientX, y = e.clientY;
+  hover = null; hoverBranch = null;
+  let best = 18;
+  people.forEach(p => { const d = Math.hypot(p.x - x, p.y - y); if (d < best) { best = d; hover = p; } });
+  branches.forEach(b => { const d = Math.hypot(b.x - x, b.y - y); if (d < best) { best = d; hover = null; hoverBranch = b; } });
+  if (hover) hoverBranch = hover.branch;
+  if (hover) {
+    tip.innerHTML = `<strong>${hover.name}</strong><small>${hover.branch.name} branch</small>
+      <span>${hover.got.record} records · ${hover.got.report} reports · ${hover.got.alert} alerts</span>`;
+  } else if (hoverBranch) {
+    const s = hoverBranch.members.reduce((n, p) => n + p.got.record + p.got.report + p.got.alert, 0);
+    tip.innerHTML = `<strong>${hoverBranch.name}</strong><small>${hoverBranch.members.length} people</small><span>${s} items delivered</span>`;
+  }
+  if (hover || hoverBranch) {
+    tip.classList.add("on");
+    const tx = Math.min(x + 16, W - 250), ty = Math.min(y + 16, H - 90);
+    tip.style.left = tx + "px"; tip.style.top = ty + "px";
+    cv.style.cursor = "pointer";
+  } else { tip.classList.remove("on"); cv.style.cursor = "default"; }
+});
+cv.addEventListener("pointerleave", () => { hover = hoverBranch = null; tip.classList.remove("on"); });
+cv.addEventListener("click", () => {
+  if (hover) for (let i = 0; i < 3; i++) setTimeout(() => spawn(hover, KINDS[1]), i * 120);
+  else if (hoverBranch) hoverBranch.members.forEach((p, i) => setTimeout(() => spawn(p, KINDS[1]), i * 60));
+});
+const pauseBtn = document.getElementById("pause");
+pauseBtn.addEventListener("click", () => {
+  paused = !paused; pauseBtn.setAttribute("aria-pressed", paused); pauseBtn.textContent = paused ? "Resume flow" : "Pause flow";
+});
+document.getElementById("burst").addEventListener("click", () => {
+  people.forEach((p, i) => setTimeout(() => spawn(p, KINDS[2]), i * 25));
+});
+
+addEventListener("resize", layout);
+layout();
+if (matchMedia("(prefers-reduced-motion: reduce)").matches) { paused = true; pauseBtn.setAttribute("aria-pressed", true); pauseBtn.textContent = "Resume flow"; }
+frame();
+</script>
+</body>
+</html>

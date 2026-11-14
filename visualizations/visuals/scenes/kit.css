@@ -1,0 +1,39 @@
+:root {
+  --bg: #0f1216; --card: #171b21; --card-2: #1f252e; --rule: #2b313b;
+  --text: #eceef1; --muted: #8f97a3; --ok: #5fd4b4; --warn: #f0b44c; --bad: #ff5d5d; --web: #7aa7ff;
+}
+* { box-sizing: border-box; margin: 0; }
+html, body { height: 100%; background: var(--bg); overflow: hidden; }
+body { display: grid; place-items: center; font-family: "Schibsted Grotesk", system-ui, sans-serif; }
+svg { width: 100vw; height: 100vh; display: block; }
+::selection { background: var(--ok); color: var(--bg); }
+
+.box { fill: var(--card); stroke: var(--rule); stroke-width: 2.5; stroke-linejoin: round; transition: stroke .5s, fill .5s; }
+.box.ok { stroke: var(--ok); }
+.box.warn { stroke: var(--warn); }
+.box.bad { stroke: var(--bad); fill: #2a1618; }
+.box.web { stroke: var(--web); }
+.box.dashed { fill: none; stroke-dasharray: 8 8; }
+.detail { fill: none; stroke: var(--rule); stroke-width: 2; }
+.team { fill: none; stroke: var(--rule); stroke-width: 2; stroke-dasharray: 6 8; }
+.wordmark { font-weight: 800; font-size: 30px; letter-spacing: -0.02em; fill: var(--text); }
+.t-xl { font-weight: 800; font-size: 44px; letter-spacing: -0.02em; fill: var(--text); }
+.t-l { font-weight: 600; font-size: 26px; fill: var(--text); }
+.t-m { font-weight: 400; font-size: 20px; fill: var(--muted); }
+.t-val { font: 500 24px "JetBrains Mono", monospace; fill: var(--text); transition: fill .4s; }
+.t-col { font-weight: 600; font-size: 17px; letter-spacing: .12em; fill: var(--muted); text-transform: uppercase; }
+.link { fill: none; stroke: var(--rule); stroke-width: 2.5; transition: stroke .5s, stroke-width .5s, opacity .5s; }
+.link.live { stroke: #2f6f61; stroke-width: 3; }
+.link.bad { stroke: var(--bad); stroke-width: 4; }
+.link.ghost { stroke: none; }
+.fade { transition: opacity .6s; }
+.hide { opacity: 0; }
+.person { transition: opacity .5s; }
+.person path, .person circle { fill: #2a313b; stroke: var(--muted); stroke-width: 2; transition: fill .3s, stroke .3s; }
+.person.hit path, .person.hit circle { fill: var(--ok); stroke: var(--ok); }
+.person.paged path, .person.paged circle { fill: var(--bad); stroke: var(--bad); }
+.person.out { opacity: .25; }
+.person text { font-weight: 600; font-size: 21px; fill: var(--text); stroke: none; }
+.caption { font-weight: 600; font-size: 42px; letter-spacing: -0.015em; fill: var(--text); transition: opacity .5s; }
+.ghost { opacity: .2; filter: grayscale(1); }
+.box, g { transition: opacity .5s, filter .5s, stroke .5s, fill .5s; }

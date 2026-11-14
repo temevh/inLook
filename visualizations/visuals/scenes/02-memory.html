@@ -1,0 +1,91 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>02 · Memory</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Schibsted+Grotesk:wght@400;600;800&family=JetBrains+Mono:wght@500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="kit.css">
+</head>
+<body>
+<svg id="s" viewBox="0 0 1920 1080" preserveAspectRatio="xMidYMid meet" aria-label="Facts flow into the company memory database. New facts are added, existing ones are updated in place, and retracted ones are removed."></svg>
+<script src="kit.js"></script>
+<script>
+TEMPO = 1.7;
+const inTag = tag(120, 452, "", "", "");
+link("in", curve(400, 510, 700, 510));
+const db = cylinder(700, 210, 520, 600);
+txt(db.g, 260, 96, "t-l", "Company memory", { "text-anchor": "middle" });
+const rows = mk("g", { transform: "translate(740,330)" }, L.nodes);
+const ctrG = grp(1340, 380);
+txt(ctrG, 0, 0, "t-m", "facts remembered");
+const ctrA = txt(ctrG, 0, 70, "t-val", "1,284", { style: "font-size:64px" });
+txt(ctrG, 0, 150, "t-m", "updated this week");
+const ctrU = txt(ctrG, 0, 220, "t-val", "37", { style: `font-size:64px; fill:${COL.ok}` });
+
+let data = [
+  ["Competitor price", "€59", "Mikko · meeting · Tue"], ["Churn target", "3%", "Planning doc"],
+  ["Top customer ask", "SSO", "Support chat"], ["Renewal rate", "92%", "Quarterly deck"],
+];
+// [kind, label, value, source]
+const EVENTS = [
+  ["add", "Launch date", "14 Mar", "Product sync"],
+  ["upd", "Churn target", "2.5%", "Planning doc · revised"],
+  ["del", "Renewal rate", "92%", "Quarterly deck · retracted"],
+  ["add", "Hiring budget", "6 roles", "Finance review"],
+  ["upd", "Competitor price", "€39", "Live web · today"],
+  ["add", "Enterprise seats", "250", "Sales call"],
+  ["upd", "Top customer ask", "SSO, SCIM", "Support chat · revised"],
+];
+function render(hl, old) {
+  rows.replaceChildren();
+  data.slice(0, 6).forEach(([l, v, s], k) => {
+    const isNew = hl === "add" && k === 0, isUpd = hl === "upd" && l === old.l, isDel = hl === "del" && l === old.l;
+    const g = mk("g", { transform: `translate(0,${k * 70})`, class: isNew ? "fade hide" : "" }, rows);
+    const r = mk("rect", { width: 440, height: 58, rx: 10, fill: isDel ? "#2a1618" : COL.card2, stroke: isUpd ? COL.ok : isDel ? COL.bad : "none", "stroke-width": 2 }, g);
+    if (isDel) { g.classList.add("fade"); mk("path", { d: "M14,30 H426", stroke: COL.bad, "stroke-width": 2.5 }, g); }
+    txt(g, 18, 26, "t-m", l, { style: `fill:${COL.text}; font-size:18px; font-weight:600` });
+    txt(g, 18, 47, "t-m", s, { style: "font-size:14px" });
+    const vt = txt(g, 422, 38, "t-val", v, { "text-anchor": "end", style: `font-size:22px;${isUpd ? `fill:${COL.ok}` : ""}` });
+    if (isUpd) {
+      const ox = 422 - vt.getComputedTextLength() - 14;
+      const ot = txt(g, ox, 38, "t-val", old.v, { "text-anchor": "end", style: `font-size:18px; fill:${COL.muted}` });
+      const w = ot.getComputedTextLength();
+      mk("path", { d: `M${ox - w - 2},32 H${ox + 2}`, stroke: COL.bad, "stroke-width": 2.5 }, g);
+      setTimeout(() => r.setAttribute("stroke", "none"), 1400 / TEMPO);
+    }
+    if (isNew) requestAnimationFrame(() => requestAnimationFrame(() => show(g)));
+  });
+}
+render();
+say("Facts are added, updated and removed as the company learns.");
+let i = 0, nA = 1284, nU = 37;
+loop(async () => {
+  const [kind, l, v, s] = EVENTS[i++ % EVENTS.length];
+  const tone = { add: [COL.ok, "ok", ""], upd: [COL.warn, "warn", "update · "], del: [COL.bad, "bad", "remove · "] }[kind];
+  inTag.set(l, v, tone[2] + s); flash(inTag.box, tone[1], 800);
+  await wait(400);
+  await travel(["in"], tone[0]);
+  flash(db.box, "ok", 500);
+  if (kind === "add") {
+    data.unshift([l, v, s]); render("add"); ctrA.textContent = (++nA).toLocaleString("en");
+  } else if (kind === "del") {
+    render("del", { l });
+    await wait(1100);
+    const g = [...rows.children][data.findIndex(d => d[0] === l)];
+    g.classList.add("hide");
+    await wait(700);
+    data = data.filter(d => d[0] !== l); render(); ctrA.textContent = (--nA).toLocaleString("en");
+  } else {
+    const row = data.find(d => d[0] === l), old = { l, v: row[1] };
+    row[1] = v; row[2] = s; render("upd", old); ctrU.textContent = ++nU;
+  }
+  if (data.length > 6) data.length = 6;
+  if (i % EVENTS.length === 0) data = [["Competitor price", "€59", "Mikko · meeting · Tue"], ["Churn target", "3%", "Planning doc"], ["Top customer ask", "SSO", "Support chat"], ["Renewal rate", "92%", "Quarterly deck"]];
+  await wait(1300);
+});
+</script>
+</body>
+</html>

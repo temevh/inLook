@@ -1,0 +1,158 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Network · inLook</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=EB+Garamond:wght@400;500&family=Hanken+Grotesk:wght@400;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="base.css">
+<style>
+main{flex:1;display:grid;grid-template-columns:minmax(260px,330px) 1fr;min-height:0}
+aside{border-right:1px solid var(--line);padding:1.5rem clamp(1rem,2vw,1.75rem);overflow:auto;max-height:calc(100vh - 110px)}
+aside h2{font:500 1.05rem var(--serif);letter-spacing:.14em;text-transform:uppercase;color:var(--leaf-dim);margin:1.6rem 0 .6rem}
+aside h2:first-of-type{margin-top:1.4rem}
+.msgs{list-style:none;margin:0;padding:0}
+.msgs button{all:unset;box-sizing:border-box;display:grid;grid-template-columns:2.6rem 1fr auto;gap:.6rem;width:100%;
+  padding:.5rem .4rem;cursor:pointer;border-bottom:1px solid var(--line);font-size:.92rem;align-items:baseline}
+.msgs button:hover{background:var(--ground-2)}
+.msgs button:focus-visible{outline:2px solid var(--hot);outline-offset:-2px}
+.msgs button[aria-pressed=true]{background:var(--leaf);color:var(--ink)}
+.msgs .day{font-size:.72rem;letter-spacing:.1em;text-transform:uppercase;opacity:.7}
+.msgs .n{font-variant-numeric:tabular-nums;font-size:.8rem;opacity:.8}
+.stage{position:relative;display:flex;flex-direction:column;min-width:0}
+.readout{padding:1.25rem clamp(1rem,3vw,2.5rem) 0;min-height:7.2rem;display:flex;justify-content:space-between;gap:2rem;align-items:flex-end}
+.readout h2{font:500 clamp(1.8rem,3.4vw,2.8rem)/1.05 var(--serif);margin:0 0 .4rem}
+.readout p{margin:0;color:var(--leaf-dim);font-size:.95rem}
+.readout b{color:var(--leaf);font-weight:600}
+.ctrl{all:unset;cursor:pointer;font-size:.78rem;letter-spacing:.1em;text-transform:uppercase;padding:.55rem 1rem;border:1px solid var(--leaf-dim);white-space:nowrap}
+.ctrl:hover{background:var(--leaf);color:var(--ink)}
+.ctrl:focus-visible{outline:2px solid var(--hot);outline-offset:3px}
+svg{width:100%;height:auto;flex:1;min-height:0;display:block}
+.disc{fill:var(--ground-2);stroke:var(--line);stroke-width:1}
+.disc.on{stroke:var(--leaf-dim)}
+.bname{font:500 21px var(--serif);fill:var(--leaf);text-anchor:middle}
+.bsub{font:600 10.5px var(--sans);letter-spacing:.14em;fill:var(--leaf-dim);text-anchor:middle;text-transform:uppercase}
+.node circle{fill:var(--leaf);stroke:var(--ground);stroke-width:2;transition:fill .25s,r .25s}
+.node{cursor:default}
+.node.dim circle{fill:#7e8fb3}
+.node.sender circle{fill:var(--hot)}
+.node.got circle{fill:var(--hot)}
+.node text{font:400 11.5px var(--sans);fill:var(--leaf);text-anchor:middle;pointer-events:none;opacity:0;transition:opacity .2s}
+.node.sender text,.node.got text,.node:hover text{opacity:1}
+.edge{fill:none;stroke:var(--hot);stroke-width:1.6;stroke-linecap:round;opacity:.9}
+.pulse{fill:none;stroke:var(--hot);stroke-width:1.5}
+.dot{fill:var(--hot)}
+@media (max-width:820px){main{grid-template-columns:1fr}aside{border-right:0;border-bottom:1px solid var(--line);max-height:none;order:2}}
+</style>
+</head>
+<body>
+<header class="bar">
+  <h1>inLook</h1>
+  <nav aria-label="Views">
+    <a href="network.html" aria-current="page">Network</a>
+    <a href="matrix.html">Branch to branch</a>
+    <a href="journey.html">One message</a>
+  </nav>
+</header>
+<main>
+  <aside>
+    <h2>Messages this week</h2>
+    <ul class="msgs" id="list"></ul>
+  </aside>
+  <section class="stage" aria-live="polite">
+    <div class="readout">
+      <div><h2 id="title"></h2><p id="sub"></p></div>
+      <button class="ctrl" id="play" type="button">Pause</button>
+    </div>
+    <svg id="map" viewBox="0 0 1200 760" role="img" aria-label="Map of five branches and their members, with the selected message travelling from its sender to its readers"></svg>
+  </section>
+</main>
+<p class="note">Sample data: Meridian Group, its branches, people and messages are made up. Edit data.js to use real ones.</p>
+<script src="data.js"></script>
+<script>
+const NS="http://www.w3.org/2000/svg", svg=document.getElementById("map");
+const centers={hq:[600,385],harbour:[215,205],north:[985,205],valley:[215,575],lake:[985,575]};
+const R={hq:92,harbour:80,north:80,valley:80,lake:80};
+const el=(n,a={},p=svg)=>{const e=document.createElementNS(NS,n);for(const k in a)e.setAttribute(k,a[k]);p.appendChild(e);return e};
+const pos={};
+const gDisc=el("g"),gEdge=el("g"),gNode=el("g");
+ORG.branches.forEach(b=>{
+  const [cx,cy]=centers[b.id],r=R[b.id];
+  const d=el("circle",{cx,cy,r:r+34,class:"disc"},gDisc); b.disc=d;
+  const lab=b.id==="hq"?cy+r+66:(cy<400?cy-r-48:cy+r+66);
+  el("text",{x:cx,y:lab,class:"bname"},gDisc).textContent=b.name;
+  el("text",{x:cx,y:lab+17,class:"bsub"},gDisc).textContent=b.members.length+" members";
+  b.members.forEach((m,i)=>{
+    const a=-Math.PI/2+i*2*Math.PI/b.members.length;
+    const x=cx+r*Math.cos(a),y=cy+r*Math.sin(a);
+    pos[m.key]=[x,y];
+    const g=el("g",{class:"node",transform:`translate(${x},${y})`,tabindex:0},gNode);
+    el("title",{},g).textContent=m.name+", "+m.role;
+    el("circle",{r:9},g);
+    const ty=Math.sin(a)>0.3?24:-16;
+    el("text",{y:ty},g).textContent=m.name.split(" ")[0];
+    m.node=g;
+  });
+});
+const nodes=Object.values(ORG.people);
+function curve(a,b){
+  const [x1,y1]=pos[a],[x2,y2]=pos[b];
+  const dx=x2-x1,dy=y2-y1,len=Math.hypot(dx,dy)||1;
+  const same=a.split(":")[0]===b.split(":")[0];
+  const bow=(same?.22:.16)*len, nx=-dy/len, ny=dx/len;
+  const mx=(x1+x2)/2+nx*bow,my=(y1+y2)/2+ny*bow;
+  return `M${x1},${y1} Q${mx},${my} ${x2},${y2}`;
+}
+const list=document.getElementById("list"),title=document.getElementById("title"),sub=document.getElementById("sub");
+ORG.messages.forEach(m=>{
+  const li=document.createElement("li"),b=document.createElement("button");
+  b.type="button";b.setAttribute("aria-pressed","false");
+  b.innerHTML=`<span class="day">${m.day}</span><span>${m.topic}<br><small style="opacity:.7">${ORG.people[m.from].name}</small></span><span class="n">${m.to.length}</span>`;
+  b.onclick=()=>{auto=false;setPlay();show(m)};
+  li.appendChild(b);list.appendChild(li);m.btn=b;
+});
+let anim=[],cur=null,auto=true;
+function clear(){anim.forEach(c=>c());anim=[];gEdge.replaceChildren();
+  nodes.forEach(p=>p.node.setAttribute("class","node"));}
+function show(msg){
+  clear();cur=msg;
+  ORG.messages.forEach(m=>m.btn.setAttribute("aria-pressed",String(m===msg)));
+  const snd=ORG.people[msg.from];
+  const bset=new Set(msg.to.map(k=>k.split(":")[0]));
+  const others=[...bset].filter(x=>x!==snd.branch).length;
+  const sameB=msg.to.filter(k=>k.split(":")[0]===snd.branch).length;
+  title.textContent=msg.topic;
+  sub.innerHTML=`<b>${snd.name}</b>, ${snd.role}, ${ORG.branchOf(msg.from).name}, to <b>${msg.to.length} ${msg.to.length===1?"person":"people"}</b>`+
+    (others?` across <b>${others}</b> other ${others===1?"branch":"branches"}`:"")+(sameB&&others?`, ${sameB} in their own`:"")+".";
+  ORG.branches.forEach(b=>b.disc.setAttribute("class","disc"+(b.id===snd.branch||bset.has(b.id)?" on":"")));
+  nodes.forEach(p=>p.node.classList.add("dim"));
+  snd.node.classList.remove("dim");snd.node.classList.add("sender");
+  msg.to.forEach((k,i)=>{
+    const path=el("path",{d:curve(msg.from,k),class:"edge",pathLength:1},gEdge);
+    path.style.strokeDasharray="1";path.style.strokeDashoffset="1";
+    const dot=el("circle",{r:4.5,class:"dot",opacity:0},gEdge);
+    const delay=i*110,dur=1100;let raf,start=null,done=false;
+    const len=path.getTotalLength();
+    const tick=t=>{
+      if(start===null)start=t;const e=t-start-delay;
+      if(e>=0){const p=Math.min(1,e/dur),k2=1-Math.pow(1-p,3);
+        path.style.strokeDashoffset=String(1-k2);
+        const pt=path.getPointAtLength(len*k2);dot.setAttribute("cx",pt.x);dot.setAttribute("cy",pt.y);dot.setAttribute("opacity",p<1?1:0);
+        if(p>=1&&!done){done=true;const n=ORG.people[k].node;n.classList.remove("dim");n.classList.add("got");
+          const [x,y]=pos[k];const ring=el("circle",{cx:x,cy:y,r:9,class:"pulse"},gEdge);
+          ring.animate([{r:9,opacity:.9},{r:30,opacity:0}],{duration:700,easing:"cubic-bezier(.16,1,.3,1)"}).onfinish=()=>ring.remove();}
+      }
+      if(!(done))raf=requestAnimationFrame(tick);
+    };
+    raf=requestAnimationFrame(tick);anim.push(()=>cancelAnimationFrame(raf));
+  });
+}
+const playBtn=document.getElementById("play");
+function setPlay(){playBtn.textContent=auto?"Pause":"Play"}
+playBtn.onclick=()=>{auto=!auto;setPlay()};
+let i=0;show(ORG.messages[0]);
+setInterval(()=>{if(!auto)return;i=(ORG.messages.indexOf(cur)+1)%ORG.messages.length;show(ORG.messages[i])},4600);
+</script>
+</body>
+</html>
