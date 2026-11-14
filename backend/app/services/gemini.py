@@ -1,6 +1,6 @@
 """Gemini via google-genai. Structured JSON output on every call.
 
-Model: GEMINI_MODEL (default gemini-3.8-flash, UNVERIFIED name: set GEMINI_MODEL if it is wrong) for
+Model: GEMINI_MODEL (default gemini-3.5-flash-lite, tested on the free tier) for
 spot, match, verdict + card, vision. GEMINI_EMBEDDING_MODEL for large fact sets (embed: not built).
 
 Every function validates what the model returns and degrades to "nothing found" instead of raising on
@@ -180,8 +180,9 @@ async def verdict_card(fact: dict, page_content: str) -> dict:
         f"Stored fact: {fact['label']} = {fact['value']}"
         f"{' (' + fact['unit'] + ')' if fact.get('unit') else ''}. Criticality tier: {fact['tier']}.\n"
         "- current: the page supports the stored value.\n"
-        "- outdated: the page states a different value for the same thing. Put it in newValue, written in "
-        "the same style as the stored value.\n"
+        "- outdated: the page states a different value for the same thing. Put only that value in newValue, "
+        "in the same style and units as the stored value, without the fact's label (stored \"$8 per seat per "
+        "month\" becomes e.g. \"$10 per seat per month\", not \"Price = $10 per seat per month\").\n"
         "- unverifiable: the page does not say, or is not about this.\n"
         "Fill the card: title \"Fact outdated\" when outdated, otherwise \"Fact updated\"; criticality is the "
         "tier above; fact is one line such as \"Competitor X: €59 → €39 per seat\".\n"

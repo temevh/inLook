@@ -4,9 +4,8 @@ Settled things are in `DECISIONS.md`. P0 = demo cannot work without it. P1 = dem
 
 ## P0
 - [ ] Build the mic path: relay `WS /audio/stream` to ElevenLabs, publish `transcript.line`, spot claims, call `check.check_claim` (`backend/app/main.py`). Or drop it and demo scene 06 with hotkey + selection.
-- [ ] Add `CONTEXT_DEV_API_KEY` to `backend/.env`, run `uv run python -m app.monitors peek`, and set the seeded old values so each page really differs (`backend/app/seed.py`).
 - [ ] Demo trigger for a page re-check: an overlay hotkey or widget button that calls `POST /recheck` (`overlay/src/main/`).
-- [ ] Add `GEMINI_API_KEY`, confirm the model name, and run `spot`, `match`, `verdict_card`, `vision` for real. Tune the prompts.
+- [ ] Run Gemini `spot` (long selections) and `vision` (screenshots) for real; `match` and `verdict_card` work on the free tier. Free tier: about 20 requests a day per model, so plan the demo takes, or get a paid key.
 - [ ] Set up the demo laptop: `backend/.env` keys, laptop IP on the Atlas access list, `uv run python -m app.seed` before every take, a tunnel + `PUBLIC_BASE_URL` + `python -m app.monitors sync` for the webhook.
 
 ## P1

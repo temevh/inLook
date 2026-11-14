@@ -28,7 +28,9 @@ def _load_dotenv(path: Path) -> None:
 _load_dotenv(BACKEND_DIR / ".env")
 
 GEMINI_API_KEY = os.getenv("GEMINI_API_KEY", "")
-GEMINI_MODEL = os.getenv("GEMINI_MODEL", "gemini-3.8-flash")
+# gemini-3.5-flash-lite: answers in ~1.5 s on the free tier and gets the demo verdicts right (2026-11-14).
+# gemini-3.8-flash was overloaded on the free tier (503 after ~40 s); gemini-2.5-flash is closed to new users.
+GEMINI_MODEL = os.getenv("GEMINI_MODEL", "gemini-3.5-flash-lite")
 # Each Gemini call: seconds per attempt, and attempts (a timeout, 429, 5xx or unreadable JSON is retried).
 GEMINI_TIMEOUT_S = float(os.getenv("GEMINI_TIMEOUT_S", "20"))
 GEMINI_ATTEMPTS = int(os.getenv("GEMINI_ATTEMPTS", "2"))
