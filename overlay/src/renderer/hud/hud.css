@@ -1,0 +1,29 @@
+/* Skeleton styles. Product dark tokens from overlay/PRODUCT.md (context.dev).
+   Fonts are not bundled yet: Rethink Sans / Doto fall back to system fonts. */
+:root {
+  --bg: hsl(233 25% 7% / .86); --card: hsl(233 20% 10.5% / .94); --border: hsl(233 12% 21%);
+  --fg: hsl(220 20% 96%); --muted: hsl(220 10% 66%); --primary: #268bff;
+  --low: #60a5fa; --medium: #f0b44c; --high: #ff5d5d; --checking: #f0b44c;
+  --sans: "Rethink Sans", system-ui, sans-serif; --data: "Doto", ui-monospace, monospace;
+}
+* { box-sizing: border-box; margin: 0; }
+html, body { height: 100%; background: transparent; color: var(--fg); font: 400 14px/1.3 var(--sans); overflow: hidden; }
+.strip { height: 100%; display: flex; flex-direction: column; gap: 8px; padding: 12px; background: var(--bg); border-inline-start: 1px solid var(--border); }
+body.interactive .strip { outline: 2px solid var(--primary); outline-offset: -2px; }
+.bar { display: flex; justify-content: space-between; align-items: baseline; }
+.mark { font-weight: 800; }
+.status { font-size: 12px; color: var(--muted); }
+.cards { display: flex; flex-direction: column; gap: 8px; overflow: hidden; }
+.card { background: var(--card); border: 1px solid var(--border); border-inline-start: 3px solid var(--border); border-radius: 14px; padding: 10px 12px; }
+.card[data-tier="low"] { border-inline-start-color: var(--low); }
+.card[data-tier="medium"] { border-inline-start-color: var(--medium); }
+.card[data-tier="high"] { border-inline-start-color: var(--high); }
+.card.checking { border-inline-start-color: var(--checking); color: var(--muted); }
+.card h2 { font-size: 13px; font-weight: 600; }
+.card p { margin-top: 4px; }
+.card .meta { font-size: 12px; color: var(--muted); }
+.card .actions { display: none; gap: 6px; margin-top: 8px; }
+body.interactive .card .actions { display: flex; }
+.card button { font: inherit; padding: 4px 10px; border-radius: 8px; border: 1px solid var(--border); background: transparent; color: var(--fg); }
+.transcript { margin-top: auto; display: flex; flex-direction: column; gap: 4px; font-size: 13px; color: var(--muted); max-height: 40%; overflow: hidden; justify-content: flex-end; }
+.transcript b { color: var(--fg); font-weight: 600; }

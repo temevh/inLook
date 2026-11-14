@@ -1,0 +1,20 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self'; media-src 'self' blob: mediastream:">
+<title>inLook widget</title>
+<link rel="stylesheet" href="widget.css">
+<script type="module" src="widget.js"></script>
+</head>
+<body>
+<main class="widget">
+  <header class="drag">inLook</header>
+  <button id="transcribe" aria-pressed="false">Transcribe</button>
+  <button id="selection">Check selection</button>
+  <button id="screen">Check screen</button>
+  <button id="hud" aria-pressed="false">HUD interactive</button>
+  <p id="note" class="note" role="status"></p>
+</main>
+</body>
+</html>

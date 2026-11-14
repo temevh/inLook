@@ -1,0 +1,10 @@
+{
+  "$comment": "HUD card template. Sent to Gemini as responseSchema (OpenAPI-subset shape accepted by google-genai). Mirror: overlay HudCard, backend HudCard.",
+  "type": "object",
+  "properties": {
+    "title": { "type": "string", "enum": ["Fact outdated", "Fact updated", "Needs review"] },
+    "criticality": { "type": "string", "enum": ["low", "medium", "high"] },
+    "fact": { "type": "string", "description": "One line, e.g. \"Competitor X: €59 → €39 per seat\"." }
+  },
+  "required": ["title", "criticality", "fact"]
+}

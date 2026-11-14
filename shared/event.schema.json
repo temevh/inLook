@@ -1,0 +1,16 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$comment": "SSE event envelope. Payload shapes per type are in CONTRACT.md (most are proposed).",
+  "type": "object",
+  "properties": {
+    "seq": { "type": "integer", "minimum": 1 },
+    "type": {
+      "type": "string",
+      "enum": ["transcript.line", "claim.spotted", "claim.unverified", "claim.verdict", "fact.updated",
+               "review.created", "review.closed", "strategy.flagged", "strategy.healthy", "message.created"]
+    },
+    "payload": { "type": "object" },
+    "at": { "type": "string", "format": "date-time" }
+  },
+  "required": ["seq", "type", "payload", "at"]
+}
