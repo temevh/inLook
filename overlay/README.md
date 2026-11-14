@@ -103,4 +103,4 @@ Runs vitest after a build (`pretest` runs `npm run build`), because `validate.ts
 
 ## Demo laptop
 
-`scripts/` at the repo root sets up and runs the overlay on the Debian demo laptop: `sync-to.sh` (copy the repo to `~/inLook`), `setup-debian.sh`, `launch-overlay.sh`, `run-over-ssh.sh`. Each script's header comment says how to run it.
+`scripts/` at the repo root sets up and runs the overlay on the Debian demo laptop: `sync-to.sh` (copy the repo to `~/inLook`), `setup-debian.sh`, `launch-overlay.sh`, `run-over-ssh.sh`, `demo-reset.sh` (between demo takes: reload the demo data, restart the backend and overlay; `--mock` plays the scripted scenario, `--stop` stops everything). Each script's header comment says how to run it.
