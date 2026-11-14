@@ -48,6 +48,7 @@ class Source(Enum):
     audio = 'audio'
     selection = 'selection'
     screenshot = 'screenshot'
+    page = 'page'
 
 
 class ClaimSpottedPayload(BaseModel):

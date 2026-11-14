@@ -4,14 +4,19 @@ Run: uvicorn app.main:app --env-file .env --reload
 """
 from contextlib import asynccontextmanager
 
-from fastapi import FastAPI, Header, HTTPException, WebSocket
+import json
+import logging
+
+from fastapi import FastAPI, Header, HTTPException, Request, Response, WebSocket
 from fastapi.responses import StreamingResponse
 from pydantic import BaseModel, ValidationError
 
 from . import check, config
 from .contract import AcceptedResponse, CheckRequest, ReviewRequest, ReviewResponse
 from .events import log
-from .services import db
+from .services import context_dev, db
+
+logger = logging.getLogger("inlook.main")
 
 
 @asynccontextmanager
@@ -72,6 +77,7 @@ async def post_review(review_id: str, body: ReviewRequest) -> ReviewResponse:
         "reviewId": review_id, "factId": review["factId"], "status": review["status"],
     })
     if review["status"] == "accepted":
+        check.forget(review["factId"])
         fact = await db.get_fact(review["factId"])
         version = fact["versions"][-1]
         await log.publish("fact.updated", {
@@ -84,6 +90,62 @@ async def post_review(review_id: str, body: ReviewRequest) -> ReviewResponse:
     for strategy in healed:
         await log.publish("strategy.healthy", {"strategyId": strategy["_id"], "name": strategy["name"]})
     return ReviewResponse(id=review_id, status=review["status"])
+
+
+class RecheckRequest(BaseModel):
+    """Exactly one of factId (one fact) or url (every fact whose source is that page)."""
+    factId: str | None = None
+    url: str | None = None
+
+
+@app.post("/recheck", status_code=202)
+async def post_recheck(body: RecheckRequest) -> dict:
+    """Re-check now, without a spoken claim: Context.dev scrapes the source page and the verdict is
+    routed by tier like any claim. Monitors only run every 10 min or more, so the demo uses this.
+    Results arrive as events (claim.spotted with source "page", then claim.verdict, ...).
+    """
+    if not config.MONGODB_URI:
+        raise HTTPException(503, "re-checks need the database (MONGODB_URI is not set)")
+    if (body.factId is None) == (body.url is None):
+        raise HTTPException(422, "give exactly one of factId or url")
+    if body.factId:
+        fact = await db.get_fact(body.factId)
+        if fact is None:
+            raise HTTPException(404, "unknown fact")
+        check.start_background(check.recheck_fact(fact))
+        return {"accepted": True, "facts": 1}
+    facts = await db.facts_by_source(body.url)
+    if not facts:
+        raise HTTPException(404, "no fact uses that url")
+    check.start_background(check.recheck_url(body.url))
+    return {"accepted": True, "facts": len(facts)}
+
+
+@app.post("/webhooks/context", status_code=204)
+async def context_webhook(request: Request) -> Response:
+    """Context.dev monitor delivery. Verify the signature on the raw body first (401 is final, so a bad
+    secret shows up in Context.dev's delivery log), then re-check every fact on the changed page in the
+    background and acknowledge at once (Context.dev wants a 2xx within 15 s)."""
+    raw = await request.body()
+    secrets = await db.monitor_secrets() if config.MONGODB_URI else []
+    if not context_dev.verify_webhook(raw, request.headers.get("x-context-signature", ""), secrets):
+        raise HTTPException(401, "invalid webhook signature")
+    try:
+        event = json.loads(raw)
+    except ValueError:
+        raise HTTPException(400, "invalid JSON") from None
+    if not isinstance(event, dict) or event.get("id") != request.headers.get("x-context-id"):
+        raise HTTPException(400, "invalid event envelope")
+    if event.get("event") != "change.detected":
+        return Response(status_code=204)  # run.completed and others: nothing to do
+    if not await db.claim_webhook_event(event["id"]):
+        return Response(status_code=204)  # a retry or replay of an event already handled
+    url = ((event.get("data") or {}).get("change") or {}).get("url")
+    if not url:
+        raise HTTPException(400, "change.detected without data.change.url")
+    logger.info("context.dev: %s changed, re-checking its facts", url)
+    check.start_background(check.recheck_url(url))
+    return Response(status_code=204)
 
 
 @app.get("/stream")

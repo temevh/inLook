@@ -34,7 +34,12 @@ Sources: the spec (`.plans/overlay-architecture-spec.md`), the contract (`shared
 - **A claim that is still correct reuses the card title "Fact updated"** for now, without changing the contract. You chose this over adding a "Fact current" title.
 - **Tests use a separate `inlook_test` database** and refuse to run against the demo database.
 - **The seed reset never rewinds the event counter**, so a running overlay keeps accepting events after a reseed.
-- **Source pages are fetched with a plain GET** until Context.dev is decided (`backend/app/services/source.py`).
+- **Context.dev reads every source page, with no fallback** (`backend/app/services/context_dev.py`): a fresh scrape (`maxAgeMs: 0`) of the fact's `sourceUrl`, or a Context.dev search when the fact has none. A Context.dev failure ends the claim as "unverifiable".
+- **Re-checks without a spoken claim** go through the same verdict and tier routing: a Context.dev page monitor calls `POST /webhooks/context` when a page changes, and `POST /recheck` re-checks on demand (monitors run every 10 min at best, so the demo uses it). The HUD sees `claim.spotted` with the new contract source `page`.
+- **Demo facts point at real public pages** (Notion pricing, Apple return policy), seeded with an older value so the first re-check finds them outdated. No self-made demo page. People and strategies stay mock data.
+- **Monitor signing secrets live in MongoDB** (`monitors` collection), one per monitor; webhook event ids are kept in `webhook_events` so retries do nothing twice.
+- **MongoDB stays, shaped by the agreed data model** (merged from `main`, 6957944): records come from `backend/seed.json` and are loaded into MongoDB by `app.seed`; people have a `role`; events carry people as `{ id, name, role }`; `check_claim(text, quote, source, speaker?, lineId?)` is the claim entry point; a fact checked in the last 5 minutes is not re-checked for a new claim. **Open with the team:** the spec now says "seed.json in memory, no database for the demo"; this branch keeps MongoDB (the Atlas challenge, the event log, and Context.dev monitor secrets).
+- **Gemini stays unfaked outside tests** until the key arrives; no rule-based stand-in.
 - **Work goes on a branch** (`backend-mongodb-check-flow`), not directly on `main`.
 
 ## Implementation choices not yet confirmed by anyone

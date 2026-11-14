@@ -128,7 +128,8 @@
           "enum": [
             "audio",
             "selection",
-            "screenshot"
+            "screenshot",
+            "page"
           ]
         },
         "lineId": {

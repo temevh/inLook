@@ -88,6 +88,13 @@ async def facts_by_source(source_url: str) -> list[Doc]:
     return await database().facts.find({"sourceUrl": source_url}).to_list()
 
 
+async def people(ids: list[str]) -> list[Doc]:
+    """People as events carry them: [{id, name, role}], in the order given. An unknown id still appears,
+    named by its id, so a review or message never loses a recipient."""
+    found = {p["_id"]: p for p in await database().people.find({"_id": {"$in": list(ids)}}).to_list()}
+    return [{"id": i, "name": found.get(i, {}).get("name", i), "role": found.get(i, {}).get("role", "")} for i in ids]
+
+
 async def strategies_using(fact_id: str) -> list[Doc]:
     return await database().strategies.find({"factIds": fact_id}).to_list()
 
@@ -125,7 +132,8 @@ async def mirror_dev_event(type: str, payload: Doc) -> None:
         review = {
             "_id": payload["reviewId"], "factId": payload["factId"], "oldValue": payload["oldValue"],
             "newValue": payload["newValue"], "evidence": payload["evidence"], "tier": payload["tier"],
-            "reviewers": payload["reviewers"], "status": "pending", "createdAt": now(),
+            "reviewers": [r["id"] if isinstance(r, dict) else r for r in payload["reviewers"]],
+            "status": "pending", "createdAt": now(),
         }
         await db.reviews.replace_one({"_id": review["_id"]}, review, upsert=True)
         await db.facts.update_one({"_id": review["factId"]}, {"$set": {"status": "pending_review"}})
@@ -205,3 +213,34 @@ async def resolve_review(
     if not still_pending:
         await db.facts.update_one({"_id": fact_id}, {"$set": {"status": "current"}})
     return review, await _heal_strategies(fact_id)
+
+
+# --- Context.dev monitors -------------------------------------------------------------------
+# `monitors` and `webhook_events` are not in COLLECTIONS: a reseed keeps the monitors and their secrets.
+
+async def save_monitor(monitor_id: str, url: str, secret: str) -> None:
+    await database().monitors.replace_one(
+        {"_id": monitor_id}, {"_id": monitor_id, "url": url, "secret": secret, "createdAt": now()}, upsert=True)
+
+
+async def list_saved_monitors() -> list[Doc]:
+    return await database().monitors.find().to_list()
+
+
+async def forget_monitor(monitor_id: str) -> None:
+    await database().monitors.delete_one({"_id": monitor_id})
+
+
+async def monitor_secrets() -> list[str]:
+    """Signing secrets of every monitor this backend created (each monitor signs with its own)."""
+    return [m["secret"] for m in await database().monitors.find({}, {"secret": 1}).to_list() if m.get("secret")]
+
+
+async def claim_webhook_event(event_id: str) -> bool:
+    """True the first time an event id is seen. Context.dev retries and replays keep the same id."""
+    from pymongo.errors import DuplicateKeyError
+    try:
+        await database().webhook_events.insert_one({"_id": event_id, "at": now()})
+        return True
+    except DuplicateKeyError:
+        return False

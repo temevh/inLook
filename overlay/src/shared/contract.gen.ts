@@ -36,7 +36,7 @@ export interface ClaimSpottedEvent {
 export interface ClaimSpottedPayload {
   claimId: string;
   text: string;
-  source: "audio" | "selection" | "screenshot";
+  source: "audio" | "selection" | "screenshot" | "page";
   lineId?: string | null;
 }
 export interface ClaimUnverifiedEvent {

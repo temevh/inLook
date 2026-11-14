@@ -1,68 +1,52 @@
-"""Reset the demo database: clear every collection and fill it with the mock data.
+"""Reset the demo database from backend/seed.json: clear every collection, then load the records.
 
 Run from backend/ before each demo take:
-    python -m app.seed            (or: uv run python -m app.seed)
+    uv run python -m app.seed
 
-Reads MONGODB_URI / MONGODB_DB from backend/.env. Ids match overlay/mock/*.json so the mock scenarios
-and the database tell the same story. Everything here is mock data. The `events` counter is not reset,
-so event seq stays monotonic and a running overlay keeps accepting events.
-The sourceUrls are placeholders (.example): point at least one at a real, changeable public page for the demo.
+Records follow the spec's "Data model" (people, facts, strategies; reviews and messages start empty).
+Their `id` becomes the MongoDB `_id`. The tier floor is applied here, at load: a fact any strategy
+uses is stored as at least medium. Ids match overlay/mock/*.json.
+
+Sources are real public pages, read through Context.dev; people and strategies are mock data. The two
+sourced facts carry an older value than their page shows (seen 2026-11-14: Notion Plus $10 per member /
+month; Apple a 14-day return window), so the first re-check finds them outdated. See what the pages say
+now with `uv run python -m app.monitors peek`. Free Context.dev plan: 2 monitors, so 2 source pages.
+
+The `events` counter is not reset, so event seq stays monotonic and a running overlay keeps accepting events.
 """
 import asyncio
+import json
 
 from . import config
 from .services import db
 
-PEOPLE = [
-    {"_id": "p-ada", "name": "Ada Sample", "team": "Pricing"},
-    {"_id": "p-sam", "name": "Sam Sample", "team": "Support"},
-    {"_id": "p-mira", "name": "Mira Mockwell", "team": "Sales"},
-]
+SEED_FILE = config.BACKEND_DIR / "seed.json"
 
 
-def _fact(id: str, key: str, label: str, value: str, unit: str, tier: str, source: str,
-          stated_by: str, stated_in: str, stated_at: str) -> dict:
-    return {
-        "_id": id, "key": key, "label": label, "value": value, "unit": unit, "tier": tier,
-        "sourceUrl": source, "statedBy": stated_by, "statedIn": stated_in, "statedAt": stated_at,
-        "versions": [{"value": value, "source": source, "at": stated_at, "by": stated_by}],
-        "status": "current",
-    }
-
-
-FACTS = [
-    _fact("f-compx-price", "competitor-x.price-per-seat", "Competitor X price per seat", "€59 per seat",
-          "EUR/seat", "high", "https://competitor-x.example/pricing", "p-sam",
-          "Pricing review, 2026-10-03", "2026-10-03T09:00:00+00:00"),
-    _fact("f-refund-window", "policy.refund-window", "Refund window", "30 days",
-          "days", "medium", "https://terms.example/refunds", "p-sam",
-          "Support sync, 2026-10-10", "2026-10-10T13:00:00+00:00"),
-    # Used by no strategy, so it can stay low tier.
-    _fact("f-wifi-name", "office.wifi-name", "Office wifi network", "MockNet",
-          "", "low", "https://handbook.example/office", "p-mira",
-          "Office onboarding, 2026-09-01", "2026-09-01T08:00:00+00:00"),
-]
-
-STRATEGIES = [
-    {"_id": "s-pricing", "name": "Mock Pricing Plan", "owners": ["p-ada"],
-     "factIds": ["f-compx-price"], "status": "healthy"},
-    {"_id": "s-returns", "name": "Mock Returns Policy", "owners": ["p-sam"],
-     "factIds": ["f-refund-window"], "status": "healthy"},
-]
+def load(path=SEED_FILE) -> dict[str, list[dict]]:
+    """seed.json as MongoDB documents (`id` → `_id`), tier floor applied."""
+    data = json.loads(path.read_text())
+    docs = {name: [{"_id": r["id"], **{k: v for k, v in r.items() if k != "id"}} for r in data[name]]
+            for name in ("people", "facts", "strategies")}
+    used = {fid for s in docs["strategies"] for fid in s["factIds"]}
+    for fact in docs["facts"]:
+        if fact["tier"] == "low" and fact["_id"] in used:
+            fact["tier"] = "medium"
+    return docs
 
 
 async def main(verbose: bool = True) -> None:
     say = print if verbose else (lambda *_: None)
     say(f"database: {config.MONGODB_DB}")
+    docs = load()
     database = db.database()
     for name in db.COLLECTIONS:
         deleted = (await database[name].delete_many({})).deleted_count
         say(f"  cleared {name} ({deleted} documents)")
     await db.ensure_indexes()
-    await database.people.insert_many(PEOPLE)
-    await database.facts.insert_many(FACTS)
-    await database.strategies.insert_many(STRATEGIES)
-    say(f"seeded {len(PEOPLE)} people, {len(FACTS)} facts, {len(STRATEGIES)} strategies")
+    for name, records in docs.items():
+        await database[name].insert_many(records)
+    say(", ".join(f"{len(r)} {n}" for n, r in docs.items()) + " seeded from seed.json")
     await db.close()
 
 

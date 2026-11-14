@@ -59,10 +59,11 @@ _CLAIMS_SCHEMA = {
             "items": {
                 "type": "object",
                 "properties": {
-                    "text": {"type": "string", "description": "The claim, self-contained, in the speaker's words."},
+                    "text": {"type": "string", "description": "The claim rewritten to stand alone."},
+                    "quote": {"type": "string", "description": "The raw words the claim came from, verbatim."},
                     "lineId": {"type": "string", "description": "Id of the line it came from, or an empty string."},
                 },
-                "required": ["text", "lineId"],
+                "required": ["text", "quote", "lineId"],
             },
         }
     },
@@ -84,7 +85,7 @@ def _claims(data: dict, known_line_ids: set[str]) -> list[dict]:
         text = str(c.get("text", "")).strip()
         if not text:
             continue
-        claim = {"text": text}
+        claim = {"text": text, "quote": str(c.get("quote") or text).strip()}
         if c.get("lineId") in known_line_ids:
             claim["lineId"] = c["lineId"]
         out.append(claim)
@@ -92,7 +93,7 @@ def _claims(data: dict, known_line_ids: set[str]) -> list[dict]:
 
 
 async def spot(lines: list[dict]) -> list[dict]:
-    """Transcript lines [{lineId?, speaker?, text}] → claims [{text, lineId?}] that are fact-checkable."""
+    """Transcript lines [{lineId?, speaker?, text}] → claims [{text, quote, lineId?}] that are fact-checkable."""
     ids = {l["lineId"] for l in lines if l.get("lineId")}
     transcript = "\n".join(
         (f"[{l['lineId']}] " if l.get("lineId") else "") + (f"{l['speaker']}: " if l.get("speaker") else "") + l["text"]
@@ -172,7 +173,7 @@ async def verdict_card(fact: dict, page_content: str) -> dict:
 
 
 async def vision(png: bytes) -> list[dict]:
-    """Screenshot → claims [{text}], same shape as spot."""
+    """Screenshot → claims [{text, quote}], same shape as spot."""
     from google.genai import types
     prompt = f"{_SPOT_RULES}\n\nThe claims are visible in this screenshot. Use an empty string for lineId."
     data = await _generate_json([types.Part.from_bytes(data=png, mime_type="image/png"), prompt], _CLAIMS_SCHEMA)

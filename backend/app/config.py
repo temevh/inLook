@@ -43,3 +43,9 @@ if EVENTS not in ("mongo", "memory"):
     raise RuntimeError(f"INLOOK_EVENTS must be 'mongo' or 'memory', got {EVENTS!r}")
 
 DEV = os.getenv("INLOOK_DEV", "") == "1"
+
+# Context.dev: reads every source page (scrape), searches when a fact has no page, and watches pages
+# (monitors). PUBLIC_BASE_URL is where Context.dev can reach this backend for the monitor webhook
+# (a tunnel during the demo, e.g. `cloudflared tunnel --url http://localhost:8000`).
+CONTEXT_DEV_API_KEY = os.getenv("CONTEXT_DEV_API_KEY", "")
+PUBLIC_BASE_URL = os.getenv("PUBLIC_BASE_URL", "").rstrip("/")

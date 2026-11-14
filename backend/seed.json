@@ -1,0 +1,31 @@
+{
+  "people": [
+    { "id": "p-ada", "name": "Ada Mockridge", "role": "Head of Pricing", "team": "Pricing" },
+    { "id": "p-sam", "name": "Sam Sample", "role": "Support Lead", "team": "Support" },
+    { "id": "p-mira", "name": "Mira Mockwell", "role": "Office Manager", "team": "Operations" }
+  ],
+  "facts": [
+    {
+      "id": "f-compx-price", "key": "competitor.notion-plus.price-per-seat",
+      "label": "Notion Plus price per seat", "value": "$8 per seat per month", "tier": "high",
+      "sourceUrl": "https://www.notion.com/pricing", "statedBy": "p-sam", "status": "current",
+      "versions": [{ "value": "$8 per seat per month", "source": "https://www.notion.com/pricing", "at": "2026-10-03T09:00:00+00:00", "by": "p-sam" }]
+    },
+    {
+      "id": "f-refund-window", "key": "benchmark.apple-store.return-window",
+      "label": "Apple Store return window", "value": "30 days", "tier": "medium",
+      "sourceUrl": "https://www.apple.com/shop/help/returns_refund", "statedBy": "p-sam", "status": "current",
+      "versions": [{ "value": "30 days", "source": "https://www.apple.com/shop/help/returns_refund", "at": "2026-10-10T13:00:00+00:00", "by": "p-sam" }]
+    },
+    {
+      "id": "f-wifi-name", "key": "office.wifi-name",
+      "label": "Office wifi network", "value": "MockNet", "tier": "low",
+      "sourceUrl": null, "statedBy": "p-mira", "status": "current",
+      "versions": [{ "value": "MockNet", "source": "", "at": "2026-09-01T08:00:00+00:00", "by": "p-mira" }]
+    }
+  ],
+  "strategies": [
+    { "id": "s-pricing", "name": "Mock Pricing Plan", "owners": ["p-ada"], "factIds": ["f-compx-price"], "status": "healthy" },
+    { "id": "s-returns", "name": "Mock Returns Policy", "owners": ["p-sam"], "factIds": ["f-refund-window"], "status": "healthy" }
+  ]
+}
