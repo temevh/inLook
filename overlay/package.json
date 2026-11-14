@@ -11,6 +11,7 @@
     "gen:contract": "node scripts/gen-contract.mjs ts",
     "gen:contract:py": "node scripts/gen-contract.mjs py",
     "mock": "node scripts/mock.mjs",
+    "pretest": "npm run build",
     "test": "vitest run"
   },
   "devDependencies": {
