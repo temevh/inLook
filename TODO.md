@@ -21,7 +21,7 @@ Settled things are in `DECISIONS.md`. P0 = demo cannot work without it. P1 = dem
 
 ## P2
 - [ ] Make `POST /reviews` take `check._route_lock`.
-- [ ] Stop Accept showing two cards for one fact.
+- [x] Stop Accept showing two cards for one fact: the review card turns into the update (or "Kept") and fades (`overlay/src/renderer/hud/hud.ts`).
 - [ ] Add a HUD test for a "still current" verdict.
 - [ ] Confirm the "proposed" payloads in `shared/CONTRACT.md`.
 - [ ] Confirm `scripts/sync-to.sh` should copy `backend/.env` to the demo laptop.
