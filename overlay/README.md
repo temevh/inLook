@@ -25,20 +25,22 @@ Needs an X11 session with a compositor for transparency (Mutter on GNOME, or `pi
 ```
 src/
   shared/contract.gen.ts  GENERATED event, card and request types (from shared/*.schema.json)
-  shared/contract.ts   re-exports contract.gen.ts, plus EVENT_TYPES, helper types, AudioChunk (IPC)
+  shared/contract.ts   re-exports contract.gen.ts, plus EVENT_TYPES and derived helper types
   shared/ipc.ts        preload bridge types (window.inlook)
   main/main.ts         app entry: windows, IPC, SSE, hotkey; event backlog replayed to windows on load
   main/config.ts       env settings (table above)
   main/windows.ts      HUD + widget BrowserWindows, HUD interactive toggle
-  main/backend-client.ts  POST /audio, /check, /reviews/:id
-  main/sse.ts          GET /stream via the `eventsource` package, Last-Event-ID replay, seq de-dupe, re-create 3 s after fatal errors
+  main/backend-client.ts  POST /check, /reviews/:id
+  main/audio-stream.ts    WebSocket to WS /audio/stream: one session per transcribing run, reconnect after 1 s, drops frames when closed or > 320 KB buffered
+  main/sse.ts          GET /stream via the `eventsource` package, Last-Event-ID replay, seq de-dupe scoped to the boot id, re-create 3 s after fatal errors
   main/validate.ts     ajv check of every incoming event against shared/event.schema.json; invalid ones are dropped with a warning
   main/selection.ts    X11 PRIMARY selection read
   main/screenshot.ts   desktopCapturer capture of the display under the cursor, downscaled before upload
   preload/preload.ts   contextBridge → window.inlook
   renderer/hud/        HUD strip: transcript, checking/verdict/review/strategy/message cards (hud.ts, hud.css)
   renderer/fonts/      Rethink Sans variable (latin woff2) + fonts.css, imported by hud.css and widget.css
-  renderer/widget/     buttons + mic.ts (10 s Opus chunks, 1 s overlap)
+  renderer/widget/     buttons + mic.ts (getUserMedia → AudioContext 16 kHz → pcm-worklet.js: 100 ms s16le mono frames → IPC audio:frame)
+  renderer/widget/pcm-worklet.js  AudioWorklet producing the PCM frames
 mock/
   demo.json            7 events, pitch scenes 06–09
   tiers.json           10 events: low, medium, unverified, review closed, strategy healthy
@@ -47,9 +49,9 @@ test/
   sse.test.ts          built `subscribe` against a local SSE server: order, seq de-dupe, invalid dropped, reconnect with Last-Event-ID
 scripts/
   mock.mjs             validates a scenario, POSTs it to the backend's /dev/events
-  audio-sink.mjs       dev stand-in for POST /audio
+  audio-sink.py        dev stand-in for WS /audio/stream: saves each session as a 16 kHz mono .wav
   gen-contract.mjs     schema → TS / Python types
-  copy-static.mjs      build step: shared/*.schema.json → dist/schemas/, .woff2 fonts from src/renderer
+  copy-static.mjs      build step: shared/*.schema.json → dist/schemas/, .woff2 fonts and pcm-worklet.js from src/renderer
 ```
 
 Build output: `dist/main`, `dist/preload`, `dist/shared` (CommonJS) and `dist/web` (renderer ES modules + HTML/CSS).
@@ -94,8 +96,11 @@ Runs vitest after a build (`pretest` runs `npm run build`), because `validate.ts
 
 ## Notes
 
-- Each audio chunk is a separate `MediaRecorder` session, so every chunk is a standalone webm/Opus file. A new recorder starts every 9 s, giving the 1 s overlap.
+- Mic audio streams continuously: raw PCM (s16le, mono, 16 kHz, 100 ms frames) over `WS /audio/stream`. Wire format: `shared/CONTRACT.md`.
 - Screenshots hide the HUD and widget for ~150 ms so they are not in the shot. The full display under the cursor is captured (no active-window capture), then downscaled with `nativeImage.resize` (quality "good") to long side ≤ 1280 px and area ≤ ~1.15 MP. Smaller images are unchanged.
-- Dev without a backend: `node scripts/audio-sink.mjs [port]` stands in for `POST /audio`, saves chunks to a temp dir (path printed) and answers 202. Run the overlay with `INLOOK_BACKEND_URL=http://127.0.0.1:<port>`.
+- Dev without a backend: `backend/.venv/bin/python overlay/scripts/audio-sink.py [port]` (backend venv, from the repo root) stands in for `WS /audio/stream`, saves each session as a 16 kHz mono .wav and logs frame count and rate. Run the overlay with `INLOOK_BACKEND_URL=http://127.0.0.1:<port>`.
 - Fonts: Rethink Sans (variable, latin) is vendored in `src/renderer/fonts/` and loads under the CSP. Doto is not used. The HUD uses the brand's product dark tokens. The window stays transparent: only the header, transcript block and each card are opaque.
-- Restart limitation: the backend skeleton's event log is in memory, so after a backend restart `seq` starts again at 1 and the backend skips everything ≤ the overlay's `Last-Event-ID`; the overlay then shows nothing new. Restart the overlay after restarting the backend (also with `uvicorn --reload`). A persistent `seq` (planned MongoDB `events` collection, unconfirmed) or a boot id from the backend would remove this; the overlay cannot fix it alone.
+
+## Demo laptop
+
+`scripts/` at the repo root sets up and runs the overlay on the Debian demo laptop: `sync-to.sh` (copy the repo to `~/inLook`), `setup-debian.sh`, `launch-overlay.sh`, `run-over-ssh.sh`. Each script's header comment says how to run it.

@@ -33,7 +33,7 @@ Claimed as future work (pitch only): `live / record / replay` input adapters (li
                  │
 Overlay app ◄─SSE── Inlook backend ──► MongoDB (UNCONFIRMED)
 (Electron)  ──HTTP──►     │
-  mic chunks,             ├──► ElevenLabs STT (transcript, speaker labels)
+  mic PCM (WS),           ├──► ElevenLabs STT (transcript, speaker labels)
   selection, screenshots  └──► Gemini (claims, match, verdict + card, vision)
   windows: HUD + widget
 ```
@@ -45,7 +45,7 @@ Data flows overlay → backend over HTTP; results come back over SSE.
 One Electron app is both the "overlay backend" and "overlay frontend" from the sketch.
 
 - **Main process** (overlay backend):
-  - Mic capture: `getUserMedia` + `MediaRecorder` run in the widget renderer (they exist only in renderers). ~10 s Opus chunks with ~1 s overlap so sentences are not cut go to main over IPC; main POSTs them to the backend.
+  - Mic capture: `getUserMedia` + an AudioWorklet run in the widget renderer (they exist only in renderers). **Proposed change:** the worklet makes 100 ms frames of 16 kHz mono s16le PCM, sent to main over IPC; main streams them over `WS /audio/stream` to the backend (ElevenLabs realtime STT takes a continuous stream; the earlier ~10 s Opus chunks with ~1 s overlap added ~10 s of delay and duplicated words).
   - Selection read: `clipboard.selection.readText()` (Electron 45) reads the X11 PRIMARY selection (highlighted text, no copy needed).
   - Screenshot: `desktopCapturer` for the screen or the active window, only when the widget asks.
   - Global hotkey (`globalShortcut`) for "check now".
@@ -61,12 +61,12 @@ One Electron app is both the "overlay backend" and "overlay frontend" from the s
 - **Language: Python, FastAPI.** Gemini through `google-genai`. Goblin Drill's SSE code ports almost directly.
 - Wire format of every endpoint and event: `shared/CONTRACT.md`.
 - Endpoints:
-  - `POST /audio` — chunk in, transcript lines and claims out (also published as events).
+  - `WS /audio/stream` — **proposed.** Continuous PCM frames in; transcript lines and claims come out as events. Replaces `POST /audio` (10 s webm chunks, deprecated).
   - `POST /check` — text or image in (selection, screenshot, or a single claim).
   - `POST /reviews/:id` — accept or reject a pending change.
   - `POST /webhooks/context` — **UNCONFIRMED.** Context.dev page-change notification; re-checks the facts that use that page.
-  - `GET /stream` — SSE, every event with a `seq` id, replay with `Last-Event-ID`.
-- The live-update pattern comes from Goblin Drill (`routes_live.py:272`, `sim/live.py:55`): append-only event log with a sequence cursor, SSE replay-then-follow, keep-alives, no-buffering headers. The skeleton keeps the log in memory. **UNCONFIRMED:** an `events` collection in MongoDB and a change stream in place of the 500 ms poll.
+  - `GET /stream` — SSE, every event with a `seq`; SSE `id` is `<bootId>:<seq>` (**proposed**), replay with `Last-Event-ID`; another boot id replays the whole log.
+- The live-update pattern comes from Goblin Drill (`routes_live.py:272`, `sim/live.py:55`): append-only event log with a sequence cursor, SSE replay-then-follow, keep-alives, no-buffering headers. The skeleton keeps the log in memory; the boot id keeps clients working across a backend restart. **UNCONFIRMED:** an `events` collection in MongoDB and a change stream in place of the 500 ms poll.
 
 ### Database
 

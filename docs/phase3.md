@@ -1,5 +1,7 @@
 # Phase 3: capture
 
+Superseded in part by `docs/phase8.md`: the mic now streams continuously over `WS /audio/stream`; the 10 s chunks and `audio-sink.mjs` described here are replaced.
+
 ## What was done
 
 - `overlay/src/main/screenshot.ts`: captures the full display under the cursor. Active-window capture is out of scope. The HUD and widget still hide during the shot.
