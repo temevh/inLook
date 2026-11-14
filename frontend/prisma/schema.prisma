@@ -1,0 +1,87 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mongodb"
+  url      = env("DATABASE_URL")
+}
+
+type FactsVersions {
+  at     String
+  by     String
+  source String
+  value  String
+}
+
+model counters {
+  id  String @id @map("_id")
+  seq Int
+}
+
+/// Empty at introspection; fields follow backend/app/events.py (event envelope, model_dump(mode="json")).
+model events {
+  id      String @id @default(auto()) @map("_id") @db.ObjectId
+  seq     Int    @unique(map: "seq_1")
+  type    String
+  payload Json
+  at      String
+}
+
+model facts {
+  id        String          @id @map("_id")
+  key       String          @unique(map: "key_1")
+  label     String
+  sourceUrl String?
+  statedBy  String
+  status    String
+  tier      String
+  value     String
+  versions  FactsVersions[]
+
+  @@index([sourceUrl], map: "sourceUrl_1")
+}
+
+/// Empty at introspection; fields follow create_message in backend/app/services/db.py. _id is "m-…".
+model messages {
+  id         String   @id @map("_id")
+  to         String[]
+  strategyId String
+  factId     String
+  text       String
+  at         String
+}
+
+model people {
+  id   String @id @map("_id")
+  name String
+  role String
+  team String
+}
+
+/// Empty at introspection; fields follow create_review / resolve_review in backend/app/services/db.py. _id is "r-…".
+model reviews {
+  id        String   @id @map("_id")
+  factId    String
+  oldValue  String
+  newValue  String
+  evidence  String
+  tier      String
+  reviewers String[]
+  status    String
+  createdAt String
+  closedAt  String?
+  closedBy  String?
+
+  @@index([factId, status], map: "factId_1_status_1")
+}
+
+model strategies {
+  id      String   @id @map("_id")
+  factIds String[]
+  name    String
+  owners  String[]
+  status  String
+
+  @@index([factIds], map: "factIds_1")
+}

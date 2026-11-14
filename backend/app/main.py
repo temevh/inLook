@@ -12,9 +12,10 @@ from fastapi.responses import JSONResponse, StreamingResponse
 from pymongo.errors import ConnectionFailure
 from pydantic import BaseModel, ValidationError
 
-from . import check, config, listen
+from . import check, config, flowlog, listen
+
 from .contract import AcceptedResponse, CheckRequest, ReviewRequest, ReviewResponse
-from .events import log
+from .events import BOOT_ID, log
 from .services import context_dev, db
 
 logger = logging.getLogger("inlook.main")
@@ -29,7 +30,9 @@ async def lifespan(_: FastAPI):
         await db.close()
 
 
+flowlog.setup()
 app = FastAPI(title="Inlook backend", lifespan=lifespan)
+app.add_middleware(flowlog.RequestLog)  # request, body and response of every call (not /health, not /stream)
 
 
 def _need_database(what: str) -> None:
@@ -72,7 +75,8 @@ async def post_check(body: CheckRequest) -> AcceptedResponse:
 
 
 @app.post("/reviews/{review_id}", response_model=ReviewResponse)
-async def post_review(review_id: str, body: ReviewRequest) -> ReviewResponse:
+async def post_review(review_id: str, body: ReviewRequest,
+                      x_inlook_user: str | None = Header(default=None)) -> ReviewResponse:
     """Accept: append version, fact back to current, strategy healthy once no fact is pending.
     Reject: fact keeps its value, review closed.
 
@@ -80,11 +84,17 @@ async def post_review(review_id: str, body: ReviewRequest) -> ReviewResponse:
     404 unknown review, 409 already closed, 503 no database configured.
     """
     _need_database("reviews")
-    result = await db.resolve_review(review_id, body.decision.value)
+    flowlog.TAG.set(review_id)
+    # Who decided: the dashboard sends the signed-in person (there is no login yet). Only a known person counts.
+    by = "reviewer"
+    if x_inlook_user and await db.database().people.count_documents({"_id": x_inlook_user}, limit=1):
+        by = x_inlook_user
+    result = await db.resolve_review(review_id, body.decision.value, by)
     if result is None:
         exists = await db.get_review(review_id) is not None
         raise HTTPException(409 if exists else 404, "review already closed" if exists else "unknown review")
     review, healed = result
+    flowlog.step("db.reviews", f"{review_id}: pending → {review['status']} (by {by})")
     await log.publish("review.closed", {
         "reviewId": review_id, "factId": review["factId"], "status": review["status"],
     })
@@ -92,6 +102,7 @@ async def post_review(review_id: str, body: ReviewRequest) -> ReviewResponse:
         check.forget(review["factId"])
         fact = await db.get_fact(review["factId"])
         version = fact["versions"][-1]
+        flowlog.step("db.facts", f"{fact['label']}: append version {version['value']!r}, status current")
         await log.publish("fact.updated", {
             "factId": fact["_id"],
             "version": {"value": version["value"], "source": version["source"] or "",
@@ -100,6 +111,7 @@ async def post_review(review_id: str, body: ReviewRequest) -> ReviewResponse:
                      "fact": f"{fact['label']}: {review['oldValue']} → {review['newValue']}"},
         })
     for strategy in healed:
+        flowlog.step("db.strategies", f"{strategy['name']}: status healthy (none of its facts is pending)")
         await log.publish("strategy.healthy", {"strategyId": strategy["_id"], "name": strategy["name"]})
     return ReviewResponse(id=review_id, status=review["status"])
 
@@ -162,8 +174,18 @@ async def context_webhook(request: Request) -> Response:
 @app.get("/stream")
 async def stream(last_event_id: str | None = Header(default=None)) -> StreamingResponse:
     """SSE. Every event has a seq id; replay after Last-Event-ID, then follow."""
+    after = log.resume_cursor(last_event_id)
+    flowlog.line(f"GET /stream  SSE client connected · boot {BOOT_ID} · replay after seq {after}")
+
+    async def frames():
+        try:
+            async for frame in log.follow(after):
+                yield frame
+        finally:
+            flowlog.line("SSE client disconnected")
+
     return StreamingResponse(
-        log.follow(log.resume_cursor(last_event_id)),
+        frames(),
         media_type="text/event-stream",
         headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"},
     )

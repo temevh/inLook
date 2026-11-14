@@ -1,5 +1,5 @@
 export const config = {
-  backendUrl: (process.env.INLOOK_BACKEND_URL ?? "http://127.0.0.1:8000").replace(/\/$/, ""),
+  backendUrl: (process.env.INLOOK_BACKEND_URL ?? "https://inlook.onrender.com").replace(/\/$/, ""),
   /** Global "check now" hotkey. */
   checkHotkey: process.env.INLOOK_HOTKEY ?? "CommandOrControl+Alt+K",
   /** Global hotkeys that accept / reject the newest pending review in the HUD. */

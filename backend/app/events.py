@@ -22,7 +22,7 @@ from datetime import datetime, timezone
 
 from pydantic import ValidationError
 
-from . import config
+from . import config, flowlog
 from .contract import InlookEvent
 
 KEEPALIVE_S = 15.0
@@ -42,6 +42,11 @@ def _event(seq: int, type: str, payload: dict) -> InlookEvent:
         "payload": payload,
         "at": datetime.now(timezone.utc),
     })
+
+
+def _logged(event: InlookEvent) -> InlookEvent:
+    flowlog.step("sse.publish", f"#{event.root.seq} {event.root.type}")
+    return event
 
 
 def _frame(event: InlookEvent) -> str:
@@ -66,7 +71,7 @@ class EventLog:
             event = _event(len(self._events) + 1, type, payload)
             self._events.append(event)
             self._cond.notify_all()
-        return event
+        return _logged(event)
 
     @staticmethod
     def resume_cursor(last_event_id: str | None) -> int:
@@ -163,7 +168,7 @@ class MongoEventLog(EventLog):
             event = _event(await _retrying(db.next_event_seq), type, payload)
             doc = event.model_dump(mode="json")
             await _retrying(lambda: _insert_once(db, doc))
-        return event
+        return _logged(event)
 
     async def _watch(self) -> None:
         """Change stream on `events` inserts. Reconnects after errors."""

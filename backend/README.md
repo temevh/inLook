@@ -36,6 +36,16 @@ Without `MONGODB_URI` the server still runs on the in-memory event log (`/dev/ev
 `/check` and `/reviews` answer 503 because they need the stored facts. `INLOOK_EVENTS=memory` forces the
 in-memory log even with a database.
 
+## Logs
+
+Every request is logged with its JSON body and response, and every step of the check flow with its claim or
+review id (Gemini spot / match / verdict, Context.dev scrape or search, tier routing, MongoDB writes, SSE
+publishes), to stdout, so Render's Logs tab shows the whole flow (`app/flowlog.py`). `GET /health` is not
+logged (Render polls it). `INLOOK_LOG_LEVEL` (default `INFO`) sets the level; `WARNING` keeps only problems.
+uvicorn's own access log repeats each request in one line; start with `--no-access-log` to drop it.
+`POST /reviews/{id}` records the decider from the dashboard's `x-inlook-user` header when it names a stored
+person (there is no login yet), else `reviewer`.
+
 ## Endpoints
 
 | Endpoint | State |
