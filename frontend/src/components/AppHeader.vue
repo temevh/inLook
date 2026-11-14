@@ -8,6 +8,7 @@ const store = useInlook();
 
 
 const conn = computed(() => {
+  if (store.mode === "demo" && store.waking) return { label: "Waking the demo backend…", cls: "navy" };
   if (store.mode === "demo" && store.backed && store.connection === "live") return { label: store.playing ? "Mock backend · receiving" : `Mock backend · seq ${store.lastSeq}`, cls: store.playing ? "primary" : "ok" };
   if (store.mode === "demo" && !store.backed) return { label: store.playing ? "Demo · receiving" : `Demo data · seq ${store.lastSeq}`, cls: store.playing ? "primary" : "ok" };
   switch (store.connection) {

@@ -9,11 +9,13 @@ import vue from "@vitejs/plugin-vue";
 export default defineConfig(({ mode }) => {
   const env = loadEnv(mode, process.cwd(), "");
   const api = env.INLOOK_API_URL ?? "http://127.0.0.1:3001";
-  const backend = env.INLOOK_BACKEND_URL ?? "http://127.0.0.1:8000";
+  const backend = env.INLOOK_BACKEND_URL ?? "https://inlook.onrender.com";
   const mock = env.INLOOK_MOCK_URL ?? `http://127.0.0.1:${env.MOCK_PORT ?? 8787}`;
+  const mockRemote = !/^https?:\/\/(127\.0\.0\.1|localhost)(:|\/|$)/.test(mock);
   const toBackend = { target: backend, changeOrigin: true };
   return {
     plugins: [vue()],
+    define: { __INLOOK_MOCK_REMOTE__: JSON.stringify(mockRemote) },
     server: {
       port: 5173,
       // The app imports the shared contract types, the backend seed and the overlay's mock scenarios.

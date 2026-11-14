@@ -29,12 +29,20 @@ MongoDB writes, SSE publishes with their seq) and the response. Gemini, Context.
 are simulated; nothing leaves the process. When the mock backend is not running, demo mode runs in the browser
 as before; the top bar says which (`Mock backend · seq N` or `Demo data · seq N`).
 
+**Mock backend on Render** (free plan), so the demo data and its log live there too: New → Web Service, same
+repo, Root Directory `frontend`, Runtime Node, env `NODE_VERSION=22`, Build `npm ci`, Start `npm run mock`,
+Health Check Path `/health`, Instance type Free. It reads Render's `PORT`. Then put
+`INLOOK_MOCK_URL=https://<that service>.onrender.com` in `frontend/.env` and restart `npm run dev:demo`: demo
+mode now talks to Render, and the service's Logs tab shows the same request-by-request flow as the terminal.
+A sleeping free service takes about a minute to wake; the top bar says "Waking the demo backend…" meanwhile.
+Its state is in memory, so a restart or spin-down on Render starts it again from demo-data.json (like Reset).
+
 Live, against the real backend:
 
 ```bash
 cp .env.example .env   # DATABASE_URL must include the database name: .../inlook
 npm run api            # data API on http://localhost:3001 (Prisma over MongoDB Atlas)
-# backend on http://127.0.0.1:8000 (see backend/README.md)
+# backend: https://inlook.onrender.com by default (Render); a local one needs INLOOK_BACKEND_URL=http://127.0.0.1:8000
 npm run dev            # dashboard on http://localhost:5173
 ```
 
@@ -44,7 +52,8 @@ The Live / Demo switch in the top bar changes mode at any time; `?demo` in the U
 top bar: `?user=<person id>` in the URL (e.g. `?user=p-noor`), else `VITE_INLOOK_USER` in `.env`, else Ada
 Mockridge (`p-ada`). Mock people: `p-casey` (CEO), `p-noor` (COO), `p-ada`, `p-sam`, `p-mira`.
 Vite proxies `/api` to the data API and `/stream`, `/check`, `/recheck`, `/reviews` to the backend, so neither
-needs CORS, and `/mock/*` to the mock backend. Override the targets with `INLOOK_API_URL`,
+needs CORS, and `/mock/*` to the mock backend. Requests carry `x-inlook-user` (the signed-in person), so the
+backend logs show who acted and an accepted or rejected review records who decided. Override the targets with `INLOOK_API_URL`,
 `INLOOK_BACKEND_URL` and `INLOOK_MOCK_URL` in `.env`.
 
 ```bash

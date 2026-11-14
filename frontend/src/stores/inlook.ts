@@ -50,6 +50,8 @@ export const useInlook = defineStore("inlook", () => {
   const playing = ref(false);
   /** Demo mode only: true when the mock backend answers and serves the demo, false when it runs in the browser. */
   const backed = ref(false);
+  /** Demo mode: waiting for a mock backend on Render to wake up. */
+  const waking = ref(false);
   const meetingIndex = ref(0);
 
   let seen = new Set<number>();
@@ -216,13 +218,15 @@ export const useInlook = defineStore("inlook", () => {
     stop();
     const run = demoRun;
     meetingIndex.value = 0;
-    if (mode.value === "live") { backed.value = false; api.useBackend(""); await startLive(); return; }
+    if (mode.value === "live") { backed.value = false; api.useBackend("", viewerId.value); await startLive(); return; }
     loading.value = true;
+    waking.value = api.MOCK_REMOTE;
     const alive = await api.mockAlive();
     if (run !== demoRun) return; // started again meanwhile
+    waking.value = false;
     backed.value = alive;
     if (alive) { api.useBackend("/mock", viewerId.value); await startLive(); }
-    else { api.useBackend(""); startDemo(); }
+    else { api.useBackend("", viewerId.value); startDemo(); }
   }
   /** Demo mode without the mock backend: everything happens in the browser. */
   const local = () => mode.value === "demo" && !backed.value;
@@ -364,7 +368,7 @@ export const useInlook = defineStore("inlook", () => {
 
   return {
     mode, connection, loading, apiError, records, log, viewerId, viewer, scope, org, claims, lastSeq,
-    busy, toast, playing, backed, meetingIndex, meetingDone,
+    busy, toast, playing, backed, waking, meetingIndex, meetingDone,
     inbox, hiddenCount, unread, seenAt, hide, hideAll, unhideAll, markRead,
     start, stop, setMode, setViewer, decide, recheck, checkText, playMeeting, resetDemo, receive, useSnapshot,
   };

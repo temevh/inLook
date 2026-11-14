@@ -11,7 +11,7 @@ Status key:
 
 - Overlay → backend: HTTP POST; mic audio over a WebSocket (`WS /audio/stream`, proposed, see Endpoints).
 - Backend → overlay: SSE on `GET /stream`. Every event has a `seq`; the SSE `id:` is `<bootId>:<seq>` (**proposed**; `bootId` is a random id per backend process). On reconnect the client sends `Last-Event-ID`. If it is `<currentBootId>:<n>` the backend replays seq > n, then follows; anything else (missing, another boot id, a bare number) replays the whole current log. So the stream survives a backend restart. The overlay scopes its seq de-dupe to the boot id. Keep-alive comments every ~15 s, no-buffering headers.
-- Base URL: overlay reads `INLOOK_BACKEND_URL` (default `http://127.0.0.1:8000`).
+- Base URL: overlay reads `INLOOK_BACKEND_URL` (default `https://inlook.onrender.com`, the Render deployment; `http://127.0.0.1:8000` for a local backend).
 
 ## Endpoints
 

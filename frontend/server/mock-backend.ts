@@ -4,7 +4,8 @@
 // steps the real backend would take (Gemini, Context.dev, MongoDB writes, SSE publishes) to this terminal.
 // Nothing leaves this process: no database, no Gemini, no Context.dev.
 //
-// Run: npm run mock   (port 8787, or MOCK_PORT). The dashboard reaches it through the Vite proxy at /mock/*.
+// Run: npm run mock   (port 8787, or MOCK_PORT; PORT on Render). The dashboard reaches it through the Vite
+// proxy at /mock/*, which points at INLOOK_MOCK_URL (a Render deployment) or localhost.
 import { randomBytes } from "node:crypto";
 import { createServer, type IncomingMessage, type ServerResponse } from "node:http";
 import { decide, matchFact, routeClaim, type DemoClaim, type Step } from "../src/data/demo";
@@ -14,7 +15,7 @@ import { MEETING } from "../src/mock/script";
 import { demoSnapshot } from "../src/mock/seed";
 import type { InlookEvent, Records } from "../src/types";
 
-const PORT = Number(process.env.MOCK_PORT ?? 8787);
+const PORT = Number(process.env.MOCK_PORT ?? process.env.PORT ?? 8787);
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
 // ---------- terminal output ----------
@@ -172,7 +173,7 @@ async function handle(req: IncomingMessage, res: ServerResponse) {
     return send(res, 200, rows);
   }
   if (method === "GET" && path === "/health") {
-    out(`${c.grey(clock())}  ${c.dim("GET /health  200")}`);
+    // Not logged: Render's health check polls this every few seconds.
     return send(res, 200, { ok: true, database: "mock", events: "memory", mock: true });
   }
 

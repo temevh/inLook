@@ -11,7 +11,7 @@ export class HttpError extends Error {
 
 /** "" for the real services, "/mock" for the mock backend. */
 let base = "";
-/** Sent as x-inlook-user to the mock backend, so its log shows who acted. The real backend has no login yet. */
+/** Sent as x-inlook-user, so the backend's log shows who acted and a review records who decided. No login yet. */
 let user: string | null = null;
 export function useBackend(prefix: "" | "/mock", as: string | null = null) { base = prefix; user = as; }
 export function actAs(id: string | null) { user = id; }
@@ -19,7 +19,7 @@ export const streamUrl = () => `${base}/stream`;
 
 async function json<T>(path: string, init: RequestInit = {}): Promise<T> {
   const headers = new Headers(init.headers);
-  if (base && user && !headers.has("x-inlook-user")) headers.set("x-inlook-user", user);
+  if (user && !headers.has("x-inlook-user")) headers.set("x-inlook-user", user);
   const res = await fetch(`${base}${path}`, { ...init, headers });
   if (!res.ok) {
     let detail = res.statusText;
@@ -44,7 +44,7 @@ export async function loadSnapshot(): Promise<Snapshot> {
 }
 
 const post = <T>(url: string, body: unknown, as?: string) =>
-  json<T>(url, { method: "POST", headers: { "content-type": "application/json", ...(base && as ? { "x-inlook-user": as } : {}) }, body: JSON.stringify(body) });
+  json<T>(url, { method: "POST", headers: { "content-type": "application/json", ...(as ? { "x-inlook-user": as } : {}) }, body: JSON.stringify(body) });
 
 export const decideReview = (id: string, decision: "accept" | "reject", as?: string) =>
   post<{ id: string; status: string }>(`/reviews/${encodeURIComponent(id)}`, { decision }, as);
@@ -56,10 +56,14 @@ export const checkClaim = (text: string) => post<{ accepted: boolean }>("/check"
 /** Only when the backend runs with INLOOK_DEV=1. Used by "Play meeting" in live mode. */
 export const devEvent = (type: string, payload: unknown) => post("/dev/events", { type, payload });
 
-/** Mock backend only: is it running? Answers within a second either way. */
+/**
+ * Mock backend only: is it running? A local one answers within a second either way; one on Render's free
+ * plan may be asleep and take about a minute to wake, so that probe waits longer.
+ */
+export const MOCK_REMOTE = typeof __INLOOK_MOCK_REMOTE__ !== "undefined" && __INLOOK_MOCK_REMOTE__;
 export async function mockAlive(): Promise<boolean> {
   try {
-    const res = await fetch("/mock/health", { signal: AbortSignal.timeout(1000) });
+    const res = await fetch("/mock/health", { signal: AbortSignal.timeout(MOCK_REMOTE ? 75_000 : 1000) });
     return res.ok && (await res.json()).mock === true;
   } catch { return false; }
 }

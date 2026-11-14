@@ -1,5 +1,5 @@
 export const config = {
-  backendUrl: (process.env.INLOOK_BACKEND_URL ?? "http://127.0.0.1:8000").replace(/\/$/, ""),
+  backendUrl: (process.env.INLOOK_BACKEND_URL ?? "https://inlook.onrender.com").replace(/\/$/, ""),
   /** Global "check now" hotkey. */
   checkHotkey: process.env.INLOOK_HOTKEY ?? "CommandOrControl+Alt+K",
   /** Screen edge the HUD strip docks to. */
