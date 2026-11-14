@@ -3,66 +3,110 @@
 :root {
   --card: hsl(233 20% 10.5%); --border: hsl(233 12% 21%);
   --fg: hsl(220 20% 96%); --muted: hsl(220 10% 66%); --primary: #268bff;
+  --on-fill: #07142f; /* brand navy: text on the bright blue / amber / red / blue fills */
   --low: #60a5fa; --medium: #f0b44c; --high: #ff6b6b; --checking: #f0b44c;
   --sans: "Rethink Sans", system-ui, sans-serif;
   --ease: cubic-bezier(.22, 1, .36, 1);
+  /* Depth: lets a dark card read over a dark app and keeps its edge over a light one. */
+  --lift: inset 0 1px 0 hsl(0 0% 100% / .05), 0 8px 20px -8px hsl(233 40% 2% / .75);
 }
 * { box-sizing: border-box; margin: 0; }
 html, body { height: 100%; background: transparent; color: var(--fg); font: 400 .875rem/1.3 var(--sans); overflow: hidden; }
 .strip { height: 100%; display: flex; flex-direction: column; gap: 10px; padding: 12px; }
-body.interactive .bar { border-color: var(--primary); }
 
-.bar { order: 0; display: flex; justify-content: space-between; align-items: baseline; padding: 8px 14px; background: var(--card); border: 1px solid var(--border); border-radius: .875rem; }
+.bar { order: 0; transition: border-color .25s var(--ease), box-shadow .25s var(--ease); display: flex; justify-content: space-between; align-items: center; padding: 8px 14px; background: var(--card); border: 1px solid var(--border); border-radius: .875rem; box-shadow: var(--lift); }
+body.interactive .bar { border-color: var(--primary); box-shadow: var(--lift), 0 0 0 3px hsl(210 100% 57% / .28); }
 .mark { font-weight: 800; font-size: 1rem; }
-.status { font-size: .75rem; color: var(--muted); }
+/* Stream state: dot + word, colours reuse the criticality tokens. */
+.status { display: flex; align-items: center; gap: 7px; font-size: .75rem; color: var(--muted); }
+.status::before { content: ""; width: 7px; height: 7px; border-radius: 50%; background: var(--checking); transition: background .3s var(--ease); }
+.status[data-stream="open"]::before { background: var(--primary); }
+.status[data-stream="closed"]::before { background: var(--high); }
 
 /* Transcript at the top: newest line last, older lines fade. */
-.transcript { order: 1; display: flex; flex-direction: column; gap: 6px; max-height: 32%; overflow: hidden; justify-content: flex-end; padding: 12px 14px; background: var(--card); border: 1px solid var(--border); border-radius: .875rem; }
+.transcript { order: 1; display: flex; flex-direction: column; gap: 8px; max-height: 32%; overflow: hidden; justify-content: flex-end; padding: 12px 14px; background: var(--card); border: 1px solid var(--border); border-radius: .875rem; box-shadow: var(--lift); animation: pop .4s var(--ease); }
 .transcript:empty { display: none; }
-.transcript p { color: var(--muted); line-height: 1.3; }
+.transcript p { color: var(--muted); line-height: 1.35; animation: line-in .35s var(--ease); transition: opacity .3s var(--ease), color .3s var(--ease); }
 .transcript p:last-child { color: var(--fg); }
-.transcript b { display: block; font-size: .75rem; font-weight: 600; color: var(--muted); }
+.transcript p:nth-last-child(n+4) { opacity: .55; }
+.transcript b { display: block; font-size: .75rem; font-weight: 600; color: var(--muted); margin-bottom: 1px; }
+.transcript p:last-child b { color: var(--primary); }
 
-.cards { order: 2; flex: 1; min-height: 0; display: flex; flex-direction: column; gap: 10px; overflow: hidden; }
-.card { background: var(--card); border: 1px solid var(--border); border-inline-start: 3px solid var(--border); border-radius: .875rem; padding: 12px 14px; animation: in .35s var(--ease); }
-@keyframes in { from { opacity: 0; transform: translateY(-6px); } }
-.card[data-tier="low"] { border-inline-start-color: var(--low); }
-.card[data-tier="medium"] { border-inline-start-color: var(--medium); }
-.card[data-tier="high"] { border-inline-start-color: var(--high); }
+.cards { order: 2; flex: 1; min-height: 0; display: flex; flex-direction: column; gap: 10px; overflow: hidden;
+  /* room for the card shadows, which overflow:hidden would clip */
+  margin: -8px -12px 0; padding: 8px 12px 0; }
+.card { --tier: var(--border); background: var(--card); border: 1px solid var(--border); border-radius: .875rem; padding: 12px 14px; box-shadow: var(--lift); transition: background-color .4s var(--ease), border-color .4s var(--ease), color .4s var(--ease); }
+/* Criticality: surface tint + hairline in the tier colour (no side stripe), pill weight below. */
+.card[data-tier] { background: color-mix(in srgb, var(--tier) 9%, var(--card)); border-color: color-mix(in srgb, var(--tier) 42%, var(--border)); }
+.card { --ring: var(--tier); }
+.card[data-tier="low"] { --tier: var(--low); }
+.card[data-tier="medium"] { --tier: var(--medium); }
+.card[data-tier="high"] { --tier: var(--high); }
 
 .head { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
-.card h2 { font-size: 1rem; font-weight: 600; line-height: 1.2; }
-.pill { padding: 1px 9px; border-radius: 999px; border: 1px solid currentColor; font-size: .75rem; font-weight: 600; text-transform: capitalize; }
-.card[data-tier="low"] .pill { color: var(--low); }
-.card[data-tier="medium"] .pill { color: var(--medium); }
-.card[data-tier="high"] .pill { color: var(--high); }
+.card h2 { font-size: .875rem; font-weight: 600; line-height: 1.2; }
 .card[data-tier="high"] h2 { color: var(--high); }
+/* High is a solid fill, medium a tinted one, low an outline: weight follows criticality. */
+.pill { padding: 2px 10px; border-radius: 999px; border: 1px solid var(--tier); color: var(--tier); font-size: .75rem; font-weight: 600; line-height: 1.2; text-transform: capitalize; }
+.card[data-tier="medium"] .pill { background: color-mix(in srgb, var(--tier) 18%, transparent); }
+.card[data-tier="high"] .pill { background: var(--tier); color: var(--on-fill); }
 
-.fact { margin-top: 6px; font-size: 1rem; font-weight: 450; line-height: 1.3; }
-.meta { margin-top: 8px; font-size: .75rem; color: var(--muted); line-height: 1.3; }
+/* The fact is the product: it leads, in the largest type on the strip. */
+.fact { margin-top: 6px; font-size: 1rem; font-weight: 450; line-height: 1.3; text-wrap: pretty; }
+.card[data-tier] .fact { font-size: 1.25rem; font-weight: 600; line-height: 1.2; text-wrap: balance; }
+.meta { margin-top: 8px; font-size: .875rem; color: var(--muted); line-height: 1.35; }
+.meta.source { font-size: .75rem; }
 
 /* Checking: amber, pulsing, no criticality yet. */
-.card.checking { border-style: dashed; border-inline-start-style: dashed; border-color: var(--checking);  }
+.card.checking { border-style: dashed; border-color: var(--checking); }
 .card.checking .head { justify-content: flex-start; }
 .card.checking h2 { color: var(--checking); }
 .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--checking); animation: pulse 1.4s ease-in-out infinite; }
 @keyframes pulse { 50% { opacity: .3; } }
 
 /* Unverified: muted, then fades out (hud.ts removes it after). */
-.card.unverified { border-style: dashed; color: var(--muted); animation: in .35s var(--ease), out 1s var(--ease) 3.4s forwards; }
+.card.unverified { border-style: dashed; color: var(--muted); }
 .card.unverified h2 { color: var(--muted); font-weight: 450; }
-@keyframes out { to { opacity: 0; } }
 
-.card.message { border-inline-start-color: var(--primary); }
+.card.message { --ring: var(--primary); background: color-mix(in srgb, var(--primary) 9%, var(--card)); border-color: color-mix(in srgb, var(--primary) 42%, var(--border)); }
 .card.message h2 { color: var(--primary); }
 
-/* Review buttons: visibly inactive while the HUD is click-through. */
+/* Motion (enter, exit and sibling glide are WAAPI in hud.ts). The verdict lands with one ring pulse and its
+   content rises in on the card that stays; the tint above tweens from the checking amber. */
+.card.land { animation: land .8s var(--ease); }
+@keyframes land {
+  from { box-shadow: var(--lift), 0 0 0 0 color-mix(in srgb, var(--ring) 70%, transparent); }
+  to { box-shadow: var(--lift), 0 0 0 8px color-mix(in srgb, var(--ring) 0%, transparent); }
+}
+.card.swap > * { animation: rise .4s var(--ease) both; }
+.card.swap > :nth-child(2) { animation-delay: 50ms; }
+.card.swap > :nth-child(3) { animation-delay: 100ms; }
+.card.swap > :nth-child(4) { animation-delay: 150ms; }
+@keyframes rise { from { opacity: 0; transform: translateY(6px); } }
+@keyframes line-in { from { opacity: 0; transform: translateY(6px); } }
+@keyframes pop { from { opacity: 0; transform: translateY(-6px); } }
+@keyframes fade { from { opacity: 0; } }
+
+/* Review buttons: visibly inert (dashed, muted) while the HUD is click-through. */
 .actions { display: flex; gap: 8px; margin-top: 12px; }
-.card button { flex: 1; font: inherit; font-weight: 600; padding: 6px 10px; border-radius: .5rem; border: 1px dashed var(--border); background: transparent; color: var(--muted); opacity: .45; pointer-events: none; transition: opacity .2s var(--ease), background .2s var(--ease); }
-body.interactive .card button { opacity: 1; pointer-events: auto; cursor: pointer; border-style: solid; }
-body.interactive .card button.accept { background: var(--primary); border-color: var(--primary); color: #fff; }
-body.interactive .card button.reject { color: var(--fg); }
-body.interactive .card button:hover:not(:disabled) { background: hsl(233 20% 16%); }
-body.interactive .card button.accept:hover:not(:disabled) { background: #4aa0ff; }
+.card button { flex: 1; font: inherit; font-weight: 600; padding: 7px 10px; border-radius: .5rem; border: 1px dashed var(--muted); background: transparent; color: var(--muted); pointer-events: none; transition: background .25s var(--ease), border-color .25s var(--ease), color .25s var(--ease), opacity .2s var(--ease), transform .12s var(--ease); }
+body.interactive .card button { pointer-events: auto; cursor: pointer; border-style: solid; border-color: var(--border); color: var(--fg); }
+body.interactive .card button.accept { background: var(--primary); border-color: var(--primary); color: var(--on-fill); }
+body.interactive .card button:hover:not(:disabled) { background: hsl(233 20% 18%); }
+body.interactive .card button.accept:hover:not(:disabled) { background: #4aa0ff; border-color: #4aa0ff; }
+body.interactive .card button:active:not(:disabled) { transform: scale(.97); }
+body.interactive .card button:focus-visible { outline: 2px solid var(--fg); outline-offset: 2px; }
 .card button:disabled { opacity: .45; cursor: default; }
-@media (prefers-reduced-motion: reduce) { .card, .dot { animation: none; } }
+.card button.chosen:disabled { opacity: 1; }
+body.interactive .card button.reject.chosen { border-color: var(--fg); }
+.sendstate { margin-top: 6px; }
+.sendstate.error { color: var(--high); }
+/* Outcome shown for a moment when the review closes. */
+.result { margin-top: 12px; font-weight: 600; }
+.result.accepted { color: var(--primary); }
+.result.rejected { color: var(--muted); }
+@media (prefers-reduced-motion: reduce) {
+  .dot { animation: none; }
+  .card.swap > *, .transcript, .transcript p { animation-name: fade; }
+  .card button:active { transform: none; }
+}

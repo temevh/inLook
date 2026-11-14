@@ -1,5 +1,7 @@
 # Phase 4: HUD cards
 
+Later changes to card styling, motion and review/widget behaviour: `docs/phase7.md`.
+
 Files: `overlay/src/renderer/hud/hud.ts`, `hud.css`, `widget/widget.css`, new `renderer/fonts/`.
 
 ## What was done
