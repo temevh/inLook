@@ -6,7 +6,8 @@ import MeetingsView from "./views/MeetingsView.vue";
 import StrategiesView from "./views/StrategiesView.vue";
 
 /** Height of the sticky header and tabs, so a scrolled-to element is not hidden under them. */
-const stickyHeight = () => document.querySelector<HTMLElement>(".top")?.offsetHeight ?? 0;
+const stickyHeight = () =>
+  document.querySelector<HTMLElement>(".top")?.offsetHeight ?? 0;
 
 export const router = createRouter({
   history: createWebHistory(),
@@ -19,7 +20,18 @@ export const router = createRouter({
   ],
   // Notification actions link to "/#review-…" or "/strategies#strategy-…": scroll the target into view.
   scrollBehavior(to) {
-    if (to.hash) return new Promise((resolve) => setTimeout(() => resolve({ el: to.hash, top: stickyHeight() + 16, behavior: "smooth" }), 50));
+    if (to.hash)
+      return new Promise((resolve) =>
+        setTimeout(
+          () =>
+            resolve({
+              el: to.hash,
+              top: stickyHeight() + 16,
+              behavior: "smooth",
+            }),
+          50,
+        ),
+      );
     return { top: 0 };
   },
 });

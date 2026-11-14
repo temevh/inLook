@@ -30,9 +30,9 @@ const banner = computed(() => {
     <AppHeader />
     <nav class="tabs" aria-label="Views">
       <RouterLink to="/" class="tab">My desk <span v-if="waiting" class="count warn">{{ waiting }}</span></RouterLink>
-      <RouterLink to="/meetings" class="tab">Meetings <span v-if="store.playing" class="live-dot" aria-label="in progress" /></RouterLink>
       <RouterLink to="/facts" class="tab">Facts</RouterLink>
       <RouterLink to="/strategies" class="tab">Strategies <span v-if="flagged" class="count bad">{{ flagged }}</span></RouterLink>
+      <RouterLink to="/meetings" class="tab">Meetings <span v-if="store.playing" class="live-dot" aria-label="in progress" /></RouterLink>
       <RouterLink to="/activity" class="tab">Activity</RouterLink>
     </nav>
     </div>

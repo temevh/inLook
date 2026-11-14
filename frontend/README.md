@@ -51,62 +51,47 @@ npm run typecheck      # server + app
 
 Everything shown is mock data and labelled so. All of it lives in one file, `src/mock/demo-data.json`:
 
-- `people`: 17 people in eight teams, up to four levels deep (CEO → CTO → Engineering Manager → Platform
-  Engineer). The database has no reporting line yet, so live mode borrows it from here too (`src/mock/org.ts`).
-- `facts`: 24 facts across all tiers. `live` is what the fact's source says today, which decides a check's
-  verdict: a different value is outdated, the same value is current, `null` (no public source) is unverifiable.
-  `keywords` match a typed claim to a fact, standing in for the backend's Gemini match.
-- `strategies`: 12 strategies with a one-line `summary` (demo only). They share facts across teams, so one change
-  ripples: the EUR/USD rate feeds four strategies owned by four people in three teams.
-- `history`: past claims and decisions, run through the demo engine at load: accepted, rejected and automatic
-  changes, and four open reviews.
-- `meeting`: 19 transcript lines that Play meeting replays, most with a claim.
+- `people`: 5 people, three levels deep: Casey (CEO) → Ada (Head of Pricing) and Noor (COO) → Sam (Support Lead)
+  and Mira (Office Manager). Live mode borrows this reporting line too (`src/mock/org.ts`).
+- `facts`: 5 facts. `live` is what the fact's source says today, which decides a check's verdict: a different
+  value is outdated, the same value is current. `keywords` match a typed claim to a fact.
+- `strategies`: 3 strategies relying on 1, 2 and 3 facts. Facts are used by 0, 1 or 2 strategies.
+- `history`: Sam once kept the Apple return window (rejected review), and the ticket volume review is open.
+- `meeting`: 9 transcript lines that Play meeting replays, 7 of them with a claim.
 
-`src/data/demo.ts` is the demo engine. It follows the backend's routing:
+| Fact | Tier | Stated by | Strategies | What the demo shows |
+| --- | --- | --- | --- | --- |
+| Notion Plus price | high | Sam | Pricing Plan, 2027 Budget | Both owners (Ada, Casey) decide; two strategies flagged; Casey accepts after 25 s |
+| EUR/USD rate | high | Ada | 2027 Budget | Casey decides, not Ada who stated it; Ada misstates it (1.10 vs 1.08) |
+| Apple return window | medium | Sam | Support Plan | Sam decides; rejected once before; Sam accepts after 30 s |
+| Weekly support tickets | low → medium | Sam | Support Plan, 2027 Budget | Raised to medium because strategies rely on it; already in review, not asked twice |
+| Office wifi | low | Mira | none | Updated automatically, then confirmed current |
 
-- Low tier and no strategy relies on it: updated automatically.
-- Low tier but a strategy relies on it: treated as medium (Onboarding length, used by the Hiring Plan).
-- Medium: review by whoever stated the fact. No flag.
-- High: review by every owner of every relying strategy; each strategy is flagged (once) and each owner messaged.
-- High but no strategy relies on it: review by whoever stated it (Office lease end date).
-- A fact already in review is not asked about again.
-- A flagged strategy turns healthy only when none of its facts is in review, including medium ones.
+`src/data/demo.ts` is the demo engine and follows the backend's routing: low and unused updates itself; low but
+relied on is treated as medium; medium goes to whoever stated it; high goes to every owner of every relying
+strategy (or to whoever stated it if none), flags each strategy once and messages its owners. A flagged strategy
+turns healthy only when none of its facts is in review, including medium ones.
 
-Every fact's side panel on the Facts page explains this for that fact under "If its source changes", and every
-review card says why its reviewers were chosen.
-
-Good people to sign in as with `?user=`: `p-ada` (default; her strategies pull in facts from four other teams),
-`p-elin` (asked about both the Notion price and the exchange rate), `p-noor` (COO, sees reviews waiting two
-levels down), `p-casey` (CEO, everything), `p-jon` (middle manager, owns nothing but sees his report's strategy),
-`p-mira` (only low-tier facts, until the lease review lands on her), `p-hana` (gets the raised-tier review).
+Good people to sign in as: `p-ada` (default), `p-casey` (CEO, decides the most), `p-noor` (COO, sees Sam's and
+Mira's work), `p-sam` (Support Lead, medium-tier reviews), `p-mira` (no strategy, only the wifi).
 
 Demo-only extras:
 
-- **Sign in as** (click your name in the top bar): switch person without losing the demo. Each person's list
-  shows how many decisions wait on them.
-- **Colleagues decide on their own**: a meeting claim's `autoDecide` in the JSON makes that person decide its
-  review after a delay (Raj accepts the Notion price after 25 s, Sam keeps the Apple return window after 30 s),
-  unless they are the one signed in. Others get an "Accepted" or "Kept old value" notification naming them, and
-  the new version in the fact's history is credited to them.
-- **Misstated claims**: when a claim's numbers differ from what company memory held, the card says so, whatever
-  the source says (Dana's "100 requests a minute" while memory holds 120). This is worked out from the text, so it
-  works in live mode too.
-- **Ripple diagram** on the Facts page: the selected fact, the strategies relying on it and their owners. Edges
-  animate while a change is in review; flagged strategies and the people asked to decide are marked.
-- **Notification pop-ups** for anything new that reaches the bell, with its main action ("Decide now").
+- **Sign in as** (click your name in the top bar): switch person without losing the demo.
+- **Colleagues decide on their own**: a meeting claim's `autoDecide` makes that person decide its review after a
+  delay, unless they are the one signed in. Others get a notification naming them, and the fact history credits them.
+- **Misstated claims**: when a claim's numbers differ from what company memory held, the card says so. This is
+  worked out from the text, so it works in live mode too.
+- **Ripple diagram** on the Facts page, and **notification pop-ups** for anything new in the bell.
 
 What to try in demo mode:
 
-1. Play meeting. Watch Notion's price ask four people across three strategies, and the exchange rate flag two
-   more strategies and message owners of strategies that were already flagged.
-2. As Ada, accept the Notion price: Mock Pricing Plan stays flagged because the exchange rate is still in review.
-   Accept the exchange rate too, and it turns healthy. Marketing Tools Budget stays flagged because of the HubSpot
-   review (medium) from the history.
-3. Facts → Maximum sales discount → Re-check now. Its earlier review was rejected, but the source still says 15%,
-   so a new review opens.
-4. Type a claim such as “VAT is 24%” or “HubSpot costs $20 a seat” into Check a claim.
-   Unknown topics come back unverified.
-5. Activity shows the full log, including weeks of history.
+1. Play meeting as Ada. The Notion price flags Mock Pricing Plan and 2027 Budget. 25 s later Casey accepts it:
+   the Pricing Plan heals, the Budget stays flagged because the exchange rate and ticket volume are in review.
+2. Switch to Casey and accept the exchange rate: the Budget still waits on Sam's ticket volume review.
+3. Switch to Sam and accept the ticket volume: the Budget turns healthy.
+4. Facts → Weekly support tickets shows the raised tier; the ripple diagram shows who it reaches.
+5. Type “is it still 1.08 dollars per euro?” into Check a claim on Meetings; unknown topics come back unverified.
 
 ## Files
 
