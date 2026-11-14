@@ -1,8 +1,8 @@
 // Generates the contract mirrors from shared/*.schema.json.
 //   node scripts/gen-contract.mjs ts   -> src/shared/contract.gen.ts
-//   node scripts/gen-contract.mjs py   -> ../shared/generated/contract_models.py (pydantic v2)
+//   node scripts/gen-contract.mjs py   -> ../backend/app/contract.py (pydantic v2)
 import { spawnSync } from "node:child_process";
-import { mkdirSync, mkdtempSync, readFileSync, writeFileSync } from "node:fs";
+import { mkdtempSync, readFileSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { compile } from "json-schema-to-typescript";
 
@@ -27,10 +27,9 @@ if (mode === "ts") {
   event.$defs = { ...event.$defs, HudCard: card, ...read("api").$defs };
   const input = mkdtempSync(tmpdir() + "/inlook-contract-") + "/bundle.json";
   writeFileSync(input, JSON.stringify(event));
-  mkdirSync(shared + "generated", { recursive: true });
   const args = ["--input", input, "--input-file-type", "jsonschema", "--output-model-type", "pydantic_v2.BaseModel",
     "--use-annotated", "--formatters", "black", "isort", "--disable-timestamp",
-    "--output", shared + "generated/contract_models.py"];
+    "--output", new URL("../../backend/app/contract.py", import.meta.url).pathname];
   // datamodel-codegen: PATH, else uvx, else nix.
   for (const [cmd, ...pre] of [["datamodel-codegen"], ["uvx", "--from", "datamodel-code-generator", "datamodel-codegen"],
     ["nix", "run", "nixpkgs#datamodel-code-generator", "--"]]) {

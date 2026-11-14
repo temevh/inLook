@@ -1,5 +1,6 @@
 // HUD: renders SSE events into cards and transcript lines.
-import type { HudCard, InlookEvent } from "../../shared/contract";
+import type { HudCard, InlookEvent } from "../../shared/contract.gen";
+import type { OverlayState } from "../../shared/ipc";
 import { evictionTarget, FactCards, rankOf, type CardInfo } from "./policy.js";
 
 const cards = document.getElementById("cards")!;
@@ -259,7 +260,7 @@ function render(e: InlookEvent) {
 }
 
 window.inlook.onEvent(render);
-const applyState = (s: { hudInteractive: boolean; stream: string }) => {
+const applyState = (s: OverlayState) => {
   document.body.classList.toggle("interactive", s.hudInteractive);
   status.textContent = s.hudInteractive ? `${s.stream} · interactive` : s.stream;
   status.dataset.stream = s.stream;

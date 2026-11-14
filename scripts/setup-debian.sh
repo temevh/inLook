@@ -112,4 +112,4 @@ else
   echo "         or set WaylandEnable=false in /etc/gdm3/daemon.conf." >&2
 fi
 
-log "done. Start the backend: cd $REPO/backend && uv run uvicorn app.main:app"
+log "done. Start the backend: cd $REPO/backend && uv run uvicorn app.main:app --env-file .env"

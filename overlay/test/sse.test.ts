@@ -8,8 +8,8 @@ const at = "2026-01-01T00:00:00.000Z";
 const line = (seq: number, text = `t${seq}`) => ({
   seq, type: "transcript.line", at, payload: { lineId: `l${seq}`, speaker: "A", text },
 });
-const frame = (e: { seq: number; type: string }, boot = "aaaa") =>
-  `id: ${boot}:${e.seq}\nevent: ${e.type}\ndata: ${JSON.stringify(e)}\n\n`;
+const frame = (e: { seq: number }, boot = "aaaa") =>
+  `id: ${boot}:${e.seq}\ndata: ${JSON.stringify(e)}\n\n`;
 
 let server: Server;
 let requests: IncomingMessage[] = [];

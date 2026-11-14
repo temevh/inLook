@@ -1,0 +1,69 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Inlook · Architecture at a glance</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Schibsted+Grotesk:wght@400;600;800&family=JetBrains+Mono:wght@500&display=swap" rel="stylesheet">
+<style>
+  * { box-sizing: border-box; margin: 0; }
+  html, body { height: 100%; background: #0f1216; color: #eceef1; overflow: hidden; }
+  body { display: grid; place-items: center; }
+  svg { width: 100vw; height: 100vh; display: block; }
+</style>
+</head>
+<body>
+<svg viewBox="0 0 1920 1080" preserveAspectRatio="xMidYMid meet" role="img" aria-label="High-level Inlook architecture: the desktop feeds what you say, select and capture into the overlay app; the overlay streams live audio, text, screenshots and review decisions to the Inlook backend, which sends live cards and alerts back; the backend uses AI services (ElevenLabs speech to text, Gemini for claims, verdicts and cards) and unconfirmed data and sources (MongoDB facts, Context.dev fresh sources).">
+<defs><marker id="h" viewBox="0 0 12 12" refX="10" refY="6" markerWidth="12" markerHeight="12" markerUnits="userSpaceOnUse" orient="auto-start-reverse"><path d="M1 1 L10 6 L1 11" fill="none" stroke="#dfe3e8" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></marker><marker id="hm" viewBox="0 0 12 12" refX="10" refY="6" markerWidth="12" markerHeight="12" markerUnits="userSpaceOnUse" orient="auto-start-reverse"><path d="M1 1 L10 6 L1 11" fill="none" stroke="#a3abb7" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></marker><marker id="hw" viewBox="0 0 12 12" refX="10" refY="6" markerWidth="12" markerHeight="12" markerUnits="userSpaceOnUse" orient="auto-start-reverse"><path d="M1 1 L10 6 L1 11" fill="none" stroke="#f0b44c" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></marker></defs>
+<rect x="60" y="400" width="300" height="280" rx="18" fill="#0f1216" stroke="#dfe3e8" stroke-width="2.5"/>
+<text x="210.0" y="501.0" fill="#eceef1" font-family='"Schibsted Grotesk", system-ui, sans-serif' font-size="26" font-weight="600" letter-spacing="0.06em" text-anchor="middle">DESKTOP</text>
+<text x="210.0" y="535.0" fill="#a3abb7" font-family='"Schibsted Grotesk", system-ui, sans-serif' font-size="16" font-weight="400" letter-spacing="0.08em" text-anchor="middle">MIC</text>
+<text x="210.0" y="561.0" fill="#a3abb7" font-family='"Schibsted Grotesk", system-ui, sans-serif' font-size="16" font-weight="400" letter-spacing="0.08em" text-anchor="middle">HIGHLIGHTED TEXT</text>
+<text x="210.0" y="587.0" fill="#a3abb7" font-family='"Schibsted Grotesk", system-ui, sans-serif' font-size="16" font-weight="400" letter-spacing="0.08em" text-anchor="middle">SCREENSHOTS</text>
+<rect x="500" y="400" width="320" height="280" rx="18" fill="#0f1216" stroke="#dfe3e8" stroke-width="2.5"/>
+<text x="660.0" y="516.0" fill="#eceef1" font-family='"Schibsted Grotesk", system-ui, sans-serif' font-size="26" font-weight="600" letter-spacing="0.06em" text-anchor="middle">OVERLAY APP</text>
+<text x="660.0" y="550.0" fill="#a3abb7" font-family='"Schibsted Grotesk", system-ui, sans-serif' font-size="16" font-weight="400" letter-spacing="0.08em" text-anchor="middle">HUD + WIDGET</text>
+<text x="660.0" y="576.0" fill="#a3abb7" font-family='"Schibsted Grotesk", system-ui, sans-serif' font-size="16" font-weight="400" letter-spacing="0.08em" text-anchor="middle">ON THE LAPTOP</text>
+<rect x="1060" y="400" width="300" height="280" rx="18" fill="#0f1216" stroke="#dfe3e8" stroke-width="2.5"/>
+<text x="1210.0" y="531.0" fill="#eceef1" font-family='"Schibsted Grotesk", system-ui, sans-serif' font-size="26" font-weight="600" letter-spacing="0.06em" text-anchor="middle">INLOOK BACKEND</text>
+<text x="1210.0" y="565.0" fill="#a3abb7" font-family='"Schibsted Grotesk", system-ui, sans-serif' font-size="16" font-weight="400" letter-spacing="0.08em" text-anchor="middle">CHECKS EVERY CLAIM</text>
+<rect x="1560" y="160" width="300" height="300" rx="18" fill="#0f1216" stroke="#dfe3e8" stroke-width="2.5"/>
+<text x="1710.0" y="256.0" fill="#eceef1" font-family='"Schibsted Grotesk", system-ui, sans-serif' font-size="26" font-weight="600" letter-spacing="0.06em" text-anchor="middle">AI SERVICES</text>
+<text x="1710.0" y="290.0" fill="#a3abb7" font-family='"Schibsted Grotesk", system-ui, sans-serif' font-size="16" font-weight="400" letter-spacing="0.08em" text-anchor="middle">ELEVENLABS</text>
+<text x="1710.0" y="316.0" fill="#a3abb7" font-family='"Schibsted Grotesk", system-ui, sans-serif' font-size="16" font-weight="400" letter-spacing="0.08em" text-anchor="middle">SPEECH TO TEXT</text>
+<text x="1710.0" y="342.0" fill="#a3abb7" font-family='"Schibsted Grotesk", system-ui, sans-serif' font-size="16" font-weight="400" letter-spacing="0.08em" text-anchor="middle">GEMINI</text>
+<text x="1710.0" y="368.0" fill="#a3abb7" font-family='"Schibsted Grotesk", system-ui, sans-serif' font-size="16" font-weight="400" letter-spacing="0.08em" text-anchor="middle">CLAIMS, VERDICTS, CARDS</text>
+<rect x="1560" y="620" width="300" height="300" rx="18" fill="#0f1216" stroke="#dfe3e8" stroke-width="2.5" stroke-dasharray="9 9"/>
+<text x="1710.0" y="716.0" fill="#eceef1" font-family='"Schibsted Grotesk", system-ui, sans-serif' font-size="26" font-weight="600" letter-spacing="0.06em" text-anchor="middle">DATA + SOURCES</text>
+<text x="1710.0" y="750.0" fill="#a3abb7" font-family='"Schibsted Grotesk", system-ui, sans-serif' font-size="16" font-weight="400" letter-spacing="0.08em" text-anchor="middle">MONGODB</text>
+<text x="1710.0" y="776.0" fill="#a3abb7" font-family='"Schibsted Grotesk", system-ui, sans-serif' font-size="16" font-weight="400" letter-spacing="0.08em" text-anchor="middle">STORED FACTS</text>
+<text x="1710.0" y="802.0" fill="#a3abb7" font-family='"Schibsted Grotesk", system-ui, sans-serif' font-size="16" font-weight="400" letter-spacing="0.08em" text-anchor="middle">CONTEXT.DEV</text>
+<text x="1710.0" y="828.0" fill="#a3abb7" font-family='"Schibsted Grotesk", system-ui, sans-serif' font-size="16" font-weight="400" letter-spacing="0.08em" text-anchor="middle">FRESH SOURCES</text>
+<rect x="1674" y="638" width="168" height="30" rx="15" fill="#0f1216" stroke="#f0b44c" stroke-width="1.6" stroke-dasharray="5 5"/>
+<text x="1758.0" y="658" fill="#f0b44c" font-family='"Schibsted Grotesk", system-ui, sans-serif' font-size="13" font-weight="600" letter-spacing="0.12em" text-anchor="middle">? UNCONFIRMED</text>
+<path d="M364 540 H496" fill="none" stroke="#dfe3e8" stroke-width="2.5" marker-end="url(#h)"/>
+<text x="430" y="470" fill="#a3abb7" font-family='"Schibsted Grotesk", system-ui, sans-serif' font-size="17" font-weight="400" letter-spacing="0em" text-anchor="middle">what you say,</text>
+<text x="430" y="494" fill="#a3abb7" font-family='"Schibsted Grotesk", system-ui, sans-serif' font-size="17" font-weight="400" letter-spacing="0em" text-anchor="middle">select, capture</text>
+<path d="M824 490 H1056" fill="none" stroke="#dfe3e8" stroke-width="2.5" marker-end="url(#h)"/>
+<text x="940" y="408" fill="#a3abb7" font-family='"Schibsted Grotesk", system-ui, sans-serif' font-size="17" font-weight="400" letter-spacing="0em" text-anchor="middle">live audio, text,</text>
+<text x="940" y="432" fill="#a3abb7" font-family='"Schibsted Grotesk", system-ui, sans-serif' font-size="17" font-weight="400" letter-spacing="0em" text-anchor="middle">screenshots,</text>
+<text x="940" y="456" fill="#a3abb7" font-family='"Schibsted Grotesk", system-ui, sans-serif' font-size="17" font-weight="400" letter-spacing="0em" text-anchor="middle">review decisions</text>
+<path d="M1056 590 H824" fill="none" stroke="#dfe3e8" stroke-width="2.5" marker-end="url(#h)"/>
+<text x="940" y="630" fill="#a3abb7" font-family='"Schibsted Grotesk", system-ui, sans-serif' font-size="17" font-weight="400" letter-spacing="0em" text-anchor="middle">live cards and alerts</text>
+<path d="M1364 460 H1500 V310 H1556" fill="none" stroke="#dfe3e8" stroke-width="2.5" marker-start="url(#h)" marker-end="url(#h)"/>
+<text x="1484" y="360" fill="#a3abb7" font-family='"Schibsted Grotesk", system-ui, sans-serif' font-size="17" font-weight="400" letter-spacing="0em" text-anchor="end">transcribe,</text>
+<text x="1484" y="384" fill="#a3abb7" font-family='"Schibsted Grotesk", system-ui, sans-serif' font-size="17" font-weight="400" letter-spacing="0em" text-anchor="end">check claims</text>
+<path d="M1364 620 H1500 V770 H1556" fill="none" stroke="#dfe3e8" stroke-width="2.5" stroke-dasharray="9 9" marker-start="url(#h)" marker-end="url(#h)"/>
+<text x="1484" y="700" fill="#a3abb7" font-family='"Schibsted Grotesk", system-ui, sans-serif' font-size="17" font-weight="400" letter-spacing="0em" text-anchor="end">facts and</text>
+<text x="1484" y="724" fill="#a3abb7" font-family='"Schibsted Grotesk", system-ui, sans-serif' font-size="17" font-weight="400" letter-spacing="0em" text-anchor="end">fresh sources</text>
+<text x="60" y="1010" fill="#eceef1" font-family='"Schibsted Grotesk", system-ui, sans-serif' font-size="30" font-weight="800" letter-spacing="-0.02em" text-anchor="start">Inlook</text>
+<text x="180" y="1008" fill="#a3abb7" font-family='"Schibsted Grotesk", system-ui, sans-serif' font-size="17" font-weight="600" letter-spacing="0.12em" text-anchor="start">ARCHITECTURE AT A GLANCE</text>
+<rect x="1500" y="990" width="44" height="28" rx="7" fill="none" stroke="#dfe3e8" stroke-width="2"/>
+<text x="1558" y="1010" fill="#a3abb7" font-family='"Schibsted Grotesk", system-ui, sans-serif' font-size="16" font-weight="400" letter-spacing="0em" text-anchor="start">Decided</text>
+<rect x="1670" y="990" width="44" height="28" rx="7" fill="none" stroke="#dfe3e8" stroke-width="2" stroke-dasharray="6 6"/>
+<text x="1728" y="1010" fill="#a3abb7" font-family='"Schibsted Grotesk", system-ui, sans-serif' font-size="16" font-weight="400" letter-spacing="0em" text-anchor="start">Unconfirmed</text>
+</svg>
+</body>
+</html>

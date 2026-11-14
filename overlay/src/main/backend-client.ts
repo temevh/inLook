@@ -1,7 +1,7 @@
 // Typed HTTP client for the backend contract (shared/CONTRACT.md).
 import { config } from "./config";
 import { OFFLINE_MESSAGE, httpErrorMessage } from "./errors";
-import type { AcceptedResponse, CheckRequest, ReviewDecision, ReviewResponse } from "../shared/contract";
+import type { AcceptedResponse, CheckRequest, ReviewRequest, ReviewResponse } from "../shared/contract.gen";
 
 /** `message` is the short text shown to the user. Status 0 means the backend was unreachable. */
 export class BackendError extends Error {
@@ -39,7 +39,7 @@ export const backend = {
   },
 
   /** POST /reviews/:id: accept or reject a pending change. */
-  postReview(id: string, decision: ReviewDecision): Promise<ReviewResponse> {
+  postReview(id: string, decision: ReviewRequest["decision"]): Promise<ReviewResponse> {
     return request(`/reviews/${encodeURIComponent(id)}`, json({ decision }));
   },
 };

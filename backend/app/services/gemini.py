@@ -1,8 +1,5 @@
-"""Gemini via google-genai. Structured JSON output (responseSchema) on every call.
-
-Model: GEMINI_MODEL (default gemini-3.8-flash) for spot, match, verdict + card,
-vision. GEMINI_EMBEDDING_MODEL (default gemini-embedding-2) for large fact sets.
-Models may be swapped later.
+"""Gemini via google-genai, structured JSON output (responseSchema) on every call.
+Model: GEMINI_MODEL for spot, match, verdict + card and vision.
 
 PLACEHOLDER: no calls are made yet.
 """
@@ -15,13 +12,11 @@ from .. import config
 @cache
 def card_schema() -> dict:
     """shared/card.schema.json, sent as responseSchema in the verdict + card call."""
-    schema = json.loads((config.SHARED_DIR / "card.schema.json").read_text())
-    schema.pop("$comment", None)
-    return schema
+    return json.loads((config.SHARED_DIR / "card.schema.json").read_text())
 
 
 def client():
-    from google import genai  # imported lazily so the skeleton runs without the SDK
+    from google import genai  # lazy, so the server starts without the SDK configured
     return genai.Client(api_key=config.GEMINI_API_KEY)
 
 
@@ -31,12 +26,12 @@ async def spot(lines: list[dict]) -> list[dict]:
 
 
 async def match(claim: str, facts: list[dict]) -> str | None:
-    """Claim + stored facts (mock set is small: send all) → factId or None."""
+    """Claim + stored facts (small set: send all) → factId or None."""
     raise NotImplementedError
 
 
 async def verdict_card(fact: dict, page_content: str) -> dict:
-    """Stored fact (with tier) + Context.dev page content + card template →
+    """Stored fact (with tier) + source page content + card template →
     { verdict: current|outdated|unverifiable, newValue, evidence, card }.
     The caller checks card.criticality == fact.tier before publishing.
     """
@@ -45,10 +40,4 @@ async def verdict_card(fact: dict, page_content: str) -> dict:
 
 async def vision(png: bytes) -> list[dict]:
     """Screenshot → claims, same shape as spot."""
-    raise NotImplementedError
-
-
-async def embed(texts: list[str]) -> list[list[float]]:
-    """Large fact sets only. UNCONFIRMED: embedding-first claim noticing (embed every
-    transcript sentence + vector search) vs Gemini spotting claims first is not decided."""
     raise NotImplementedError

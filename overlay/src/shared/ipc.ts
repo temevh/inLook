@@ -1,6 +1,8 @@
 // Types for the preload bridge (window.inlook). Type-only: the sandboxed preload
 // cannot load local modules at runtime, so channel names are string literals.
-import type { InlookEvent, ReviewDecision } from "./contract";
+import type { InlookEvent, ReviewRequest } from "./contract.gen";
+
+export type StreamStatus = "connecting" | "open" | "closed";
 
 /** Audio WebSocket state: off while not transcribing; reconnecting after a drop or a failed attempt. */
 export type AudioStatus = "off" | "connecting" | "live" | "reconnecting";
@@ -15,7 +17,7 @@ export interface CheckResult {
 export interface OverlayState {
   hudInteractive: boolean;
   transcribing: boolean;
-  stream: "connecting" | "open" | "closed";
+  stream: StreamStatus;
   audio: AudioStatus;
 }
 
@@ -28,7 +30,7 @@ export interface InlookBridge {
   /** One ~100 ms frame of 16 kHz mono s16le PCM; main forwards it to WS /audio/stream while transcribing. */
   sendAudioFrame(pcm: ArrayBuffer): Promise<void>;
   // HUD → main
-  decideReview(reviewId: string, decision: ReviewDecision): Promise<{ ok: boolean; error?: string }>;
+  decideReview(reviewId: string, decision: ReviewRequest["decision"]): Promise<{ ok: boolean; error?: string }>;
   // main → renderers
   onEvent(cb: (e: InlookEvent) => void): () => void;
   onState(cb: (s: OverlayState) => void): () => void;

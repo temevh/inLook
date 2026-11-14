@@ -13,7 +13,7 @@
   },
   "include": [
     "src/renderer",
-    "src/shared/contract.ts",
+    "src/shared/contract.gen.ts",
     "src/shared/ipc.ts"
   ]
 }

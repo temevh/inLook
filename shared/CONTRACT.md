@@ -1,6 +1,6 @@
 # Overlay ↔ backend contract
 
-Source: `.plans/overlay-architecture-spec.md`. Schemas: `event.schema.json`, `card.schema.json`, `api.schema.json` (source). Generated from them: `overlay/src/shared/contract.gen.ts`, `shared/generated/contract_models.py`. This file describes them; if they differ, the schemas win.
+Source: `.plans/overlay-architecture-spec.md`. Schemas: `event.schema.json`, `card.schema.json`, `api.schema.json` (source). Generated from them: `overlay/src/shared/contract.gen.ts`, `backend/app/contract.py`. This file describes them; if they differ, the schemas win.
 
 Status key:
 - **decided**: stated in the spec or the task brief.
@@ -18,11 +18,9 @@ Status key:
 | Endpoint | Status | Request | Response |
 |---|---|---|---|
 | `WS /audio/stream` | proposed | WebSocket on the backend URL (http→ws, https→wss). One connection = one transcribing session: opened when transcribing starts, closed (code 1000) when it stops. Only binary frames, overlay → backend: raw PCM, signed 16-bit little-endian, mono, 16 kHz, 1600 samples (3200 B, 100 ms) each; no header, JSON or sequence number. If the socket drops mid-session the overlay reconnects after 1 s (a new connection = a new session); frames are dropped while the socket is not open or when > 320 KB is buffered. | Nothing server → client. Transcript lines and claims arrive as events. |
-| `POST /audio` | replaced by `WS /audio/stream`; deprecated | `multipart/form-data`: `chunk` (audio/webm;codecs=opus, ~10 s, ~1 s overlap), `startedAt` (ISO time), `seqNo` (int, per session). The overlay no longer calls it. | `202 { "accepted": true }` |
 | `POST /check` | decided (body proposed) | JSON, one of: `{ "kind": "text", "text": "...", "source": "selection" \| "claim" }` or `{ "kind": "image", "mime": "image/png", "dataBase64": "...", "source": "screenshot" }` | `202 { "accepted": true, "checkId": "..." }`. Results arrive as events. |
 | `POST /reviews/{id}` | decided (body proposed) | JSON `{ "decision": "accept" \| "reject" }` | `200 { "id": "...", "status": "accepted" \| "rejected" }` |
 | `GET /stream` | decided | header `Last-Event-ID` (optional) | `text/event-stream` of events below |
-| `POST /webhooks/context` | **UNCONFIRMED** | Context.dev page-change notification; shape unknown | not called by the overlay |
 
 ## Event envelope (decided)
 
@@ -30,7 +28,7 @@ Status key:
 { "seq": 42, "type": "claim.verdict", "payload": { }, "at": "2026-11-14T10:00:00Z" }
 ```
 
-SSE framing: `id: <bootId>:<seq>` (proposed), `event: <type>`, `data: <envelope JSON>`.
+SSE framing: `id: <bootId>:<seq>` (proposed) and `data: <envelope JSON>`. No `event:` line: the type is in the envelope, so a client reads every event from one `message` handler and a new event type needs no client change.
 
 ## Event types
 

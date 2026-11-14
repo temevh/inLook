@@ -158,7 +158,7 @@ export interface MessageCreatedPayload {
 export type CheckRequest = CheckTextRequest | CheckImageRequest;
 
 /**
- * Request and response bodies of POST /check and POST /reviews/{id}, plus the 202 accepted response (audio is not JSON: WS /audio/stream carries binary frames of raw PCM, s16le mono 16 kHz, ~100 ms each; POST /audio is deprecated).
+ * Request and response bodies of POST /check and POST /reviews/{id}, plus the 202 accepted response (audio is not JSON: WS /audio/stream carries binary PCM frames).
  */
 export interface Api {
   CheckRequest?: CheckRequest;

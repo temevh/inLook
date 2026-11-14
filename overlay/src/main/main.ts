@@ -8,12 +8,8 @@ import { captureScreen } from "./screenshot";
 import { readSelection } from "./selection";
 import { subscribe } from "./sse";
 import { createHud, createWidget, isOwnPage, setHudInteractive } from "./windows";
-import type { InlookEvent, ReviewDecision } from "../shared/contract";
+import type { InlookEvent, ReviewRequest } from "../shared/contract.gen";
 import type { CheckResult, IpcInvoke, IpcPush, OverlayState } from "../shared/ipc";
-
-// X11 only (spec "Platform"). Transparency needs a compositor (Mutter or picom).
-app.commandLine.appendSwitch("ozone-platform", "x11");
-app.commandLine.appendSwitch("enable-transparent-visuals");
 
 const state: OverlayState = { hudInteractive: false, transcribing: false, stream: "connecting", audio: "off" };
 let hud: BrowserWindow | undefined;
@@ -38,7 +34,7 @@ const AUDIO_FRAME_MAX_BYTES = 64 * 1024; // a frame is ~100 ms = 3200 B; leave h
 const bad = (what: string): never => { throw new Error(`invalid ${what}`); };
 const asBool = (v: unknown) => (typeof v === "boolean" ? v : bad("boolean"));
 const asReviewId = (v: unknown) => (typeof v === "string" && v.length > 0 && v.length <= 200 ? v : bad("review id"));
-const asDecision = (v: unknown): ReviewDecision => (v === "accept" || v === "reject" ? v : bad("decision"));
+const asDecision = (v: unknown): ReviewRequest["decision"] => (v === "accept" || v === "reject" ? v : bad("decision"));
 function asAudioFrame(v: unknown): ArrayBuffer {
   if (!(v instanceof ArrayBuffer) || v.byteLength === 0 || v.byteLength > AUDIO_FRAME_MAX_BYTES) return bad("audio frame");
   return v;
@@ -49,8 +45,8 @@ const attempt = async (fn: () => Promise<unknown>) => {
   catch (err) { console.warn("[inlook]", (err as Error).message); return { ok: false, error: (err as Error).message }; }
 };
 
-async function checkSelection() {
-  const text = await readSelection();
+async function checkSelection(text?: string) {
+  text ??= await readSelection();
   if (!text) return { ok: false, error: "No text selected" };
   return attempt(() => backend.postCheck({ kind: "text", text, source: "selection" }));
 }
@@ -64,7 +60,7 @@ async function checkScreen() {
 
 function registerIpc() {
   handle("state:get", () => state);
-  handle("check:selection", checkSelection);
+  handle("check:selection", () => checkSelection());
   handle("check:screen", checkScreen);
   handle("hud:set-interactive", (v: unknown) => {
     const on = asBool(v);
@@ -125,8 +121,9 @@ app.whenReady().then(() => {
   // "Check now": the selection if there is one, otherwise the screen.
   // The result goes to the widget, like the button path, so it shows "sent" or the error.
   const ok = globalShortcut.register(config.checkHotkey, async () => {
-    const what = (await readSelection()) ? "selection" : "screen";
-    const r = await (what === "selection" ? checkSelection() : checkScreen());
+    const text = await readSelection();
+    const what = text ? "selection" : "screen";
+    const r = await (text ? checkSelection(text) : checkScreen());
     const result: CheckResult = { what, ...r };
     if (widget && !widget.isDestroyed()) widget.webContents.send("inlook:check-result" satisfies IpcPush, result);
   });

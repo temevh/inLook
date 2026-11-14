@@ -25,7 +25,6 @@ Needs an X11 session with a compositor for transparency (Mutter on GNOME, or `pi
 ```
 src/
   shared/contract.gen.ts  GENERATED event, card and request types (from shared/*.schema.json)
-  shared/contract.ts   re-exports contract.gen.ts, plus EVENT_TYPES and derived helper types
   shared/ipc.ts        preload bridge types (window.inlook)
   main/main.ts         app entry: windows, IPC, SSE, hotkey; event backlog replayed to windows on load
   main/config.ts       env settings (table above)
@@ -45,11 +44,10 @@ mock/
   demo.json            7 events, pitch scenes 06–09
   tiers.json           10 events: low, medium, unverified, review closed, strategy healthy
 test/
-  fixtures.test.ts     every mock/*.json item validates against event.schema.json; bad items are rejected
+  fixtures.test.ts     every mock/*.json item passes the overlay's validator; bad items are rejected
   sse.test.ts          built `subscribe` against a local SSE server: order, seq de-dupe, invalid dropped, reconnect with Last-Event-ID
 scripts/
-  mock.mjs             validates a scenario, POSTs it to the backend's /dev/events
-  audio-sink.py        dev stand-in for WS /audio/stream: saves each session as a 16 kHz mono .wav
+  mock.mjs             POSTs a scenario to the backend's /dev/events (the backend validates it)
   gen-contract.mjs     schema → TS / Python types
   copy-static.mjs      build step: shared/*.schema.json → dist/schemas/, .woff2 fonts and pcm-worklet.js from src/renderer
 ```
@@ -67,7 +65,7 @@ npm run mock                                       # terminal 3: demo scenario
 npm run mock tiers                                 # tiers scenario
 ```
 
-`INLOOK_BACKEND_URL` applies (default `http://127.0.0.1:8000`). Every item is validated against `shared/event.schema.json` first; the script exits 1 on the first invalid item and sends nothing. Fixtures hold `{type, payload, delayMs}`; `seq` and `at` come from the backend.
+`INLOOK_BACKEND_URL` applies (default `http://127.0.0.1:8000`). The backend validates each event against the contract; the script stops with exit 1 on the first rejected item. Fixtures hold `{type, payload, delayMs}`; `seq` and `at` come from the backend.
 
 ## Contract types
 
@@ -75,7 +73,7 @@ npm run mock tiers                                 # tiers scenario
 
 ```sh
 npm run gen:contract      # TypeScript → src/shared/contract.gen.ts
-npm run gen:contract:py   # Python (pydantic v2) → ../shared/generated/contract_models.py
+npm run gen:contract:py   # Python (pydantic v2) → ../backend/app/contract.py
 ```
 
 
@@ -98,7 +96,6 @@ Runs vitest after a build (`pretest` runs `npm run build`), because `validate.ts
 
 - Mic audio streams continuously: raw PCM (s16le, mono, 16 kHz, 100 ms frames) over `WS /audio/stream`. Wire format: `shared/CONTRACT.md`.
 - Screenshots hide the HUD and widget for ~150 ms so they are not in the shot. The full display under the cursor is captured (no active-window capture), then downscaled with `nativeImage.resize` (quality "good") to long side ≤ 1280 px and area ≤ ~1.15 MP. Smaller images are unchanged.
-- Dev without a backend: `backend/.venv/bin/python overlay/scripts/audio-sink.py [port]` (backend venv, from the repo root) stands in for `WS /audio/stream`, saves each session as a 16 kHz mono .wav and logs frame count and rate. Run the overlay with `INLOOK_BACKEND_URL=http://127.0.0.1:<port>`.
 - Fonts: Rethink Sans (variable, latin) is vendored in `src/renderer/fonts/` and loads under the CSP. Doto is not used. The HUD uses the brand's product dark tokens. The window stays transparent: only the header, transcript block and each card are opaque.
 
 ## Demo laptop

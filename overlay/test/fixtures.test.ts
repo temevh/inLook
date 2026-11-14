@@ -1,34 +1,25 @@
-// Mock fixtures must satisfy shared/event.schema.json (same ajv setup as scripts/mock.mjs).
+// Mock fixtures must satisfy shared/event.schema.json. Uses the overlay's own validator
+// from dist/main (built by `pretest`), the same check every live event goes through.
 import { readFileSync, readdirSync } from "node:fs";
 import { join } from "node:path";
-import Ajv2020 from "ajv/dist/2020";
-import addFormats from "ajv-formats";
 import { describe, expect, it } from "vitest";
+import { validateEvent } from "../dist/main/validate.js";
 
-const root = join(__dirname, "..", "..");
+const mockDir = join(__dirname, "..", "mock");
 const readJson = (p: string) => JSON.parse(readFileSync(p, "utf8"));
-
-const ajv = new Ajv2020();
-addFormats(ajv);
-ajv.addSchema(readJson(join(root, "shared", "card.schema.json")), "card.schema.json");
-const validate = ajv.compile(readJson(join(root, "shared", "event.schema.json")));
+const files = readdirSync(mockDir).filter((n) => n.endsWith(".json"));
 
 const envelope = (item: { type: string; payload: unknown }, seq: number) => ({
   seq, type: item.type, payload: item.payload, at: new Date().toISOString(),
 });
-
-const mockDir = join(root, "overlay", "mock");
-const files = readdirSync(mockDir).filter((n) => n.endsWith(".json"));
 
 describe("mock fixtures", () => {
   it("finds fixtures", () => expect(files.length).toBeGreaterThan(0));
 
   for (const file of files) {
     it(`${file}: every item validates`, () => {
-      const items = readJson(join(mockDir, file));
-      items.forEach((item: { type: string; payload: unknown }, i: number) => {
-        const ok = validate(envelope(item, i + 1));
-        expect(ok, `item ${i} (${item.type}): ${ajv.errorsText(validate.errors)}`).toBe(true);
+      readJson(join(mockDir, file)).forEach((item: { type: string; payload: unknown }, i: number) => {
+        expect(validateEvent(envelope(item, i + 1)), `item ${i} (${item.type})`).toBeNull();
       });
     });
   }
@@ -39,18 +30,18 @@ describe("mock fixtures", () => {
     const ok = structuredClone(verdict);
     ok.payload.newValue = null;
     ok.payload.sourceUrl = null;
-    expect(validate(envelope(ok, 1)), ajv.errorsText(validate.errors)).toBe(true);
+    expect(validateEvent(envelope(ok, 1))).toBeNull();
   });
 
   it("rejects a bad criticality", () => {
     const bad = structuredClone(verdict);
     bad.payload.card.criticality = "urgent";
-    expect(validate(envelope(bad, 1))).toBe(false);
+    expect(validateEvent(envelope(bad, 1))).not.toBeNull();
   });
 
   it("rejects a missing payload field", () => {
     const bad = structuredClone(verdict);
     delete bad.payload.claimId;
-    expect(validate(envelope(bad, 1))).toBe(false);
+    expect(validateEvent(envelope(bad, 1))).not.toBeNull();
   });
 });

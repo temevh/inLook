@@ -61,12 +61,12 @@ One Electron app is both the "overlay backend" and "overlay frontend" from the s
 - **Language: Python, FastAPI.** Gemini through `google-genai`. Goblin Drill's SSE code ports almost directly.
 - Wire format of every endpoint and event: `shared/CONTRACT.md`.
 - Endpoints:
-  - `WS /audio/stream` — **proposed.** Continuous PCM frames in; transcript lines and claims come out as events. Replaces `POST /audio` (10 s webm chunks, deprecated).
+  - `WS /audio/stream` — **proposed.** Continuous PCM frames in; transcript lines and claims come out as events.
   - `POST /check` — text or image in (selection, screenshot, or a single claim).
   - `POST /reviews/:id` — accept or reject a pending change.
-  - `POST /webhooks/context` — **UNCONFIRMED.** Context.dev page-change notification; re-checks the facts that use that page.
+  - `POST /webhooks/context` — **UNCONFIRMED, not built.** Context.dev page-change notification; re-checks the facts that use that page.
   - `GET /stream` — SSE, every event with a `seq`; SSE `id` is `<bootId>:<seq>` (**proposed**), replay with `Last-Event-ID`; another boot id replays the whole log.
-- The live-update pattern comes from Goblin Drill (`routes_live.py:272`, `sim/live.py:55`): append-only event log with a sequence cursor, SSE replay-then-follow, keep-alives, no-buffering headers. The skeleton keeps the log in memory; the boot id keeps clients working across a backend restart. **UNCONFIRMED:** an `events` collection in MongoDB and a change stream in place of the 500 ms poll.
+- The live-update pattern comes from Goblin Drill (`routes_live.py:272`, `sim/live.py:55`): append-only event log with a sequence cursor, SSE replay-then-follow, keep-alives, no-buffering headers. The skeleton keeps the log in memory; the boot id keeps clients working across a backend restart. **UNCONFIRMED:** an `events` collection in MongoDB and a change stream in place of the in-memory log.
 
 ### Database
 

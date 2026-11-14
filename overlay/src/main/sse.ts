@@ -2,12 +2,12 @@
 // itself and sends Last-Event-ID, so the backend replays what was missed. It gives
 // up on some errors (non-200, wrong content type); those get a fresh instance after
 // a delay, and we send the Last-Event-ID ourselves since a new instance forgets it.
+// Frames carry no `event:` line (the type is in the envelope), so onmessage gets all.
 import { EventSource } from "eventsource";
 import { config } from "./config";
 import { validateEvent } from "./validate";
-import { EVENT_TYPES, type InlookEvent } from "../shared/contract";
-
-export type StreamStatus = "connecting" | "open" | "closed";
+import type { InlookEvent } from "../shared/contract.gen";
+import type { StreamStatus } from "../shared/ipc";
 
 export interface StreamOptions {
   onEvent(e: InlookEvent): void;
@@ -41,8 +41,7 @@ export function subscribe({ onEvent, onStatus }: StreamOptions): () => void {
       onStatus("closed");
       if (source.readyState === EventSource.CLOSED) timer = setTimeout(connect, RECREATE_MS);
     };
-    // Frames carry `event: <type>`, so onmessage never fires; listen per type.
-    const onFrame = (m: MessageEvent) => {
+    source.onmessage = (m) => {
       if (m.lastEventId) lastEventId = m.lastEventId;
       let e: unknown;
       try { e = JSON.parse(m.data); } catch (err) { console.warn("[sse] bad json", err); return; }
@@ -57,7 +56,6 @@ export function subscribe({ onEvent, onStatus }: StreamOptions): () => void {
       lastSeq = ev.seq;
       onEvent(ev);
     };
-    for (const t of EVENT_TYPES) source.addEventListener(t, onFrame);
   };
   connect();
 
