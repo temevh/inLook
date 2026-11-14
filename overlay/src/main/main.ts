@@ -7,6 +7,7 @@ import { config } from "./config";
 import { captureScreen } from "./screenshot";
 import { readSelection } from "./selection";
 import { subscribe } from "./sse";
+import { createNavball } from "./navball";
 import { createHud, createWidget, isOwnPage, setHudInteractive } from "./windows";
 import type { InlookEvent, ReviewRequest } from "../shared/contract.gen";
 import type { CheckResult, IpcInvoke, IpcPush, OverlayState } from "../shared/ipc";
@@ -14,6 +15,7 @@ import type { CheckResult, IpcInvoke, IpcPush, OverlayState } from "../shared/ip
 const state: OverlayState = { hudInteractive: false, transcribing: false, stream: "connecting", audio: "off" };
 let hud: BrowserWindow | undefined;
 let widget: BrowserWindow | undefined;
+let navball: ReturnType<typeof createNavball> | undefined;
 
 // Events kept for windows that load (or reload) after they arrived.
 const BACKLOG_MAX = 200;
@@ -33,6 +35,8 @@ const handle = (channel: IpcInvoke, fn: (...args: any[]) => unknown) =>
 const AUDIO_FRAME_MAX_BYTES = 64 * 1024; // a frame is ~100 ms = 3200 B; leave headroom
 const bad = (what: string): never => { throw new Error(`invalid ${what}`); };
 const asBool = (v: unknown) => (typeof v === "boolean" ? v : bad("boolean"));
+const DRAG_MAX_PX = 20000; // far beyond any screen; rejects garbage
+const asDelta = (v: unknown) => (typeof v === "number" && Number.isFinite(v) && Math.abs(v) <= DRAG_MAX_PX ? v : bad("drag delta"));
 const asReviewId = (v: unknown) => (typeof v === "string" && v.length > 0 && v.length <= 200 ? v : bad("review id"));
 const asDecision = (v: unknown): ReviewRequest["decision"] => (v === "accept" || v === "reject" ? v : bad("decision"));
 function asAudioFrame(v: unknown): ArrayBuffer {
@@ -73,6 +77,10 @@ function registerIpc() {
     if (state.transcribing) audioStream.start(); else audioStream.stop();
     pushState();
   });
+  handle("app:quit", () => { app.quit(); });
+  handle("widget:set-open", (v: unknown) => navball?.setOpen(asBool(v)) ?? null);
+  handle("widget:drag-start", () => navball?.dragStart() ?? false);
+  handle("widget:drag-move", (dx: unknown, dy: unknown) => { navball?.dragMove(asDelta(dx), asDelta(dy)); });
   handle("audio:frame", (v: unknown) => { audioStream.send(asAudioFrame(v)); });
   handle("review:decide", (id: unknown, decision: unknown) => {
     const reviewId = asReviewId(id), d = asDecision(decision);
@@ -101,6 +109,7 @@ app.whenReady().then(() => {
   registerIpc();
   hud = createHud();
   widget = createWidget();
+  navball = createNavball(widget);
   for (const w of [hud, widget]) {
     w.webContents.on("did-finish-load", () => {
       w.webContents.send("inlook:state", state);

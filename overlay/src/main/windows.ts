@@ -3,6 +3,7 @@ import { BrowserWindow, screen } from "electron";
 import { join } from "node:path";
 import { pathToFileURL } from "node:url";
 import { config } from "./config";
+import { CLOSED } from "./geometry";
 
 const preload = join(__dirname, "..", "preload", "preload.js");
 // Renderer output lives in dist/web (ES modules), apart from the CommonJS main build.
@@ -61,17 +62,20 @@ export function setHudInteractive(hud: BrowserWindow, on: boolean): void {
   if (on) hud.focus();
 }
 
-/** Small always-on-top control window, normal mouse input, slight opacity. */
+/** Navball window: transparent, frameless, always on top, as small as the ball (main/navball.ts resizes it). */
 export function createWidget(): BrowserWindow {
   const { workArea } = screen.getPrimaryDisplay();
-  const width = 252, height = 264, margin = 16;
+  const margin = 16;
   const x = config.hudEdge === "right"
-    ? workArea.x + workArea.width - config.hudWidth - width - margin
+    ? workArea.x + workArea.width - config.hudWidth - CLOSED - margin
     : workArea.x + config.hudWidth + margin;
   const widget = new BrowserWindow({
-    x, y: workArea.y + workArea.height - height - margin,
-    width, height,
+    x, y: workArea.y + workArea.height - CLOSED - margin,
+    width: CLOSED, height: CLOSED,
+    transparent: true,
+    backgroundColor: "#00000000",
     frame: false,
+    hasShadow: false,
     resizable: false,
     maximizable: false,
     fullscreenable: false,
@@ -80,7 +84,6 @@ export function createWidget(): BrowserWindow {
     // focus-stealing prevention no longer raises "'inLook widget' is ready" on show.
     focusable: false,
     alwaysOnTop: true,
-    opacity: 0.92,
     show: false,
     webPreferences,
   });
