@@ -1,6 +1,6 @@
 # overlay
 
-Electron + TypeScript overlay for Debian, X11 session: a click-through HUD side strip and an interactive widget. Owner: Ant.
+Electron + TypeScript overlay for Debian, X11 session: a HUD side strip that is clickable only where it draws something, and a small navball widget. Owner: Ant.
 Spec: `.plans/overlay-architecture-spec.md`, "Overlay app (Electron)". Wire contract: `shared/CONTRACT.md`.
 
 ## Run
@@ -17,6 +17,8 @@ Needs an X11 session with a compositor for transparency (Mutter on GNOME, or `pi
 |---|---|---|
 | `INLOOK_BACKEND_URL` | `http://127.0.0.1:8000` | backend base URL |
 | `INLOOK_HOTKEY` | `CommandOrControl+Alt+K` | global "check now": selection if any, else screen |
+| `INLOOK_ACCEPT_HOTKEY` | `CommandOrControl+Alt+A` | global: accept the newest pending review in the HUD |
+| `INLOOK_REJECT_HOTKEY` | `CommandOrControl+Alt+R` | global: reject it |
 | `INLOOK_HUD_EDGE` | `right` | `left` or `right` |
 | `INLOOK_HUD_WIDTH` | `380` | px |
 
@@ -28,7 +30,7 @@ src/
   shared/ipc.ts        preload bridge types (window.inlook)
   main/main.ts         app entry: windows, IPC, SSE, hotkey; event backlog replayed to windows on load
   main/config.ts       env settings (table above)
-  main/windows.ts      HUD + widget BrowserWindows, HUD interactive toggle
+  main/windows.ts      HUD + widget BrowserWindows; hudExtentSetter: the HUD takes the mouse only where it draws (X11 window shape)
   main/backend-client.ts  POST /check, /reviews/:id
   main/audio-stream.ts    WebSocket to WS /audio/stream: one session per transcribing run, reconnect after 1 s, drops frames when closed or > 320 KB buffered
   main/sse.ts          GET /stream via the `eventsource` package, Last-Event-ID replay, seq de-dupe scoped to the boot id, re-create 3 s after fatal errors
@@ -36,7 +38,7 @@ src/
   main/selection.ts    X11 PRIMARY selection read
   main/screenshot.ts   desktopCapturer capture of the display under the cursor, downscaled before upload
   preload/preload.ts   contextBridge → window.inlook
-  renderer/hud/        HUD strip: transcript, checking/verdict/review/strategy/message cards (hud.ts, hud.css)
+  renderer/hud/        HUD strip: short transcript, one card per fact from "Checking" to its outcome (hud.ts, hud.css); policy.ts holds the DOM-free logic
   renderer/fonts/      Rethink Sans variable (latin woff2) + fonts.css, imported by hud.css and widget.css
   renderer/widget/     buttons + mic.ts (getUserMedia → AudioContext 16 kHz → pcm-worklet.js: 100 ms s16le mono frames → IPC audio:frame)
   renderer/widget/pcm-worklet.js  AudioWorklet producing the PCM frames
@@ -90,14 +92,15 @@ Runs vitest after a build (`pretest` runs `npm run build`), because `validate.ts
 - Both pages carry a strict CSP: `default-src 'none'`, `script-src`, `style-src`, `font-src` and `img-src` limited to `'self'`, `connect-src 'none'`. Renderers make no network requests; main does all HTTP.
 - `contextIsolation` and `sandbox` on, `nodeIntegration` off. Window opening is denied and navigation is blocked in both windows.
 - Every `ipcMain.handle` checks the sender frame is one of our two pages and validates its arguments. Mic permission is granted only to our pages.
-- The HUD is created at its final position and size and never moved or resized after show (on GNOME/X11 a moved click-through window can block clicks).
+- The HUD is created at its final position and size and never moved or resized after show (on GNOME/X11 a moved click-through window can block clicks). What changes is its X11 shape (`setShape`): the part it draws on takes the mouse, the rest of the strip is click-through, so there is no "interactive" mode. The shape also clips drawing, so it grows at once and shrinks after 500 ms (`main/windows.ts`).
 
 ## Notes
 
+- HUD behaviour: quiet when idle (header and transcript only show while there is something to say); one card per fact that carries the verdict, the review, the strategies it affects and who was notified; Accept / Reject by click or by global hotkey, and the card turns into the outcome and fades. A spoken claim that matches no fact shows no card.
 - Mic audio streams continuously: raw PCM (s16le, mono, 16 kHz, 100 ms frames) over `WS /audio/stream`. Wire format: `shared/CONTRACT.md`.
 - Screenshots hide the HUD and widget for ~150 ms so they are not in the shot. The full display under the cursor is captured (no active-window capture), then downscaled with `nativeImage.resize` (quality "good") to long side ≤ 1280 px and area ≤ ~1.15 MP. Smaller images are unchanged.
 - Fonts: Rethink Sans (variable, latin) is vendored in `src/renderer/fonts/` and loads under the CSP. Doto is not used. The HUD uses the brand's product dark tokens. The window stays transparent: only the header, transcript block and each card are opaque.
 
 ## Demo laptop
 
-`scripts/` at the repo root sets up and runs the overlay on the Debian demo laptop: `sync-to.sh` (copy the repo to `~/inLook`), `setup-debian.sh`, `launch-overlay.sh`, `run-over-ssh.sh`. Each script's header comment says how to run it.
+`scripts/` at the repo root sets up and runs the overlay on the Debian demo laptop: `sync-to.sh` (copy the repo to `~/inLook`), `setup-debian.sh`, `launch-overlay.sh`, `run-over-ssh.sh`, `demo-reset.sh` (between demo takes: reload the demo data, restart the backend and overlay; `--mock` plays the scripted scenario, `--stop` stops everything). Each script's header comment says how to run it.

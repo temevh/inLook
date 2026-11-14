@@ -51,7 +51,11 @@ class CheckFlowTest(unittest.IsolatedAsyncioTestCase):
     # helpers -----------------------------------------------------------------------------
 
     def published(self) -> list[dict]:
-        return [e.model_dump(mode="json") for e in events.log._events]
+        """Every event but the claim.progress steps, which test_progress_steps covers."""
+        return [e.model_dump(mode="json") for e in events.log._events if e.root.type != "claim.progress"]
+
+    def steps(self) -> list[dict]:
+        return [e.root.payload.model_dump(mode="json") for e in events.log._events if e.root.type == "claim.progress"]
 
     def types(self) -> list[str]:
         return [e["type"] for e in self.published()]
@@ -63,6 +67,39 @@ class CheckFlowTest(unittest.IsolatedAsyncioTestCase):
         return await db.database().strategies.find_one({"_id": strategy_id})
 
     # tests -------------------------------------------------------------------------------
+
+    async def test_progress_steps(self):
+        """Between spotted and the verdict the HUD is told: which fact matched, then which page is read."""
+        self.match.return_value = COMPX
+        self.verdict.return_value = outdated("$10 per seat per month")
+        await self.claim()
+        self.assertEqual([e.root.type for e in events.log._events][:4],
+                         ["claim.spotted", "claim.progress", "claim.progress", "claim.verdict"])
+        matched, reading = self.steps()
+        self.assertEqual((matched["step"], matched["factId"], matched["label"]),
+                         ("matched", COMPX, "Notion Plus price per seat"))
+        self.assertEqual((reading["step"], reading["sourceUrl"]), ("reading", "https://www.notion.com/pricing"))
+
+    async def test_progress_without_a_match_or_a_source_page(self):
+        await self.claim("The mascot is a purple llama")
+        self.assertEqual(self.steps(), [])  # nothing matched: no steps
+        self.match.return_value = WIFI  # no sourceUrl: the web is searched
+        self.verdict.return_value = outdated("MockNet-5G")
+        await self.claim("Our wifi is called MockNet")
+        self.assertEqual([(s["step"], s["sourceUrl"]) for s in self.steps()], [("matched", None), ("reading", None)])
+
+    async def test_a_lost_progress_event_does_not_cost_the_verdict(self):
+        self.match.return_value = COMPX
+        self.verdict.return_value = outdated("$10 per seat per month")
+        publish = events.log.publish
+
+        async def flaky(type, payload):
+            if type == "claim.progress":
+                raise RuntimeError("atlas blip")
+            return await publish(type, payload)
+        with patch.object(events.log, "publish", flaky):
+            await self.claim()
+        self.assertEqual(self.types()[:2], ["claim.spotted", "claim.verdict"])
 
     async def test_no_matching_fact(self):
         await self.claim("The mascot is a purple llama")

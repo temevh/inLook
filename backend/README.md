@@ -41,7 +41,7 @@ in-memory log even with a database.
 | Endpoint | State |
 |---|---|
 | `WS /audio/stream` | working: mic PCM → ElevenLabs realtime STT (`scribe_v3_live`, speaker labels) → `transcript.line` → Gemini spot (prefiltered, batched) → the check flow with source `audio` (`app/listen.py`). Needs `ELEVENLABS_API_KEY`; without it the audio is discarded. Rehearse with `uv run python -m app.replay fixtures/mic-demo.wav` |
-| `POST /check` | working: 202 at once, the flow runs in the background (`app/check.py`): claim → match → Context.dev scrape of the fact's page (or Context.dev search when it has none) → verdict → tier routing. Needs `GEMINI_API_KEY` and `CONTEXT_DEV_API_KEY`; without them every claim ends in `claim.unverified` |
+| `POST /check` | working (publishes `claim.progress` steps between `claim.spotted` and the verdict): 202 at once, the flow runs in the background (`app/check.py`): claim → match → Context.dev scrape of the fact's page (or Context.dev search when it has none) → verdict → tier routing. Needs `GEMINI_API_KEY` and `CONTEXT_DEV_API_KEY`; without them every claim ends in `claim.unverified` |
 | `POST /recheck` | `{factId}` or `{url}`: re-check now without a spoken claim (Context.dev scrape → verdict → tier routing). Events start with `claim.spotted` source `page`. 202, 404 unknown fact / url |
 | `POST /webhooks/context` | Context.dev monitor deliveries: verifies `X-Context-Signature` against the stored monitor secrets (401), dedupes on event id, re-checks every fact on `data.change.url` in the background, 204 |
 | `POST /reviews/{id}` | working: accept or reject, publishes `review.closed` (+ `fact.updated` on accept, `strategy.healthy`). 404 unknown, 409 already closed |

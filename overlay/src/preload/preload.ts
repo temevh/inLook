@@ -16,15 +16,17 @@ const bridge: InlookBridge = {
   dragMove: (dx, dy) => invoke("widget:drag-move", dx, dy) as Promise<void>,
   checkSelection: () => invoke("check:selection"),
   checkScreen: () => invoke("check:screen"),
-  setHudInteractive: (on) => invoke("hud:set-interactive", on),
   quit: () => invoke("app:quit") as Promise<void>,
   setTranscribing: (on) => invoke("mic:set-transcribing", on),
   sendAudioFrame: (pcm) => invoke("audio:frame", pcm) as Promise<void>,
   decideReview: (id, decision) => invoke("review:decide", id, decision),
+  setHudExtent: (height) => invoke("hud:set-extent", height) as Promise<void>,
   getState: () => invoke("state:get"),
   onEvent: (cb) => listen("inlook:event", cb),
   onState: (cb) => listen("inlook:state", cb),
   onCheckResult: (cb) => listen("inlook:check-result", cb),
+  onDecide: (cb) => listen("inlook:decide", cb),
+  onLevel: (cb) => listen("inlook:level", cb),
 };
 
 contextBridge.exposeInMainWorld("inlook", bridge);

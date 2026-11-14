@@ -8,14 +8,17 @@ import { captureScreen } from "./screenshot";
 import { readSelection } from "./selection";
 import { subscribe } from "./sse";
 import { createNavball } from "./navball";
-import { createHud, createWidget, isOwnPage, setHudInteractive } from "./windows";
+import { createHud, createWidget, hudExtentSetter, isOwnPage } from "./windows";
 import type { InlookEvent, ReviewRequest } from "../shared/contract.gen";
 import type { CheckResult, IpcInvoke, IpcPush, OverlayState } from "../shared/ipc";
 
-const state: OverlayState = { hudInteractive: false, transcribing: false, stream: "connecting", audio: "off" };
+const state: OverlayState = {
+  transcribing: false, stream: "connecting", audio: "off", hotkeys: { check: "", accept: "", reject: "" },
+};
 let hud: BrowserWindow | undefined;
 let widget: BrowserWindow | undefined;
 let navball: ReturnType<typeof createNavball> | undefined;
+let setHudExtent: ((height: number) => void) | undefined;
 
 // Events kept for windows that load (or reload) after they arrived.
 const BACKLOG_MAX = 200;
@@ -39,6 +42,17 @@ const DRAG_MAX_PX = 20000; // far beyond any screen; rejects garbage
 const asDelta = (v: unknown) => (typeof v === "number" && Number.isFinite(v) && Math.abs(v) <= DRAG_MAX_PX ? v : bad("drag delta"));
 const asReviewId = (v: unknown) => (typeof v === "string" && v.length > 0 && v.length <= 200 ? v : bad("review id"));
 const asDecision = (v: unknown): ReviewRequest["decision"] => (v === "accept" || v === "reject" ? v : bad("decision"));
+const asExtent = (v: unknown) => (typeof v === "number" && Number.isFinite(v) && v >= 0 && v <= 20000 ? v : bad("extent"));
+
+/** Loudness of one PCM s16le frame as 0..1 (-50 dBFS and below = 0, -10 dBFS and above = 1), for the HUD meter. */
+function levelOf(pcm: ArrayBuffer): number {
+  const samples = new Int16Array(pcm, 0, pcm.byteLength >> 1);
+  if (!samples.length) return 0;
+  let sum = 0;
+  for (const v of samples) sum += v * v;
+  const db = 20 * Math.log10(Math.sqrt(sum / samples.length) / 32768 || 1e-6);
+  return Math.max(0, Math.min(1, (db + 50) / 40));
+}
 function asAudioFrame(v: unknown): ArrayBuffer {
   if (!(v instanceof ArrayBuffer) || v.byteLength === 0 || v.byteLength > AUDIO_FRAME_MAX_BYTES) return bad("audio frame");
   return v;
@@ -66,12 +80,7 @@ function registerIpc() {
   handle("state:get", () => state);
   handle("check:selection", () => checkSelection());
   handle("check:screen", checkScreen);
-  handle("hud:set-interactive", (v: unknown) => {
-    const on = asBool(v);
-    state.hudInteractive = on;
-    if (hud) setHudInteractive(hud, on);
-    pushState();
-  });
+  handle("hud:set-extent", (v: unknown) => { setHudExtent?.(asExtent(v)); });
   handle("mic:set-transcribing", (v: unknown) => {
     state.transcribing = asBool(v);
     if (state.transcribing) audioStream.start(); else audioStream.stop();
@@ -81,7 +90,11 @@ function registerIpc() {
   handle("widget:set-open", (v: unknown) => navball?.setOpen(asBool(v)) ?? null);
   handle("widget:drag-start", () => navball?.dragStart() ?? false);
   handle("widget:drag-move", (dx: unknown, dy: unknown) => { navball?.dragMove(asDelta(dx), asDelta(dy)); });
-  handle("audio:frame", (v: unknown) => { audioStream.send(asAudioFrame(v)); });
+  handle("audio:frame", (v: unknown) => {
+    const pcm = asAudioFrame(v);
+    audioStream.send(pcm);
+    if (hud && !hud.isDestroyed()) hud.webContents.send("inlook:level" satisfies IpcPush, levelOf(pcm));
+  });
   handle("review:decide", (id: unknown, decision: unknown) => {
     const reviewId = asReviewId(id), d = asDecision(decision);
     return attempt(() => backend.postReview(reviewId, d));
@@ -108,6 +121,7 @@ app.whenReady().then(() => {
   audioStream.onStatus((s) => { state.audio = s; pushState(); });
   registerIpc();
   hud = createHud();
+  setHudExtent = hudExtentSetter(hud);
   widget = createWidget();
   navball = createNavball(widget);
   for (const w of [hud, widget]) {
@@ -137,6 +151,18 @@ app.whenReady().then(() => {
     if (widget && !widget.isDestroyed()) widget.webContents.send("inlook:check-result" satisfies IpcPush, result);
   });
   if (!ok) console.warn(`[inlook] hotkey ${config.checkHotkey} is taken`);
+  state.hotkeys.check = ok ? config.checkHotkey : "";
+
+  // Accept / reject the newest pending review without touching the mouse; the HUD shows the keys on its buttons.
+  for (const decision of ["accept", "reject"] as const) {
+    const key = decision === "accept" ? config.acceptHotkey : config.rejectHotkey;
+    const registered = globalShortcut.register(key, () => {
+      if (hud && !hud.isDestroyed()) hud.webContents.send("inlook:decide" satisfies IpcPush, decision);
+    });
+    if (!registered) console.warn(`[inlook] hotkey ${key} is taken`);
+    state.hotkeys[decision] = registered ? key : "";
+  }
+  pushState();
 });
 
 app.on("will-quit", () => { globalShortcut.unregisterAll(); audioStream.stop(); });

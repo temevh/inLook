@@ -1,133 +1,153 @@
 @import "../fonts/fonts.css";
-/* Dark surfaces (brand product dark) with context.dev's layout: tier tints, pill buttons, Doto tier pills.
-   The window stays transparent; the bar, transcript and cards are dark panels at 75% opacity (end of file). */
+/* Dark, quiet, see-through. The window is transparent; the header, transcript and cards are dark panels whose
+   BACKGROUND is see-through (--glass) while text stays at full strength, so the app behind never bleeds into
+   the words. Colour is rationed: a tier dot and title per card, one solid button (Accept), green for a fix. */
 :root {
-  --surface: hsl(233 20% 10.5%); --surface-hover: hsl(233 18% 14%); --line: hsl(233 12% 21%); --line-strong: hsl(233 10% 30%);
-  --fg: hsl(220 20% 96%); --muted: hsl(220 10% 70%); --subtle: hsl(220 8% 56%);
-  --primary: #3b82f6; --primary-ink: #93c5fd; --primary-soft: hsl(218 45% 15%); --primary-line: hsl(218 50% 30%);
-  --ink: #f3f4f6; --ink-hover: #fff; --on-ink: #07090f; /* the CTA pill: light on the dark cards */
-  --ok: #22c55e; --ok-ink: #86efac; --ok-soft: hsl(142 40% 11%); --ok-line: hsl(142 45% 28%); --wait: #f99c00;
-  --warn-ink: #fbbf24; --warn-soft: hsl(36 45% 12%); --warn-line: hsl(36 60% 30%);
-  --danger: #ef4444; --danger-ink: #fca5a5; --danger-soft: hsl(357 40% 13%); --danger-line: hsl(357 50% 32%);
+  --glass: .91;
+  --surface: hsl(233 20% 10.5% / var(--glass)); --surface-hover: hsl(233 18% 17%); --raise: hsl(233 16% 18%);
+  --line: hsl(233 12% 26% / .9); --line-strong: hsl(233 10% 36%);
+  --fg: hsl(220 20% 97%); --muted: hsl(220 12% 73%); --subtle: hsl(220 9% 58%);
+  --primary: #3b82f6; --primary-ink: #93c5fd;
+  --ink: #f3f4f6; --ink-hover: #fff; --on-ink: #07090f; /* the one solid button: light on the dark cards */
+  --ok: #22c55e; --ok-ink: #86efac; --ok-surface: hsl(146 38% 10% / .92); --ok-line: hsl(142 45% 26%);
+  --wait: #f59e0b; --wait-ink: #fbbf24;
+  --danger: #ef4444; --danger-ink: #fca5a5;
   --sans: "Rethink Sans", system-ui, sans-serif; --data: "Doto", ui-monospace, monospace;
   --ease: cubic-bezier(.22, 1, .36, 1);
-  --lift: inset 0 1px 0 hsl(0 0% 100% / .05), 0 8px 20px -8px hsl(233 40% 2% / .75);
+  --lift: inset 0 1px 0 hsl(0 0% 100% / .06), 0 8px 20px -8px hsl(233 40% 2% / .75);
 }
 * { box-sizing: border-box; margin: 0; }
-html, body { height: 100%; background: transparent; color: var(--fg); font: 450 .875rem/1.3 var(--sans); overflow: hidden; }
+[hidden] { display: none !important; }
+html, body { height: 100%; background: transparent; color: var(--fg); font: 450 .875rem/1.3 var(--sans); overflow: hidden; -webkit-font-smoothing: antialiased; }
 .strip { height: 100%; display: flex; flex-direction: column; gap: 10px; padding: 12px; }
+.bar, .transcript, .card { background: var(--surface); border: 1px solid var(--line); border-radius: .875rem; box-shadow: var(--lift); }
 
-.bar { order: 0; position: relative; transition: border-color .25s var(--ease), box-shadow .25s var(--ease); display: flex; justify-content: space-between; align-items: center; padding: 8px 14px; background: var(--surface); border: 1px solid var(--line); border-radius: .875rem; box-shadow: var(--lift); }
-/* context.dev's dot grid, faded to the middle so it never sits under the text. */
-.bar::before { content: ""; position: absolute; inset: 0; border-radius: inherit; pointer-events: none; background: radial-gradient(circle, var(--primary-line) 1.2px, transparent 1.6px) 0 0 / 8px 8px;
-  -webkit-mask-image: radial-gradient(ellipse 22% 90% at 50% 50%, #000, transparent); mask-image: radial-gradient(ellipse 22% 90% at 50% 50%, #000, transparent); }
-body.interactive .bar { border-color: var(--primary); box-shadow: var(--lift), 0 0 0 3px #3b82f633; }
-.mark { position: relative; font-weight: 600; font-size: 1rem; letter-spacing: -.025em; }
-/* Stream state: dot + dot-matrix word. */
-.status { position: relative; display: flex; align-items: center; gap: 7px; font: 900 .8125rem/1 var(--data); color: var(--muted); }
-.status::before { content: ""; width: 7px; height: 7px; border-radius: 50%; background: var(--wait); transition: background .3s var(--ease); }
-.status[data-stream="open"]::before { background: var(--ok); }
-.status[data-stream="closed"]::before { background: var(--danger); }
+/* Header: only while there is something to say (hud.ts). Status in the user's words; a level meter while listening. */
+.bar { display: flex; justify-content: space-between; align-items: center; padding: 8px 14px; animation: pop .4s var(--ease); }
+.mark { font-weight: 600; font-size: 1rem; letter-spacing: -.025em; }
+.status { display: flex; align-items: center; gap: 8px; font-size: .75rem; font-weight: 600; letter-spacing: .01em; color: var(--muted); }
+.status::before { content: ""; width: 7px; height: 7px; border-radius: 50%; background: var(--primary); transition: background .3s var(--ease); }
+.status[data-tone="wait"]::before { background: var(--wait); animation: pulse 1.4s ease-in-out infinite; }
+.status[data-tone="off"]::before { background: var(--danger); }
+.status[data-tone="off"] { color: var(--danger-ink); }
+.status[data-tone="listening"]::before { display: none; }
+.status[data-tone="listening"] { color: var(--ok-ink); }
+.meter { display: none; align-items: center; gap: 2px; height: 14px; }
+.status[data-tone="listening"] .meter { display: inline-flex; }
+.meter i { width: 3px; height: 100%; border-radius: 2px; background: var(--ok); transform: scaleY(min(1, calc(.16 + var(--level, 0) * var(--k)))); transition: transform .12s linear; }
+.meter i:nth-child(1) { --k: .6; } .meter i:nth-child(2) { --k: 1.05; } .meter i:nth-child(3) { --k: .8; } .meter i:nth-child(4) { --k: .5; }
 
-/* Transcript at the top: newest line last, older lines fade. */
-.transcript { order: 1; display: flex; flex-direction: column; gap: 8px; max-height: 32%; overflow: hidden; justify-content: flex-end; padding: 12px 14px; background: var(--surface); border: 1px solid var(--line); border-radius: .875rem; box-shadow: var(--lift); animation: pop .4s var(--ease); }
-.transcript:empty { display: none; }
-.transcript p { color: var(--muted); line-height: 1.35; animation: line-in .35s var(--ease); transition: opacity .3s var(--ease), color .3s var(--ease); }
+/* Transcript: the last few lines only. The line a claim came from lights up while it is checked. */
+.transcript { display: flex; flex-direction: column; gap: 7px; padding: 10px 14px; animation: pop .4s var(--ease); }
+.transcript p { font-size: .8125rem; line-height: 1.4; color: var(--muted); animation: line-in .35s var(--ease); transition: opacity .3s var(--ease), color .3s var(--ease); }
 .transcript p:last-child { color: var(--fg); }
-.transcript p:nth-last-child(n+4) { opacity: .6; }
-.transcript b { display: block; font-size: .75rem; font-weight: 600; color: var(--subtle); margin-bottom: 1px; }
-.transcript p:last-child b { color: var(--primary); }
+.transcript p:nth-last-child(n+3) { opacity: .6; }
+.transcript b { display: block; font-size: .6875rem; font-weight: 600; letter-spacing: .01em; color: var(--subtle); }
+.transcript .claim span { color: var(--fg); background: color-mix(in srgb, var(--wait) 26%, transparent); border-radius: 4px; padding: 1px 3px; margin: 0 -3px; -webkit-box-decoration-break: clone; box-decoration-break: clone; transition: background .5s var(--ease); }
+.transcript .claim.done span { background: color-mix(in srgb, var(--fg) 9%, transparent); }
 
-.cards { order: 2; flex: 1; min-height: 0; display: flex; flex-direction: column; gap: 10px; overflow: hidden;
+.cards { flex: 1; min-height: 0; display: flex; flex-direction: column; gap: 10px; overflow: hidden;
   /* room for the card shadows, which overflow:hidden would clip */
   margin: -8px -12px 0; padding: 8px 12px 0; }
-.card { --tier: var(--line); --tier-ink: var(--fg); --tier-soft: var(--surface); --tier-line: var(--line); --ring: var(--tier); background: var(--surface); border: 1px solid var(--line); border-radius: .875rem; padding: 12px 14px; box-shadow: var(--lift); transition: background-color .4s var(--ease), border-color .4s var(--ease), color .4s var(--ease); }
-/* Criticality: soft tinted surface + tinted hairline (no side stripe), pill weight below. */
-.card[data-tier] { background: var(--tier-soft); border-color: var(--tier-line); }
-.card[data-tier="low"] { --tier: var(--primary); --tier-ink: var(--primary-ink); --tier-soft: var(--primary-soft); --tier-line: var(--primary-line); }
-.card[data-tier="medium"] { --tier: var(--wait); --tier-ink: var(--warn-ink); --tier-soft: var(--warn-soft); --tier-line: var(--warn-line); }
-.card[data-tier="high"] { --tier: var(--danger); --tier-ink: var(--danger-ink); --tier-soft: var(--danger-soft); --tier-line: var(--danger-line); }
 
-.head { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
-.card h2 { font-size: .875rem; font-weight: 600; line-height: 1.2; letter-spacing: -.01em; }
-.card[data-tier] h2 { color: var(--tier-ink); }
-/* High is a solid fill, medium and low a soft tint with a hairline: weight follows criticality. */
-.pill { padding: 3px 10px 2px; border-radius: 999px; border: 1px solid var(--tier-line); background: var(--surface); color: var(--tier-ink); font: 900 .8125rem/1.2 var(--data); text-transform: capitalize; }
-.card[data-tier="low"] .pill { background: var(--surface); }
-.card[data-tier="medium"] .pill { background: var(--surface); border-color: var(--tier); }
-.card[data-tier="high"] .pill { background: var(--danger); border-color: var(--danger); color: #fff; }
+/* Card: neutral surface. Criticality is the colour of the dot and title, nothing louder. */
+.card { --tier: var(--subtle); --ring: var(--tier); padding: 14px; transition: background-color .4s var(--ease), border-color .4s var(--ease); }
+.card[data-tier="low"] { --tier: var(--primary-ink); }
+.card[data-tier="medium"] { --tier: var(--wait-ink); }
+.card[data-tier="high"] { --tier: var(--danger-ink); }
+.head h2 { display: flex; align-items: center; gap: 7px; font-size: .6875rem; font-weight: 700; line-height: 1.2; letter-spacing: .07em; text-transform: uppercase; color: var(--tier); }
+.dot { flex: none; width: 7px; height: 7px; border-radius: 50%; background: var(--tier); }
 
-/* The fact is the product: it leads, in the largest type on the strip. */
-.fact { margin-top: 6px; font-size: 1rem; font-weight: 450; line-height: 1.3; text-wrap: pretty; }
-.card[data-tier] .fact { font-size: 1.25rem; font-weight: 500; line-height: 1.2; letter-spacing: -.02em; text-wrap: balance; }
-.meta { margin-top: 8px; font-size: .875rem; color: var(--muted); line-height: 1.35; }
-.meta.source { font-size: .75rem; color: var(--subtle); }
+/* The fact: a quiet label, then the change as the largest thing on the strip. */
+.label { margin-top: 10px; font-size: .8125rem; color: var(--muted); }
+.change { margin-top: 1px; display: flex; flex-wrap: wrap; align-items: baseline; gap: 0 .38em; font-size: 1.625rem; font-weight: 600; line-height: 1.2; letter-spacing: -.025em; font-variant-numeric: tabular-nums; }
+.change .old { color: var(--subtle); font-weight: 450; }
+.change .arrow { color: var(--subtle); font-weight: 400; }
+.change .unit { font-size: .8125rem; font-weight: 450; letter-spacing: 0; color: var(--muted); }
+.claim { margin-top: 8px; font-size: .9375rem; line-height: 1.35; text-wrap: pretty; }
+.meta { margin-top: 8px; font-size: .8125rem; color: var(--muted); line-height: 1.35; }
 
-/* Checking: amber, pulsing, no criticality yet. */
-.card.checking { border-style: dashed; border-color: var(--wait); }
-.card.checking .head { justify-content: flex-start; }
-.card.checking h2 { color: var(--warn-ink); }
-.dot { width: 8px; height: 8px; border-radius: 50%; background: var(--wait); animation: pulse 1.4s ease-in-out infinite; }
-@keyframes pulse { 50% { opacity: .3; } }
+/* Where it comes from: the source as a chip with the time it was read, then the words found there. */
+.source { margin-top: 10px; display: flex; flex-wrap: wrap; align-items: center; gap: 5px 8px; font-size: .75rem; color: var(--muted); line-height: 1.35; }
+.chip { display: inline-flex; align-items: center; gap: 6px; padding: 2px 9px 2px 7px; border-radius: 999px; background: var(--raise); border: 1px solid var(--line); color: var(--fg); font-weight: 500; white-space: nowrap; }
+.chip::before { content: ""; width: 9px; height: 9px; border-radius: 50%; border: 1.5px solid var(--subtle); box-shadow: inset 0 0 0 1px transparent; background: linear-gradient(var(--subtle), var(--subtle)) center / 1.5px 100% no-repeat; }
+.evidence { quotes: "“" "”"; }
 
-/* Unverified: muted, then fades out (hud.ts removes it after). */
-.card.unverified { border-style: dashed; border-color: var(--line-strong); color: var(--muted); }
-.card.unverified h2 { color: var(--muted); font-weight: 450; }
+/* Who and what it touches: strategies that rely on the fact, people asked or told. */
+.extras { margin-top: 12px; padding-top: 11px; border-top: 1px solid var(--line); display: grid; gap: 7px; }
+.extras:empty { display: none; }
+.row { display: flex; flex-wrap: wrap; align-items: center; gap: 5px 7px; font-size: .8125rem; line-height: 1.3; }
+.row-label { min-width: 62px; font-size: .75rem; color: var(--subtle); }
+.row-label:empty { display: none; }
+.strategy { padding: 2px 8px; border-radius: 6px; font-weight: 600; color: var(--tier); background: color-mix(in srgb, var(--tier) 14%, transparent); }
+.person { display: inline-flex; align-items: center; gap: 6px; font-weight: 500; }
+.avatar { flex: none; display: grid; place-items: center; width: 19px; height: 19px; border-radius: 50%; background: var(--raise); border: 1px solid var(--line-strong); font: 700 .5625rem/1 var(--sans); font-style: normal; letter-spacing: .02em; color: var(--muted); }
+.role { font-weight: 450; color: var(--subtle); }
+.role::before { content: "· "; }
+.told { font-size: .6875rem; font-weight: 600; color: var(--ok-ink); }
+.told::before { content: "✓ "; }
+.healed { color: var(--ok-ink); font-weight: 500; }
+.healed::before { content: "✓ "; }
 
-.card.message { --ring: var(--primary); background: var(--primary-soft); border-color: var(--primary-line); }
-.card.message h2 { color: var(--primary-ink); }
+/* Accept / Reject: always live (the HUD takes the mouse where it draws); each shows its global hotkey. */
+.actions { display: flex; gap: 8px; margin-top: 14px; }
+.card button { flex: 1; display: flex; align-items: center; justify-content: center; gap: 8px; font: inherit; font-weight: 600; padding: 8px 10px; border-radius: 999px; border: 1px solid var(--line-strong); background: transparent; color: var(--fg); cursor: pointer; transition: background .2s var(--ease), border-color .2s var(--ease), color .2s var(--ease), opacity .2s var(--ease), transform .12s var(--ease); }
+.card button:hover:not(:disabled) { background: var(--surface-hover); }
+.card button.accept { background: var(--ink); border-color: var(--ink); color: var(--on-ink); }
+.card button.accept:hover:not(:disabled) { background: var(--ink-hover); border-color: var(--ink-hover); }
+.card button:active:not(:disabled) { transform: scale(.97); }
+.card button:focus-visible { outline: 2px solid var(--primary); outline-offset: 2px; }
+.card button:disabled { opacity: .4; cursor: default; }
+.card button.chosen:disabled { opacity: 1; }
+kbd { display: inline-flex; gap: 2px; font: 600 .625rem/1.3 var(--sans); letter-spacing: .01em; opacity: .75; }
+kbd span { padding: 1px 4px; border-radius: 4px; border: 1px solid color-mix(in srgb, currentColor 28%, transparent); background: color-mix(in srgb, currentColor 9%, transparent); }
+.sendstate { margin-top: 7px; }
+.sendstate.error { color: var(--danger-ink); }
 
-/* Motion (enter, exit and sibling glide are WAAPI in hud.ts). The verdict lands with one ring pulse and its
-   content rises in on the card that stays; the tint above tweens from the checking amber. */
+/* Checking: the claim, then each step of the check as it happens. */
+.card.checking { --tier: var(--wait-ink); }
+.card.checking .dot { animation: pulse 1.4s ease-in-out infinite; }
+.steps { list-style: none; margin-top: 11px; padding: 0; display: grid; gap: 6px; font-size: .8125rem; color: var(--muted); }
+.steps li { display: flex; align-items: center; gap: 8px; }
+.steps li::before { content: ""; flex: none; width: 13px; height: 13px; border-radius: 50%; }
+.steps .done::before { content: "✓"; display: grid; place-items: center; font-size: .5625rem; font-weight: 800; line-height: 1; color: var(--ok-ink); background: color-mix(in srgb, var(--ok) 22%, transparent); }
+.steps .active { color: var(--fg); }
+.steps .active::before { border: 1.5px solid color-mix(in srgb, var(--wait) 30%, transparent); border-top-color: var(--wait); animation: spin .8s linear infinite; }
+
+/* Outcomes. Updated / confirmed: green with a check. Kept and unverified: quiet. All fade on their own (hud.ts). */
+.card.updated, .card.confirmed { --tier: var(--ok-ink); --ring: var(--ok); }
+.card.updated { background: var(--ok-surface); border-color: var(--ok-line); }
+.card.updated .change .old { text-decoration-thickness: 2px; text-decoration-color: color-mix(in srgb, var(--subtle) 85%, transparent); }
+.card.updated .change .new { color: var(--ok-ink); }
+.tick { position: relative; flex: none; width: 14px; height: 14px; border-radius: 50%; background: var(--ok); animation: tick .5s var(--ease) .1s both; }
+.tick::after { content: ""; position: absolute; left: 4.6px; top: 2.4px; width: 3.4px; height: 7px; border: solid var(--on-ink); border-width: 0 1.8px 1.8px 0; transform: rotate(45deg); }
+.card.kept, .card.unverified { border-style: dashed; border-color: var(--line-strong); }
+.card.unverified .claim { color: var(--muted); }
+.card.message { --tier: var(--primary-ink); }
+
+/* Motion (enter, exit and sibling glide are WAAPI in hud.ts). News lands with one ring pulse and its content
+   rises in on the card that stays. */
 .card.land { animation: land .8s var(--ease); }
 @keyframes land {
   from { box-shadow: var(--lift), 0 0 0 0 color-mix(in srgb, var(--ring) 55%, transparent); }
   to { box-shadow: var(--lift), 0 0 0 8px color-mix(in srgb, var(--ring) 0%, transparent); }
 }
-.card.swap > * { animation: rise .4s var(--ease) both; }
-.card.swap > :nth-child(2) { animation-delay: 50ms; }
-.card.swap > :nth-child(3) { animation-delay: 100ms; }
-.card.swap > :nth-child(4) { animation-delay: 150ms; }
+.card.swap > *, .rise { animation: rise .4s var(--ease) both; }
+.card.swap > :nth-child(2) { animation-delay: 40ms; }
+.card.swap > :nth-child(3) { animation-delay: 80ms; }
+.card.swap > :nth-child(4) { animation-delay: 120ms; }
+.card.swap > :nth-child(n+5) { animation-delay: 160ms; }
 @keyframes rise { from { opacity: 0; transform: translateY(6px); } }
 @keyframes line-in { from { opacity: 0; transform: translateY(6px); } }
 @keyframes pop { from { opacity: 0; transform: translateY(-6px); } }
 @keyframes fade { from { opacity: 0; } }
-
-/* Review buttons: context.dev pills. Visibly inert (dashed, muted) while the HUD is click-through;
-   live, Accept is the light CTA pill and Reject the outline pill. */
-.actions { display: flex; gap: 8px; margin-top: 12px; }
-.card button { flex: 1; font: inherit; font-weight: 500; padding: 7px 10px; border-radius: 999px; border: 1px dashed var(--line-strong); background: transparent; color: var(--muted); pointer-events: none; transition: background .25s var(--ease), border-color .25s var(--ease), color .25s var(--ease), opacity .2s var(--ease), transform .12s var(--ease); }
-body.interactive .card button { pointer-events: auto; cursor: pointer; border-style: solid; border-color: var(--line-strong); background: var(--surface); color: var(--fg); }
-body.interactive .card button.accept { background: var(--ink); border-color: var(--ink); color: var(--on-ink); }
-body.interactive .card button:hover:not(:disabled) { background: var(--surface-hover); }
-body.interactive .card button.accept:hover:not(:disabled) { background: var(--ink-hover); border-color: var(--ink-hover); }
-body.interactive .card button:active:not(:disabled) { transform: scale(.97); }
-body.interactive .card button:focus-visible { outline: 2px solid var(--primary); outline-offset: 2px; }
-.card button:disabled { opacity: .45; cursor: default; }
-.card button.chosen:disabled { opacity: 1; }
-body.interactive .card button.reject.chosen { border-color: var(--fg); }
-.sendstate { margin-top: 6px; }
-.sendstate.error { color: var(--danger-ink); }
-/* Outcome: the fact's own card turns into it and fades after a few seconds (hud.ts), no second card.
-   Updated (Accept, or an automatic low-tier update): green, a check pops in, the old value is struck through.
-   Kept (Reject): quiet grey with the stored value. */
-.card.updated { --ring: var(--ok); background: var(--ok-soft); border-color: var(--ok-line); }
-.card.updated h2 { display: flex; align-items: center; gap: 7px; color: var(--ok-ink); }
-.card.updated .fact, .card.kept .fact { font-size: 1.25rem; font-weight: 500; line-height: 1.2; letter-spacing: -.02em; text-wrap: balance; }
-.fact .old { color: var(--muted); font-weight: 450; text-decoration-thickness: 2px; text-decoration-color: color-mix(in srgb, var(--muted) 80%, transparent); }
-.fact .new { color: var(--ok-ink); font-weight: 600; }
-.tick { position: relative; flex: none; width: 16px; height: 16px; border-radius: 50%; background: var(--ok); animation: tick .5s var(--ease) .1s both; }
-.tick::after { content: ""; position: absolute; left: 5.5px; top: 3px; width: 4px; height: 8px; border: solid var(--on-ink); border-width: 0 2px 2px 0; transform: rotate(45deg); }
+@keyframes pulse { 50% { opacity: .3; } }
+@keyframes spin { to { transform: rotate(360deg); } }
 @keyframes tick { from { transform: scale(0); } 60% { transform: scale(1.25); } }
-.card.kept { border-style: dashed; border-color: var(--line-strong); }
-.card.kept h2 { color: var(--muted); }
-@media (prefers-reduced-motion: reduce) {
-  .dot { animation: none; }
-  .tick { animation-name: fade; }
-  .card.swap > *, .transcript, .transcript p { animation-name: fade; }
-  .card button:active { transform: none; }
-}
 
-/* Everything the HUD shows is a little see-through. Set on the containers, not on each card: cards and
-   transcript lines animate their own opacity when they enter and leave. */
-.bar, .transcript, .cards { opacity: .75; }
+@media (prefers-reduced-motion: reduce) {
+  .dot, .status::before, .steps .active::before { animation: none; }
+  .card.swap > *, .rise, .bar, .transcript, .transcript p, .tick { animation-name: fade; }
+  .card button:active { transform: none; }
+  .meter i { transition: none; }
+}
