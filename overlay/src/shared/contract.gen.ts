@@ -6,6 +6,7 @@
 export type InlookEvent =
   | TranscriptLineEvent
   | ClaimSpottedEvent
+  | ClaimProgressEvent
   | ClaimUnverifiedEvent
   | ClaimVerdictEvent
   | FactUpdatedEvent
@@ -38,6 +39,22 @@ export interface ClaimSpottedPayload {
   text: string;
   source: "audio" | "selection" | "screenshot" | "page";
   lineId?: string | null;
+}
+export interface ClaimProgressEvent {
+  seq: number;
+  type: "claim.progress";
+  payload: ClaimProgressPayload;
+  at: string;
+}
+/**
+ * A step of a running check, between claim.spotted and its verdict. matched: the claim is about a stored fact (label). reading: its source is being read now (sourceUrl), or the web is being searched (no sourceUrl).
+ */
+export interface ClaimProgressPayload {
+  claimId: string;
+  step: "matched" | "reading";
+  factId?: string | null;
+  label?: string | null;
+  sourceUrl?: string | null;
 }
 export interface ClaimUnverifiedEvent {
   seq: number;

@@ -94,7 +94,7 @@ class ClaimDeadlineTest(unittest.IsolatedAsyncioTestCase):
         self.fact = fact
 
     def types(self):
-        return [e.root.type for e in self.log._events]
+        return [e.root.type for e in self.log._events if e.root.type != "claim.progress"]
 
     async def test_a_hanging_match_closes_the_card_in_time(self):
         async def hang(*_):

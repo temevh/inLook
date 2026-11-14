@@ -11,6 +11,9 @@
       "$ref": "#/$defs/ClaimSpottedEvent"
     },
     {
+      "$ref": "#/$defs/ClaimProgressEvent"
+    },
+    {
       "$ref": "#/$defs/ClaimUnverifiedEvent"
     },
     {
@@ -159,6 +162,71 @@
         },
         "payload": {
           "$ref": "#/$defs/ClaimSpottedPayload"
+        },
+        "at": {
+          "type": "string",
+          "format": "date-time"
+        }
+      },
+      "required": [
+        "seq",
+        "type",
+        "payload",
+        "at"
+      ]
+    },
+    "ClaimProgressPayload": {
+      "description": "A step of a running check, between claim.spotted and its verdict. matched: the claim is about a stored fact (label). reading: its source is being read now (sourceUrl), or the web is being searched (no sourceUrl).",
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "claimId": {
+          "type": "string"
+        },
+        "step": {
+          "enum": [
+            "matched",
+            "reading"
+          ]
+        },
+        "factId": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "label": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "sourceUrl": {
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      },
+      "required": [
+        "claimId",
+        "step"
+      ]
+    },
+    "ClaimProgressEvent": {
+      "title": "ClaimProgressEvent",
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "seq": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "type": {
+          "const": "claim.progress"
+        },
+        "payload": {
+          "$ref": "#/$defs/ClaimProgressPayload"
         },
         "at": {
           "type": "string",
